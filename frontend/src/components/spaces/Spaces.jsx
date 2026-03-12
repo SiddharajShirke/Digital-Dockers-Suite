@@ -29,6 +29,7 @@ const Spaces = () => {
   // Load spaces on mount
   useEffect(() => {
     loadSpaces();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   const loadSpaces = async () => {

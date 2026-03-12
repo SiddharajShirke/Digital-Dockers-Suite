@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, List, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal } from 'antd';
+import { Row, Col, Card, Typography, List, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme } from 'antd';
 import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -20,13 +20,12 @@ const { Title, Text } = Typography;
 
 const ProjectDashboard = () => {
     const { currentProject, sprints } = useProject();
+    const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
     // New state for Jira-style features
     const [forYouData, setForYouData] = useState(null);
     const [upcomingData, setUpcomingData] = useState(null);
-    const [burndownData, setBurndownData] = useState(null);
-    const [assignedToMe, setAssignedToMe] = useState([]);
     // Smart Reassignment modal state
     const [showReassignmentModal, setShowReassignmentModal] = useState(false);
 
@@ -47,7 +46,6 @@ const ProjectDashboard = () => {
             ]);
 
             setStats(statsData);
-            setAssignedToMe(assignedTasks || []);
 
             // Build ForYou section data from real database
             const forYouData = {
@@ -63,15 +61,6 @@ const ProjectDashboard = () => {
             setUpcomingData(upcomingData);
 
             // Load burndown if there's an active sprint
-            if (statsData.activeSprint?._id) {
-                try {
-                    const burndown = await projectStatsService.getBurndownData(statsData.activeSprint._id);
-                    setBurndownData(burndown);
-                } catch (burndownError) {
-                    console.warn('Could not load burndown data:', burndownError);
-                    setBurndownData(null);
-                }
-            }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             message.error('Failed to load dashboard data');
@@ -185,7 +174,7 @@ const ProjectDashboard = () => {
                         <div className="kpi-content">
                             <div className="kpi-label">Completed</div>
                             <div className="kpi-value">{displayDoneCount}</div>
-                            <div style={{ fontSize: 12, color: '#626f86', marginTop: 8 }}>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
                                 of {displayTotalCount} total
                             </div>
                         </div>
@@ -199,7 +188,7 @@ const ProjectDashboard = () => {
                         <div className="kpi-content">
                             <div className="kpi-label">Days Remaining</div>
                             <div className="kpi-value">{stats?.daysRemaining || 0}</div>
-                            <div style={{ fontSize: 12, color: '#626f86', marginTop: 8 }}>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
                                 in sprint
                             </div>
                         </div>
@@ -213,7 +202,7 @@ const ProjectDashboard = () => {
                         <div className="kpi-content">
                             <div className="kpi-label">Velocity</div>
                             <div className="kpi-value">{stats?.velocity || 0}</div>
-                            <div style={{ fontSize: 12, color: '#626f86', marginTop: 8 }}>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
                                 points/day
                             </div>
                         </div>
@@ -295,15 +284,15 @@ const ProjectDashboard = () => {
                             <Card
                                 title={
                                     <div>
-                                        <Typography.Text strong style={{ fontSize: '13px', color: '#262626', fontWeight: 600 }}>
+                                        <Typography.Text strong style={{ fontSize: '13px', color: token.colorText, fontWeight: 600 }}>
                                             Team workload
                                         </Typography.Text>
-                                        <div style={{ fontSize: '12px', color: '#626f86', marginTop: 2 }}>
+                                        <div style={{ fontSize: '12px', color: token.colorTextSecondary, marginTop: 2 }}>
                                             Monitor the capacity of your team.{' '}
                                             <a href="#" onClick={(e) => {
                                                 e.preventDefault();
                                                 setShowReassignmentModal(true);
-                                            }} style={{ color: '#0052cc', textDecoration: 'none', fontWeight: 500 }}>
+                                            }} style={{ color: token.colorPrimary, textDecoration: 'none', fontWeight: 500 }}>
                                                 Reassign work items to get the right balance
                                             </a>
                                         </div>
@@ -312,7 +301,7 @@ const ProjectDashboard = () => {
                                 style={{
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                                     borderRadius: 8,
-                                    border: '1px solid #f0f0f0'
+                                    border: `1px solid ${token.colorBorderSecondary}`
                                 }}
                                 styles={{ body: { padding: '16px 0' } }}
                             >
@@ -321,12 +310,12 @@ const ProjectDashboard = () => {
                                         {/* Header Row */}
                                         <div style={{ display: 'flex', paddingLeft: 16, paddingRight: 16, marginBottom: 8, gap: 24 }}>
                                             <div style={{ flex: 1, minWidth: 0 }}>
-                                                <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#626f86' }}>
+                                                <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: token.colorTextSecondary }}>
                                                     Assignee
                                                 </Text>
                                             </div>
                                             <div style={{ flex: 1.5 }}>
-                                                <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#626f86' }}>
+                                                <Text type="secondary" strong style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: token.colorTextSecondary }}>
                                                     Work distribution
                                                 </Text>
                                             </div>
@@ -345,7 +334,7 @@ const ProjectDashboard = () => {
                                                         paddingRight: 16,
                                                         paddingTop: 12,
                                                         paddingBottom: 12,
-                                                        borderBottom: idx < stats.workload.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                                        borderBottom: idx < stats.workload.length - 1 ? `1px solid ${token.colorBorderSecondary}` : 'none',
                                                         alignItems: 'center',
                                                         gap: 24
                                                     }}
@@ -360,7 +349,7 @@ const ProjectDashboard = () => {
                                                         </Avatar>
                                                         <Text
                                                             ellipsis
-                                                            style={{ fontSize: '13px', color: '#262626', fontWeight: 500 }}
+                                                            style={{ fontSize: '13px', color: token.colorText, fontWeight: 500 }}
                                                         >
                                                             {item.name}
                                                         </Text>
@@ -386,7 +375,7 @@ const ProjectDashboard = () => {
                                                         </div>
                                                         <Text
                                                             strong
-                                                            style={{ fontSize: '12px', color: '#262626', minWidth: 60, textAlign: 'right', flexShrink: 0 }}
+                                                            style={{ fontSize: '12px', color: token.colorText, minWidth: 60, textAlign: 'right', flexShrink: 0 }}
                                                         >
                                                             {item.points || 0} of {maxPoints || 0} pts ({Math.round(percentage)}%)
                                                         </Text>

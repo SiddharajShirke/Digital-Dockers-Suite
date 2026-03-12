@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+
 import { Row, Col, Card, Typography, Button, Empty, Spin, Tag, Avatar, Space, Skeleton, Grid } from 'antd';
 import { PlusOutlined, TeamOutlined, SettingOutlined, ProjectOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,7 @@ const ProjectsListPage = () => {
     const screens = useBreakpoint();
 
     const isMobile = !screens.md;
-    const isTablet = screens.md && !screens.lg;
+
 
     const handleProjectClick = (project) => {
         switchProject(project._id);

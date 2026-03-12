@@ -121,6 +121,7 @@ const TeamManagement = () => {
             setTeams(teams.map(t => t._id === updated._id ? updated : t));
             message.success('Member added');
         } catch (error) {
+            console.error('Add member error:', error);
             message.error('Failed to add member');
         }
     };
@@ -139,6 +140,7 @@ const TeamManagement = () => {
             setTeams(teams.map(t => t._id === updated._id ? updated : t));
             message.success('Member removed');
         } catch (error) {
+            console.error('Remove member error:', error);
             message.error('Failed to remove member');
         }
     };

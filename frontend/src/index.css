@@ -358,6 +358,18 @@ h3 {
   --color-text-primary: #e6edf3;
   --color-text-secondary: #8b949e;
   --color-border: #30363d;
+
+  /* Surface tokens for dark-mode component backgrounds */
+  --surface-primary: #161b22;
+  --surface-secondary: #1c2128;
+  --surface-tertiary: #21262d;
+  --surface-hover: #292e36;
+  --text-on-surface: #e6edf3;
+  --text-on-surface-secondary: #8b949e;
+  --border-surface: #30363d;
+  --shadow-dark-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-dark-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-dark-lg: 0 8px 30px rgba(0, 0, 0, 0.6);
 }
 
 /* Print Styles */

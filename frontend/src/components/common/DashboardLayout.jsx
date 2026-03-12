@@ -23,11 +23,12 @@ const DashboardLayout = () => {
     // Auto-collapse sidebar on tablet
     useEffect(() => {
         if (isTablet && !desktopCollapsed) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setDesktopCollapsed(true);
         } else if (isDesktop && desktopCollapsed) {
             setDesktopCollapsed(false);
         }
-    }, [isTablet, isDesktop]);
+    }, [isTablet, isDesktop, desktopCollapsed]);
 
     const toggleMobileSidebar = () => setMobileSidebarOpen(!mobileSidebarOpen);
 

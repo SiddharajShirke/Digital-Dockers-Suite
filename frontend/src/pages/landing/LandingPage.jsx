@@ -6,6 +6,7 @@ import {
     CheckSquare, Presentation, MessageSquare, FileText, Video,
     Users, TrendingUp, Shield, Star, Menu, X
 } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import './LandingPage.css';
 
@@ -194,12 +195,12 @@ const LandingPage = () => {
                                 <path d="M2 10V22L16 30L30 22V10L16 18L2 10Z" fill="url(#gradient2)" />
                                 <defs>
                                     <linearGradient id="gradient1" x1="2" y1="2" x2="30" y2="10" gradientUnits="userSpaceOnUse">
-                                        <stop stopColor="#4f46e5" />
-                                        <stop offset="1" stopColor="#ec4899" />
+                                        <stop stopColor="#0052CC" />
+                                        <stop offset="1" stopColor="#0747A6" />
                                     </linearGradient>
                                     <linearGradient id="gradient2" x1="2" y1="10" x2="30" y2="22" gradientUnits="userSpaceOnUse">
-                                        <stop stopColor="#7c3aed" />
-                                        <stop offset="1" stopColor="#4f46e5" />
+                                        <stop stopColor="#0052CC" />
+                                        <stop offset="1" stopColor="#172B4D" />
                                     </linearGradient>
                                 </defs>
                             </svg>
@@ -438,12 +439,12 @@ const LandingPage = () => {
                                     <path d="M2 10V22L16 30L30 22V10L16 18L2 10Z" fill="url(#footerGrad2)" />
                                     <defs>
                                         <linearGradient id="footerGrad1" x1="2" y1="2" x2="30" y2="10" gradientUnits="userSpaceOnUse">
-                                            <stop stopColor="#4f46e5" />
-                                            <stop offset="1" stopColor="#ec4899" />
+                                            <stop stopColor="#0052CC" />
+                                            <stop offset="1" stopColor="#0747A6" />
                                         </linearGradient>
                                         <linearGradient id="footerGrad2" x1="2" y1="10" x2="30" y2="22" gradientUnits="userSpaceOnUse">
-                                            <stop stopColor="#7c3aed" />
-                                            <stop offset="1" stopColor="#4f46e5" />
+                                            <stop stopColor="#0052CC" />
+                                            <stop offset="1" stopColor="#172B4D" />
                                         </linearGradient>
                                     </defs>
                                 </svg>

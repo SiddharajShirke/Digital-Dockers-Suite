@@ -59,7 +59,6 @@ function App() {
           <ProjectProvider>
             <Router>
               <Routes>
-                {/* ... existing routes ... */}
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -93,9 +92,6 @@ function App() {
                   <Route path="spaces" element={<Spaces />} />
                   <Route path="work-planner" element={<CalendarWorkPlanner />} />
                   <Route path="tech-debt" element={<TechDebtPage />} />
-                  {/* TODO: Add SlideGeneratorPage and PresentationViewer when implemented */}
-                  {/* <Route path="slide-generator" element={<SlideGeneratorPage />} /> */}
-                  {/* <Route path="presentations/:id" element={<PresentationViewer />} /> */}
                   <Route path="team-management" element={
                     <ProtectedRoute roles={['admin']}>
                       <TeamManagement />

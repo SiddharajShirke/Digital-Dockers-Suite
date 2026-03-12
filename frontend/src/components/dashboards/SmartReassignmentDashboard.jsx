@@ -121,7 +121,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
             title: 'Employee Name',
             dataIndex: ['name'],
             key: 'name',
-            render: (text, record) => (
+            render: (text) => (
                 <Space>
                     <UserOutlined />
                     <strong>{text}</strong>

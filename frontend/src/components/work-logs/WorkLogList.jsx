@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import workLogService from '../../services/workLogService';
 import './WorkLogs.css';
 
@@ -8,7 +8,7 @@ import './WorkLogs.css';
  * Displays list of work logs for a ticket
  * Shows time, user, type, and allows editing/deletion
  */
-const WorkLogList = ({ logs = [], onDeleted, onEdited }) => {
+const WorkLogList = ({ logs = [], onDeleted }) => {
   const [deleting, setDeleting] = useState(null);
   const [error, setError] = useState(null);
 

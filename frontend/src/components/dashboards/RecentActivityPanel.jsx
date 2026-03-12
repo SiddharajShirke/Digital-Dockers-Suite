@@ -4,15 +4,6 @@ import { formatDistanceToNow } from 'date-fns';
 
 const { Text } = Typography;
 
-const activityIconMap = {
-    'issue_created': <EditOutlined style={{ color: '#0052cc' }} />,
-    'issue_updated': <EditOutlined style={{ color: '#00875a' }} />,
-    'comment_added': <UserAddOutlined style={{ color: '#626f86' }} />,
-    'status_changed': <CheckCircleOutlined style={{ color: '#00875a' }} />,
-    'sprint_started': <PlayCircleOutlined style={{ color: '#ff5630' }} />,
-    'issue_moved': <CheckCircleOutlined style={{ color: '#0052cc' }} />,
-};
-
 const RecentActivityPanel = ({ activities, maxHeight = 400 }) => {
     const formatTime = (date) => {
         try {

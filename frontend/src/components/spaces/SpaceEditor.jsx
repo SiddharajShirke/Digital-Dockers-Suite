@@ -12,7 +12,7 @@ import useSpaceWebSocket from '../../hooks/useSpaceWebSocket';
  * SpaceEditor Component
  * Main editor with tabs for Notes, Whiteboard, and Mind Map
  */
-const SpaceEditor = ({ space, currentUser, onUpdate }) => {
+const SpaceEditor = ({ space, currentUser }) => {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('notes');
@@ -20,13 +20,12 @@ const SpaceEditor = ({ space, currentUser, onUpdate }) => {
   const [lastSaved, setLastSaved] = useState(null);
 
   // Initialize WebSocket connection
-  const { 
-    isConnected, 
-    activeUsers, 
-    cursors, 
+  const {
+    isConnected,
+    activeUsers,
+    cursors,
     typingUsers,
-    sendUpdate,
-    requestSync 
+    sendUpdate
   } = useSpaceWebSocket(space._id, currentUser._id);
 
   useEffect(() => {
@@ -51,7 +50,7 @@ const SpaceEditor = ({ space, currentUser, onUpdate }) => {
         `/api/spaces/${space._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      
+
       setContent(response.data.data.content);
     } catch (error) {
       message.error('Failed to load space content');
@@ -75,9 +74,9 @@ const SpaceEditor = ({ space, currentUser, onUpdate }) => {
         },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      
+
       setLastSaved(new Date());
-      
+
       // Broadcast update to other users
       sendUpdate({
         contentType: content.contentType,
@@ -108,11 +107,11 @@ const SpaceEditor = ({ space, currentUser, onUpdate }) => {
         },
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      
+
       setContent(response.data.data);
       setLastSaved(new Date());
       message.success('Changes saved');
-      
+
       // Broadcast to other users
       sendUpdate({
         ...updatedContent,

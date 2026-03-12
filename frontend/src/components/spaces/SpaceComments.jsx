@@ -18,6 +18,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
     loadComments();
     const interval = setInterval(loadComments, 10000); // Poll every 10s
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId]);
 
   const loadComments = async () => {
@@ -28,7 +29,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setComments(response.data.data || []);
-    } catch (error) {
+    } catch {
       console.error('Failed to load comments');
     } finally {
       setLoading(false);
@@ -52,7 +53,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
       setNewComment('');
       loadComments();
       message.success('Comment added');
-    } catch (error) {
+    } catch {
       message.error('Failed to add comment');
     } finally {
       setSubmitting(false);
@@ -68,7 +69,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
 
       loadComments();
       message.success('Comment deleted');
-    } catch (error) {
+    } catch {
       message.error('Failed to delete comment');
     }
   };

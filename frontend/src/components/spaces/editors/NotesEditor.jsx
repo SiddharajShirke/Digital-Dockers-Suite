@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Space, Divider, message, Tooltip } from 'antd';
+import { Button, Space, Divider, Tooltip } from 'antd';
 import { SaveOutlined, BoldOutlined, ItalicOutlined, UnorderedListOutlined, OrderedListOutlined, StrikethroughOutlined, FileMarkdownOutlined } from '@ant-design/icons';
 import { Heading2, Quote, Code } from 'lucide-react';
 import './NotesEditor.css';
@@ -10,18 +10,17 @@ import './NotesEditor.css';
  */
 const NotesEditor = ({
   content,
-  setContent,
   onSave,
   isConnected,
   activeUsers,
   typingUsers,
-  currentUser,
   isSaving
 }) => {
   const [text, setText] = useState(content?.textContent || '');
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setText(content?.textContent || '');
   }, [content]);
 

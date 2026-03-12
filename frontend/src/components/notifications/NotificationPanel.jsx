@@ -15,14 +15,12 @@ const NotificationPanel = ({ token }) => {
     notifications,
     unreadCount,
     isConnected,
-    error,
-    markAsRead,
     markAllAsRead,
     archiveNotification,
-    fetchNotifications
+    markAsRead
   } = useRealtimeNotifications(token);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [visibleNotifications, setVisibleNotifications] = useState(notifications);
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
@@ -40,7 +38,7 @@ const NotificationPanel = ({ token }) => {
 
     // Navigate to action URL if available
     if (notification.actionUrl) {
-      window.location.href = notification.actionUrl;
+      window.location.assign(notification.actionUrl);
     }
   };
 

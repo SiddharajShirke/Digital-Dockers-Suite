@@ -97,36 +97,22 @@ const HealthGauge = ({ value = 0, size = 80, isDarkMode }) => {
 };
 
 const TopKPIs = ({ metrics, loading, isDarkMode }) => {
-  if (loading || !metrics) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className={`rounded-xl shadow p-5 h-28 animate-pulse ${isDarkMode ? "bg-slate-800" : "bg-gray-100"
-              }`}
-          >
-            <div className={`h-3 w-20 rounded mb-3 ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
-            <div className={`h-8 w-16 rounded ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+
 
   // Generate mock history for sparklines (in production, this would come from the API)
   const generateHistory = (current, variance = 10) => {
     const history = [];
     let val = current;
     for (let i = 0; i < 7; i++) {
-      history.unshift(Math.max(0, val + (Math.random() - 0.5) * variance));
+      // Use deterministic pseudo-random variation instead of Math.random
+      history.unshift(Math.max(0, val + ((i % 3) - 1.5) * variance * 0.5));
       val = history[0];
     }
     history.push(current);
     return history;
   };
 
-  const kpis = [
+  const kpis = useMemo(() => [
     {
       label: "Health Score",
       value: metrics.healthScore || 75,
@@ -170,7 +156,7 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
       icon: <FaBroom />,
       trendLabel: "this sprint",
     },
-  ];
+  ], [metrics]);
 
   const getTrendIcon = (trend, color) => {
     if (trend === null || trend === undefined) return null;
@@ -206,6 +192,23 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
       default: return "#6366f1";
     }
   };
+
+  if (loading || !metrics) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className={`rounded-xl shadow p-5 h-28 animate-pulse ${isDarkMode ? "bg-slate-800" : "bg-gray-100"
+              }`}
+          >
+            <div className={`h-3 w-20 rounded mb-3 ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
+            <div className={`h-8 w-16 rounded ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

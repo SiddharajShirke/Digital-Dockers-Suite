@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Play, Pause, X } from 'lucide-react';
 import { useTimerContext } from '../../context/TimerContext';
-import { useTimer } from '../../hooks/useTimer';
 import './WorkLogs.css';
 
 /**
@@ -17,10 +16,12 @@ const TimerWidget = () => {
   // Update elapsed time every second
   useEffect(() => {
     if (!runningTimer) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowWidget(false);
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShowWidget(true);
 
     const interval = setInterval(() => {

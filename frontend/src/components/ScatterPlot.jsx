@@ -10,7 +10,7 @@ const ScatterPlot = ({ data = [], isDarkMode, onPointClick }) => {
     const svgRef = useRef();
     const containerRef = useRef();
     const [hoveredPoint, setHoveredPoint] = useState(null);
-    const [showQuadrantLabels, setShowQuadrantLabels] = useState(true);
+    const [showQuadrantLabels] = useState(true);
 
     // Process data for scatter plot
     const { points, maxComplexity, maxChurn, avgComplexity, avgChurn } = useMemo(() => {

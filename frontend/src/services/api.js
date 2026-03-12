@@ -8,15 +8,13 @@ const api = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    withCredentials: true,
 });
 
-// Request interceptor to add token
+// We keep request interceptor for logging or other custom headers, but token is in cookie
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
+        // Token is handled via HttpOnly cookie automatically.
         return config;
     },
     (error) => Promise.reject(error)
@@ -25,10 +23,22 @@ api.interceptors.request.use(
 // Response interceptor to handle 401
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            window.location.href = '/login';
+            // Prevent infinite loops if the logout route itself returns 401
+            if (error.config.url !== '/auth/logout') {
+                try {
+                    await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, { withCredentials: true });
+                } catch (e) {
+                    console.error('Logout failed to clear cookie', e);
+                }
+            }
+            localStorage.removeItem('user');
+            
+            // Only redirect if not already on login page to prevent looping
+            if (!window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

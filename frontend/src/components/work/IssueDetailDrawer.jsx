@@ -71,11 +71,8 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
     const [currentIssue, setCurrentIssue] = useState(issue);
     const [comment, setComment] = useState('');
     const [sending, setSending] = useState(false);
-    const [users, setUsers] = useState([]);
-    const [updating, setUpdating] = useState(false);
     const [loadingField, setLoadingField] = useState(null);
-    const [aiLoading, setAiLoading] = useState(false);
-    const [aiInsights, setAiInsights] = useState(null);
+    const [users, setUsers] = useState([]);
     const screens = useBreakpoint();
     const isMobile = !screens.sm;
     const originalIssueRef = useRef(issue);
@@ -197,113 +194,7 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
         }
     };
 
-    /**
-     * ========================================================================
-     * AI HOOKS - Hackathon Differentiator
-     * ========================================================================
-     * TODO: Replace these with actual OpenAI API calls
-     * Endpoints:
-     * - POST /api/ai/summarize-issue (Claude/GPT-4)
-     * - POST /api/ai/suggest-action (Prompt engineering)
-     * - POST /api/ai/detect-risk (Heuristics + AI)
-     */
-    const handleAISummarize = async () => {
-        setAiLoading(true);
-        try {
-            // TODO: Implement OpenAI API call
-            // const response = await fetch('/api/ai/summarize-issue', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ 
-            //         title: currentIssue.title,
-            //         description: currentIssue.description,
-            //         comments: currentIssue.comments
-            //     })
-            // });
-            // const data = await response.json();
 
-            // Mock response for demo
-            const mockSummary = `${currentIssue.title} is a ${currentIssue.issueType} with ${currentIssue.priority} priority. Currently ${currentIssue.status}. Assigned to ${currentIssue.assignedTo?.map(a => a.fullName).join(', ') || 'nobody'}.`;
-
-            setAiInsights({
-                summary: mockSummary,
-                timestamp: new Date().toISOString()
-            });
-            message.success('AI summary generated');
-        } catch (error) {
-            console.error('AI error:', error);
-            message.error('Failed to generate AI summary');
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    const handleAISuggestAction = async () => {
-        setAiLoading(true);
-        try {
-            // TODO: Implement OpenAI API call
-            // const response = await fetch('/api/ai/suggest-action', { ... });
-            
-            const mockAction = currentIssue.status === 'in_progress' 
-                ? 'Move to "In Review" for team validation'
-                : currentIssue.status === 'todo'
-                ? 'Assign to team member and move to "In Progress"'
-                : currentIssue.status === 'review'
-                ? 'Fix issues identified in review, then move to "Done"'
-                : 'Create new issue for follow-up work';
-
-            setAiInsights(prev => ({
-                ...prev,
-                nextAction: mockAction,
-                timestamp: new Date().toISOString()
-            }));
-            message.success('AI suggestion generated');
-        } catch (error) {
-            console.error('AI error:', error);
-            message.error('Failed to generate suggestion');
-        } finally {
-            setAiLoading(false);
-        }
-    };
-
-    const handleAIDetectRisk = async () => {
-        setAiLoading(true);
-        try {
-            // TODO: Implement OpenAI API call with risk detection heuristics
-            // Check for:
-            // - High priority + no assignee
-            // - Overdue or approaching due date
-            // - Dependencies missing
-            // - Blocked by other issues
-            // - Story points too high (> 13)
-
-            const risks = [];
-            if (currentIssue.priority === 'critical' && !currentIssue.assignedTo?.length) {
-                risks.push('🚨 Critical priority but unassigned');
-            }
-            if (currentIssue.storyPoints > 13) {
-                risks.push('⚠️ Story points too high - consider breaking down');
-            }
-            if (currentIssue.dueDate && new Date(currentIssue.dueDate) < new Date()) {
-                risks.push('⏰ Past due date');
-            }
-            if (!currentIssue.description) {
-                risks.push('📝 Missing detailed description');
-            }
-
-            setAiInsights(prev => ({
-                ...prev,
-                risks: risks.length > 0 ? risks : ['✅ No risks detected'],
-                timestamp: new Date().toISOString()
-            }));
-            message.success('AI risk analysis complete');
-        } catch (error) {
-            console.error('AI error:', error);
-            message.error('Failed to analyze risks');
-        } finally {
-            setAiLoading(false);
-        }
-    };
 
     // Delete handler - only for creator or admin
     const canDelete = user?.role === 'admin' ||

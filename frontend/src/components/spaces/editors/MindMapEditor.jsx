@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button, Space, Input, Divider, message, Tooltip, Tag } from 'antd';
 import { SaveOutlined, PlusOutlined, DeleteOutlined, ArrowRightOutlined, ZoomInOutlined, ZoomOutOutlined } from '@ant-design/icons';
 import { Lightbulb, Zap, Sparkles } from 'lucide-react';
@@ -11,11 +11,9 @@ import './MindMapEditor.css';
  */
 const MindMapEditor = ({
   content,
-  setContent,
   onSave,
   isConnected,
   activeUsers,
-  currentUser,
   isSaving
 }) => {
   const [nodes, setNodes] = useState(content?.mindmapData?.nodes || [
@@ -143,7 +141,7 @@ const MindMapEditor = ({
         </defs>
 
         {/* Draw edges with gradient */}
-        {edges.map((edge, idx) => {
+        {edges.map((edge) => {
           const fromNode = getNode(edge.from);
           const toNode = getNode(edge.to);
           if (!fromNode || !toNode) return null;

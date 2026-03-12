@@ -27,29 +27,28 @@ const PRIORITY_COLORS = {
 
 const BacklogPage = () => {
     const { currentProject, sprints, activeSprint } = useProject();
-    const [issues, setIssues] = useState([]);
     const [backlogIssues, setBacklogIssues] = useState([]);
     const [sprintIssues, setSprintIssues] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
 
     const [searchText, setSearchText] = useState('');
     const [assigneeFilter, setAssigneeFilter] = useState(null);
     const [epicFilter, setEpicFilter] = useState(null);
+    const [, setLoading] = useState(false);
 
     const filteredBacklogIssues = useMemo(() => {
         return backlogIssues.filter(issue => {
             const matchesSearch = !searchText || issue.title?.toLowerCase().includes(searchText.toLowerCase()) || issue.key?.toLowerCase().includes(searchText.toLowerCase());
             return matchesSearch;
         });
-    }, [backlogIssues, searchText, assigneeFilter, epicFilter]);
+    }, [backlogIssues, searchText]);
 
     const filteredSprintIssues = useMemo(() => {
         return sprintIssues.filter(issue => {
             const matchesSearch = !searchText || issue.title?.toLowerCase().includes(searchText.toLowerCase()) || issue.key?.toLowerCase().includes(searchText.toLowerCase());
             return matchesSearch;
         });
-    }, [sprintIssues, searchText, assigneeFilter, epicFilter]);
+    }, [sprintIssues, searchText]);
 
     // Load issues on mount or when project/sprint changes
     useEffect(() => {
@@ -66,8 +65,6 @@ const BacklogPage = () => {
                 projectId: currentProject._id
             });
 
-            setIssues(data);
-
             // Separate into backlog and sprint issues
             const backlog = data.filter(issue => !issue.sprint);
             const sprint = data.filter(issue => issue.sprint?._id === activeSprint?._id);
@@ -77,8 +74,6 @@ const BacklogPage = () => {
         } catch (error) {
             console.error('Failed to load issues:', error);
             message.error('Failed to load backlog');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -120,7 +115,7 @@ const BacklogPage = () => {
         }
     };
 
-    const IssueRow = ({ issue, index, isDragging }) => {
+    const IssueRow = ({ issue, index }) => {
         const isCompleted = ['done', 'completed'].includes((issue.status || issue.issueStatus || '').toLowerCase());
 
         return (
@@ -174,7 +169,7 @@ const BacklogPage = () => {
 
                             {/* Middle: Title */}
                             <div className="min-w-0 flex-1">
-                                <div className="truncate w-full" style={{ fontSize: 13 }} title={issue.title}>
+                                <div className="w-full" style={{ fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.5' }} title={issue.title}>
                                     {issue.title}
                                 </div>
                             </div>

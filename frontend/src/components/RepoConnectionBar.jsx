@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { io as socketIo } from 'socket.io-client';
 import {
     FaGithub,
@@ -15,12 +15,11 @@ const RepoConnectionBar = ({
     onConnect,
     isDarkMode,
     connectedRepo = null,
-    onRefresh,
-    onDisconnect
+    onRefresh
 }) => {
     const [repoUrl, setRepoUrl] = useState('');
     const [selectedBranch, setSelectedBranch] = useState('main');
-    const [branches, setBranches] = useState(['main', 'master', 'develop']);
+    const [branches] = useState(['main', 'master', 'develop']);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -70,7 +69,7 @@ const RepoConnectionBar = ({
     // Socket listener for real-time scan updates
     useEffect(() => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-        const socket = socketIo(API_URL, { transports: ['websocket', 'polling'] });
+        const socket = socketIo(API_URL, { transports: ['websocket', 'polling'], withCredentials: true });
 
         // Track either the connected repo or the one being analyzed
         const targetRepoId = connectedRepo?.fullName || analysisProgress?.repoId;
@@ -204,13 +203,7 @@ const RepoConnectionBar = ({
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const handleDisconnect = () => {
-        setShowChangeRepo(false);
-        setAnalysisProgress(null);
-        setError('');
-        setSuccess('');
-        if (onDisconnect) onDisconnect();
-    };
+
 
     return (
         <div className={`p-4 rounded-xl mb-6 shadow-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'

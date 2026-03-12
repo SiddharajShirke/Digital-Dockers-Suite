@@ -3,6 +3,16 @@ const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
+// Helper to set cookie
+const setTokenCookie = (res, token) => {
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Supports netlify & localhost
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+};
+
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -31,12 +41,15 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
+        const token = generateToken(user._id);
+        setTokenCookie(res, token);
+        
         res.status(201).json({
             _id: user.id,
             fullName: user.fullName,
             email: user.email,
             role: user.role,
-            token: generateToken(user._id)
+            token // keeping for backwards compatibility potentially, but the cookie is what matters
         });
     } else {
         res.status(400);
@@ -54,12 +67,15 @@ const loginUser = asyncHandler(async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+        const token = generateToken(user._id);
+        setTokenCookie(res, token);
+        
         res.json({
             _id: user.id,
             fullName: user.fullName,
             email: user.email,
             role: user.role,
-            token: generateToken(user._id)
+            token
         });
     } else {
         res.status(401);
@@ -96,6 +112,7 @@ const googleAuthCallback = asyncHandler(async (req, res) => {
 
     // Normal login flow
     const token = generateToken(req.user._id);
+    setTokenCookie(res, token);
 
     // Redirect to frontend with token and user data
     const userData = encodeURIComponent(JSON.stringify({
@@ -170,10 +187,22 @@ const disconnectGoogleCalendar = asyncHandler(async (req, res) => {
     res.json({ message: 'Google Calendar disconnected successfully' });
 });
 
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Public
+const logoutUser = asyncHandler(async (req, res) => {
+    res.cookie('token', '', {
+        httpOnly: true,
+        expires: new Date(0)
+    });
+    res.status(200).json({ message: 'User logged out' });
+});
+
 module.exports = {
     registerUser,
     loginUser,
     getMe,
+    logoutUser,
     googleAuthCallback,
     connectGoogleCalendarCallback,
     disconnectGoogleCalendar

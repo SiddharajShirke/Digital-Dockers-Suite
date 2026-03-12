@@ -16,6 +16,15 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('themeMode', mode);
     }, [mode]);
 
+    // Sync 'dark' class on the root element so CSS .dark overrides work
+    useEffect(() => {
+        if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, [mode]);
+
     const toggleTheme = () => {
         setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
     };

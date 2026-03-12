@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Box, Typography, Paper, Button, LinearProgress, IconButton,
     TextField, Fade, Grow, Slider, Chip
@@ -18,9 +18,9 @@ const BreathingActivity = ({ activity, onComplete }) => {
     const [cycle, setCycle] = useState(0);
     const [scale, setScale] = useState(1);
 
-    const pattern = activity.config?.pattern === 'box'
+    const pattern = useMemo(() => activity.config?.pattern === 'box'
         ? { inhale: 4, hold1: 4, exhale: 4, hold2: 4 }
-        : { inhale: 4, hold1: 7, exhale: 8, hold2: 0 };
+        : { inhale: 4, hold1: 7, exhale: 8, hold2: 0 }, [activity.config?.pattern]);
     const totalCycles = activity.config?.cycles || 4;
 
     useEffect(() => {
@@ -74,11 +74,12 @@ const BreathingActivity = ({ activity, onComplete }) => {
         return () => clearInterval(timer);
     }, [isRunning, phase, cycle, pattern, totalCycles]);
 
-    // Animate circle
     useEffect(() => {
         if (phase === 'inhale') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setScale(1 + (count / pattern.inhale) * 0.5);
         } else if (phase === 'exhale') {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setScale(1.5 - (count / pattern.exhale) * 0.5);
         }
     }, [phase, count, pattern]);
@@ -456,16 +457,15 @@ const SoundscapeActivity = ({ activity, onComplete }) => {
     );
 };
 
-// Quote/Affirmation Activity
-const QuoteActivity = ({ activity, onComplete }) => {
-    const quotes = [
+const QuoteActivity = ({ onComplete }) => {
+    const quotes = useMemo(() => [
         { text: "You are capable of amazing things.", author: "Unknown" },
         { text: "Every moment is a fresh beginning.", author: "T.S. Eliot" },
         { text: "Be yourself; everyone else is already taken.", author: "Oscar Wilde" },
         { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
         { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" }
-    ];
-    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+    ], []);
+    const [quote] = useState(() => quotes[Math.floor(Math.random() * quotes.length)]);
 
     return (
         <Box sx={{ py: 5, textAlign: 'center' }}>
@@ -501,7 +501,7 @@ const QuoteActivity = ({ activity, onComplete }) => {
 
 // ============= Main Journey Player =============
 
-const JourneyPlayer = ({ path, mood, onComplete, onExit }) => {
+const JourneyPlayer = ({ path, onComplete, onExit }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [completedActivities, setCompletedActivities] = useState([]);
     const [activityResults, setActivityResults] = useState({});

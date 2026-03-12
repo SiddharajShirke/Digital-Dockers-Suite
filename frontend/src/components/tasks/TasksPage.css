@@ -58,3 +58,38 @@
         gap: 12px;
     }
 }
+
+/* ==========================================
+   DARK MODE OVERRIDES – TASKS PAGE
+   ========================================== */
+
+.dark .tasks-page-container {
+    background: var(--surface-primary, #161b22);
+}
+
+.dark .tasks-page-header {
+    background: var(--surface-primary, #161b22);
+    border-bottom-color: var(--border-surface, #30363d);
+}
+
+.dark .tasks-page-header h1 {
+    color: var(--text-on-surface, #e6edf3);
+}
+
+.dark .toggle-info {
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+/* Fix Scrum/Kanban Segmented control contrast in dark mode */
+.dark .tasks-page-header .ant-segmented {
+    background: var(--surface-tertiary, #21262d);
+}
+
+.dark .tasks-page-header .ant-segmented-item {
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .tasks-page-header .ant-segmented-item-selected {
+    background: var(--surface-primary, #161b22);
+    color: var(--text-on-surface, #e6edf3);
+}

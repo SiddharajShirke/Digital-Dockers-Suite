@@ -30,21 +30,24 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
     if (!pr.analysisResults) return { status: "pending", icon: FaCog };
 
     switch (layer) {
-      case "syntax":
+      case "syntax": {
         const lintErrors = pr.analysisResults?.lint?.errors || 0;
         return lintErrors === 0
           ? { status: "pass", icon: FaCheckCircle, color: "text-green-500" }
           : { status: "fail", icon: FaTimesCircle, color: "text-red-500" };
-      case "complexity":
+      }
+      case "complexity": {
         const delta = pr.analysisResults?.complexity?.healthScoreDelta || 0;
         return delta >= 0
           ? { status: "pass", icon: FaCheckCircle, color: "text-green-500" }
           : { status: "fail", icon: FaTimesCircle, color: "text-red-500" };
-      case "semantic":
+      }
+      case "semantic": {
         const verdict = pr.analysisResults?.aiScan?.verdict;
         if (verdict === "GOOD") return { status: "pass", icon: FaCheckCircle, color: "text-green-500" };
         if (verdict === "BAD") return { status: "fail", icon: FaTimesCircle, color: "text-red-500" };
         return { status: "warn", icon: FaExclamationTriangle, color: "text-yellow-500" };
+      }
       default:
         return { status: "pending", icon: FaCog, color: "text-gray-400" };
     }

@@ -5,13 +5,13 @@ import { FaTimes, FaSave } from "react-icons/fa";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const CreateRefactorTaskModal = ({ file, onClose, onTaskCreated }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     digitalDockersTaskId: `REFACTOR-${Date.now()}`,
     priority: "MEDIUM",
     sla: "",
     assignee: "",
     riskScoreAtCreation: file?.risk || 0,
-  });
+  }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

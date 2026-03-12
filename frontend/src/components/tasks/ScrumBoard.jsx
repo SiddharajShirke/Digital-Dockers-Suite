@@ -4,7 +4,6 @@ import { ClockCircleOutlined } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useProject } from '../../context/ProjectContext';
 import taskService from '../../services/taskService';
-import sprintService from '../../services/sprintService';
 import './ScrumBoard.css';
 
 /**
@@ -21,12 +20,12 @@ import './ScrumBoard.css';
  */
 const ScrumBoard = () => {
     const { currentProject, sprints, activeSprint } = useProject();
-    
+
     // State Management
     const [selectedSprint, setSelectedSprint] = useState(null);
     const [tasks, setTasks] = useState({});
     const [loading, setLoading] = useState(false);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [refreshTrigger] = useState(0);
     const [sprintMetrics, setSprintMetrics] = useState({
         total: 0,
         completed: 0,
@@ -88,7 +87,7 @@ const ScrumBoard = () => {
         try {
             // Fetch tasks for the selected sprint
             const sprintTasks = await taskService.getTasksBySprint(selectedSprint);
-            
+
             // Group tasks by status
             const groupedTasks = {
                 TODO: [],
@@ -165,8 +164,8 @@ const ScrumBoard = () => {
 
             // Update backend
             try {
-                await taskService.updateTask(taskId, { 
-                    status: newStatus.toLowerCase() 
+                await taskService.updateTask(taskId, {
+                    status: newStatus.toLowerCase()
                 });
             } catch (error) {
                 console.error('Failed to update task status:', error);

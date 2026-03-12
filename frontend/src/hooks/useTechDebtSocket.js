@@ -26,6 +26,7 @@ export const useTechDebtSocket = (options = {}) => {
 
         socketRef.current = io(serverUrl, {
             transports: ['websocket', 'polling'],
+            withCredentials: true,
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
@@ -141,7 +142,7 @@ export const useTechDebtSocket = (options = {}) => {
         disconnect,
         subscribeToRepo,
         unsubscribeFromRepo,
-        socket: socketRef.current
+        getSocket: () => socketRef.current
     };
 };
 

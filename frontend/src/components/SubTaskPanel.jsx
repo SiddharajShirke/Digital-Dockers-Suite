@@ -188,28 +188,7 @@ const SubTaskPanel = ({ parentTaskId, parentTask, onTaskUpdate }) => {
     [actions]
   );
 
-  /**
-   * Get status color
-   */
-  const getStatusColor = (status) => {
-    const colors = {
-      todo: '#6c757d',
-      in_progress: '#ffc107',
-      in_review: '#17a2b8',
-      done: '#28a745'
-    };
-    return colors[status] || '#ccc';
-  };
 
-  const getStatusDisplay = (status) => {
-    const display = {
-      todo: 'To Do',
-      in_progress: 'In Progress',
-      in_review: 'In Review',
-      done: 'Done'
-    };
-    return display[status] || status;
-  };
 
   return (
     <div className="subtask-panel" ref={panelRef}>

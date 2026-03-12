@@ -1,0 +1,65 @@
+﻿
+> client@0.0.0 lint
+> eslint .
+
+
+D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\common\DashboardLayout.jsx
+  29:13  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+
+D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\editors\NotesEditor.jsx
+  23:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  21 |
+  22 |   useEffect(() => {
+> 23 |     setText(content?.textContent || '');
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  24 |   }, [content]);
+  25 |
+  26 |   const handleChange = (e) => {  react-hooks/set-state-in-effect
+
+D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\wellness\JourneyPlayer.jsx
+  79:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  77 |     useEffect(() => {
+  78 |         if (phase === 'inhale') {
+> 79 |             setScale(1 + (count / pattern.inhale) * 0.5);
+     |             ^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |         } else if (phase === 'exhale') {
+  81 |             setScale(1.5 - (count / pattern.exhale) * 0.5);
+  82 |         }  react-hooks/set-state-in-effect
+
+D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\work-logs\TimerWidget.jsx
+  19:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  17 |   useEffect(() => {
+  18 |     if (!runningTimer) {
+> 19 |       setShowWidget(false);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |       return;
+  21 |     }
+  22 |  react-hooks/set-state-in-effect
+
+D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\summarize_errors.js
+  1:12  error  'require' is not defined  no-undef
+
+Γ£û 5 problems (4 errors, 1 warning)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

@@ -62,8 +62,6 @@ const CalendarWorkPlanner = () => {
         assignee: ''
     });
 
-    const [calendarMode, setCalendarMode] = useState('month'); // 'month' or 'week'
-
     // Get work items for selected date
     const selectedDateStr = selectedDate.format('YYYY-MM-DD');
     const todayWorkItems = useMemo(() => {

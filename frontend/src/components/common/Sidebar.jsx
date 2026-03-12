@@ -101,7 +101,6 @@ const Sidebar = ({ mobileOpen, setMobileOpen, collapsed }) => {
     const MenuContent = (
         <Menu
             mode="inline"
-            defaultSelectedKeys={[location.pathname]}
             selectedKeys={[location.pathname]}
             style={{ borderRight: 0, height: '100%' }}
             items={items}

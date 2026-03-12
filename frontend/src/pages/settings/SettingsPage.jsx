@@ -4,7 +4,7 @@ import {
     TextField, Button, Grid, Avatar, IconButton, Tabs, Tab,
     Select, MenuItem, FormControl, InputLabel, Alert
 } from '@mui/material';
-import { PhotoCamera, Save, Event, CheckCircle, Warning } from '@mui/icons-material';
+import { PhotoCamera, Save, Event, CheckCircle, Warning, Lock } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeMode } from '../../context/ThemeContext';
 import { toast } from 'react-toastify';
@@ -192,6 +192,7 @@ const SettingsPage = () => {
                                     name="fullName"
                                     value={profileData.fullName}
                                     onChange={handleProfileChange}
+                                    sx={{ maxWidth: 400 }}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, md: 6 }}>
@@ -203,6 +204,12 @@ const SettingsPage = () => {
                                     onChange={handleProfileChange}
                                     disabled
                                     helperText="Email cannot be changed"
+                                    sx={{ maxWidth: 400 }}
+                                    slotProps={{
+                                        input: {
+                                            startAdornment: <Lock sx={{ mr: 1, fontSize: 18, color: 'text.disabled' }} />
+                                        }
+                                    }}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, md: 6 }}>
@@ -221,6 +228,7 @@ const SettingsPage = () => {
                                     name="phone"
                                     value={profileData.phone}
                                     onChange={handleProfileChange}
+                                    sx={{ maxWidth: 400 }}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12 }}>

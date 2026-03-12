@@ -36,9 +36,7 @@ export const useRealtimeNotifications = (token) => {
         reconnectionDelayMax: 5000,
         reconnectionAttempts: 10,
         transports: ['websocket', 'polling'],
-        auth: {
-          token
-        }
+        withCredentials: true
       });
 
       // Connection events
@@ -144,7 +142,7 @@ export const useRealtimeNotifications = (token) => {
       setError(err.message);
 
       // Retry connection after delay
-      reconnectTimeoutRef.current = setTimeout(connect, 5000);
+      reconnectTimeoutRef.current = setTimeout(() => connect(), 5000);
     }
   }, [token, lastNotificationId]);
 
@@ -249,6 +247,7 @@ export const useRealtimeNotifications = (token) => {
     return () => {
       disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   return {

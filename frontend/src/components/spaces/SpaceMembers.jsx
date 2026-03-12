@@ -7,7 +7,7 @@ import axios from 'axios';
  * SpaceMembers Component
  * Manage access control and member roles
  */
-const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
+const SpaceMembers = ({ space, visible, onClose }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
@@ -20,6 +20,7 @@ const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
       loadMembers();
       loadUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, space._id]);
 
   const loadMembers = async () => {
@@ -30,7 +31,7 @@ const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setMembers(response.data.data || []);
-    } catch (error) {
+    } catch {
       message.error('Failed to load members');
     } finally {
       setLoading(false);
@@ -44,7 +45,7 @@ const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setUsers(response.data.data || []);
-    } catch (error) {
+    } catch {
       console.error('Failed to load users');
     }
   };
@@ -84,7 +85,7 @@ const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
 
       loadMembers();
       message.success('Role updated');
-    } catch (error) {
+    } catch {
       message.error('Failed to update role');
     }
   };
@@ -98,7 +99,7 @@ const SpaceMembers = ({ space, visible, onClose, onUpdate }) => {
 
       loadMembers();
       message.success('Member removed');
-    } catch (error) {
+    } catch {
       message.error('Failed to remove member');
     }
   };

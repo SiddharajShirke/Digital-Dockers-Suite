@@ -7,37 +7,27 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Helper to check if a JWT token is expired
-    const isTokenExpired = (token) => {
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            return payload.exp * 1000 < Date.now();
-        } catch {
-            return true; // Treat invalid tokens as expired
-        }
-    };
-
     useEffect(() => {
-        const checkLoggedIn = () => {
+        const checkLoggedIn = async () => {
             try {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    if (isTokenExpired(token)) {
-                        // Token is expired — clear everything
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        console.log('Cleared expired token from localStorage');
-                    } else {
-                        const storedUser = localStorage.getItem('user');
-                        if (storedUser) {
-                            setUser(JSON.parse(storedUser));
-                        }
-                    }
+                // Remove legacy token if it exists
+                localStorage.removeItem('token');
+
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
+
+                // Verify session with backend if we expected to be logged in, or check anyway
+                const res = await api.get('/auth/me');
+                if (res.data) {
+                    setUser(res.data);
+                    localStorage.setItem('user', JSON.stringify(res.data));
                 }
             } catch (error) {
-                console.error('Auth check failed', error);
-                localStorage.removeItem('token');
+                console.log('No active session found or expired', error);
                 localStorage.removeItem('user');
+                setUser(null);
             } finally {
                 setLoading(false);
             }
@@ -49,7 +39,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await api.post('/auth/login', { email, password });
             const { token, ...userData } = res.data;
-            localStorage.setItem('token', token);
+            // Token is handled via HttpOnly cookie
             localStorage.setItem('user', JSON.stringify(userData)); // Save user data
             setUser(userData);
             return userData;
@@ -62,7 +52,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await api.post('/auth/register', userData);
             const { token, ...user } = res.data;
-            localStorage.setItem('token', token);
+            // Token is handled via HttpOnly cookie
             localStorage.setItem('user', JSON.stringify(user)); // Save user data
             setUser(user);
             return user;
@@ -71,8 +61,12 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
+    const logout = async () => {
+        try {
+            await api.post('/auth/logout');
+        } catch (error) {
+            console.error('Logout error', error);
+        }
         localStorage.removeItem('user');
         setUser(null);
     };

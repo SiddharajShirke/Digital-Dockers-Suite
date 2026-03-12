@@ -36,6 +36,7 @@ const ChatbotWidget = () => {
         if (isOpen && messages.length === 0) {
             loadWelcome();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const loadWelcome = async () => {
@@ -47,7 +48,7 @@ const ChatbotWidget = () => {
                 timestamp: new Date()
             }]);
             setSuggestions(data.suggestions || []);
-        } catch (error) {
+        } catch {
             setMessages([{
                 type: 'bot',
                 text: "Hi! I'm DockerBot, your AI assistant. How can I help you today?",
@@ -77,7 +78,7 @@ const ChatbotWidget = () => {
                 text: response.message,
                 timestamp: new Date()
             }]);
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, {
                 type: 'bot',
                 text: "Sorry, I'm having trouble responding right now. Please try again later.",

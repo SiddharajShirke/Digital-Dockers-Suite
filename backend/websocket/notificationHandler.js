@@ -81,12 +81,13 @@ class WebSocketNotificationHandler {
      */
     async authenticateUser(socket, data, callback) {
         try {
-            if (!data.token) {
+            const token = socket.token || data.token;
+            if (!token) {
                 throw new Error('Token required');
             }
 
             // Verify JWT token
-            const decoded = jwt.verify(data.token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.userId = decoded.id;
             socket.join(`user:${decoded.id}`); // Join user-specific room
 

@@ -5,7 +5,7 @@
 
 export const generateMockForYouData = () => {
     const now = new Date();
-    const statuses = ['todo', 'in_progress', 'review', 'done'];
+
     
     // Assigned to You
     const assignedIssues = [

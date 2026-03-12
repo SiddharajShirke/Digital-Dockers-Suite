@@ -33,7 +33,7 @@ export const TimerProvider = ({ children }) => {
     loadRunningTimer();
 
     // Stop timers when user logs out (before unload)
-    const handleBeforeUnload = async (e) => {
+    const handleBeforeUnload = async () => {
       if (runningTimer) {
         try {
           await axios.post('/api/users/me/timers/stop');
@@ -45,6 +45,7 @@ export const TimerProvider = ({ children }) => {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Start timer
@@ -157,6 +158,7 @@ export const TimerProvider = ({ children }) => {
 /**
  * Hook to use timer context
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export const useTimerContext = () => {
   const context = useContext(TimerContext);
   if (!context) {

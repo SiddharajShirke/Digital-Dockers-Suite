@@ -103,12 +103,14 @@ export const useGatekeeperFeed = (options = {}) => {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.search, filters.repoId, feed.length]);
 
   // Initial fetch
   useEffect(() => {
     setPage(1);
     fetchGatekeeperFeed(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.status, filters.search, filters.repoId]);
 
   // Load more function for infinite scroll

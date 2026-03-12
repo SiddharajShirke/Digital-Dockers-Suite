@@ -30,7 +30,6 @@ const CodebaseMRI = ({ isDarkMode, repoId }) => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
   const [viewMode, setViewMode] = useState("bubble");
   const [scanStatus, setScanStatus] = useState(null); // { status, progress, currentFile }
@@ -73,7 +72,7 @@ const CodebaseMRI = ({ isDarkMode, repoId }) => {
   // Socket listener for real-time updates
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-    const socket = socketIo(API_URL, { transports: ["websocket", "polling"] });
+    const socket = socketIo(API_URL, { transports: ["websocket", "polling"], withCredentials: true });
 
     socket.on("connect", () => {
       console.log("[MRI] Socket connected");
@@ -247,10 +246,8 @@ const handleFullscreen = useCallback(() => {
   if (containerRef.current) {
     if (!document.fullscreenElement) {
       containerRef.current.requestFullscreen();
-      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
-      setIsFullscreen(false);
     }
   }
 }, []);
@@ -261,7 +258,7 @@ const handleTaskCreated = (task) => {
   setSelectedNode(null);
 };
 
-const handleCreateTaskFromModal = (file) => {
+const handleCreateTaskFromModal = () => {
   setShowFileModal(false);
   setShowTaskModal(true);
 };

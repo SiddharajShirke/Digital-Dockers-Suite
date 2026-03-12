@@ -13,3 +13,21 @@
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     z-index: 1000;
 }
+
+/* ==========================================
+   DARK MODE OVERRIDES – BACKLOG
+   ========================================== */
+
+.dark .issue-row {
+    border-color: var(--border-surface, #30363d) !important;
+}
+
+.dark .issue-row:hover {
+    background-color: var(--surface-hover, #292e36) !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark .issue-row.dragging {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
+    background-color: var(--surface-tertiary, #21262d) !important;
+}

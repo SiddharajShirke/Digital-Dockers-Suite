@@ -1,0 +1,325 @@
+
+File: FileDetailsModal.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\FileDetailsModal.jsx
+  [WARN] Line 28: React Hook useEffect has a missing dependency: 'fetchFileDetails'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: RepoConnectionBar.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\RepoConnectionBar.jsx
+  [ERROR] Line 19: 'onDisconnect' is defined but never used. (no-unused-vars)
+
+File: TopKPIs.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\TopKPIs.jsx
+  [ERROR] Line 122: Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  120 |     let val = current;
+  121 |     for (let i = 0; i < 7; i++) {
+> 122 |       history.unshift(Math.max(0, val + (Math.random() - 0.5) * variance));
+      |                                          ^^^^^^^^^^^^^ Cannot call impure function
+  123 |       val = history[0];
+  124 |     }
+  125 |     history.push(current); (react-hooks/purity)
+  [ERROR] Line 129: React Hook "useMemo" is called conditionally. React Hooks must be called in the exact same order in every component render. Did you accidentally call a React Hook after an early return? (react-hooks/rules-of-hooks)
+
+File: BacklogPage.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\backlog\BacklogPage.jsx
+  [WARN] Line 43: React Hook useMemo has unnecessary dependencies: 'assigneeFilter' and 'epicFilter'. Either exclude them or remove the dependency array. (react-hooks/exhaustive-deps)
+  [WARN] Line 50: React Hook useMemo has unnecessary dependencies: 'assigneeFilter' and 'epicFilter'. Either exclude them or remove the dependency array. (react-hooks/exhaustive-deps)
+  [ERROR] Line 61: 'setLoading' is not defined. (no-undef)
+
+File: SprintBurndownChart.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\charts\SprintBurndownChart.jsx
+  [WARN] Line 21: React Hook useEffect has a missing dependency: 'loadBurndownData'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: ChatbotWidget.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\chatbot\ChatbotWidget.jsx
+  [WARN] Line 39: React Hook useEffect has a missing dependency: 'messages.length'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: DashboardLayout.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\common\DashboardLayout.jsx
+  [ERROR] Line 26: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  24 |     useEffect(() => {
+  25 |         if (isTablet && !desktopCollapsed) {
+> 26 |             setDesktopCollapsed(true);
+     |             ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  27 |         } else if (isDesktop && desktopCollapsed) {
+  28 |             setDesktopCollapsed(false);
+  29 |         } (react-hooks/set-state-in-effect)
+  [WARN] Line 30: React Hook useEffect has a missing dependency: 'desktopCollapsed'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: HeaderCalendarDropdown.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\common\HeaderCalendarDropdown.jsx
+  [ERROR] Line 21: Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+  19 |     ];
+  20 |
+> 21 |     const todayWorkItems = useMemo(() => {
+     |                            ^^^^^^^^^^^^^^^
+> 22 |         return workItems.filter(item => item.date.isSame(dayjs(), 'day'));
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 23 |     }, []);
+     | ^^^^^^^^^^^ Could not preserve existing memoization
+  24 |
+  25 |     const upcomingWorkItems = useMemo(() => {
+  26 |         return workItems.filter(item => item.date.isAfter(dayjs(), 'day')).slice(0, 3); (react-hooks/preserve-manual-memoization)
+  [WARN] Line 23: React Hook useMemo has a missing dependency: 'workItems'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+  [ERROR] Line 25: Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This value was memoized in source but not in compilation output.
+
+  23 |     }, []);
+  24 |
+> 25 |     const upcomingWorkItems = useMemo(() => {
+     |                               ^^^^^^^^^^^^^^^
+> 26 |         return workItems.filter(item => item.date.isAfter(dayjs(), 'day')).slice(0, 3);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 27 |     }, []);
+     | ^^^^^^^^^^^ Could not preserve existing memoization
+  28 |
+  29 |     const getPriorityColor = (priority) => {
+  30 |         const colors = { high: 'red', medium: 'orange', low: 'green' }; (react-hooks/preserve-manual-memoization)
+  [WARN] Line 27: React Hook useMemo has a missing dependency: 'workItems'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: RoadmapPage.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\dashboards\RoadmapPage.jsx
+  [WARN] Line 45: React Hook useEffect has a missing dependency: 'fetchEpics'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: SmartReassignmentDashboard.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\dashboards\SmartReassignmentDashboard.jsx
+  [WARN] Line 117: React Hook useEffect has a missing dependency: 'fetchAnalysis'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: NotificationPanel.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\notifications\NotificationPanel.jsx
+  [ERROR] Line 35: 'markAsRead' is not defined. (no-undef)
+  [ERROR] Line 40: Error: This value cannot be modified
+
+Modifying a variable defined outside a component or hook is not allowed. Consider using an effect.
+
+  38 |     // Navigate to action URL if available
+  39 |     if (notification.actionUrl) {
+> 40 |       window.location.href = notification.actionUrl;
+     |       ^^^^^^^^^^^^^^^ value cannot be modified
+  41 |     }
+  42 |   };
+  43 | (react-hooks/immutability)
+
+File: SpaceComments.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\SpaceComments.jsx
+  [WARN] Line 21: React Hook useEffect has a missing dependency: 'loadComments'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: SpaceEditor.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\SpaceEditor.jsx
+  [WARN] Line 33: React Hook useEffect has a missing dependency: 'loadContent'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+  [WARN] Line 44: React Hook useEffect has a missing dependency: 'handleAutosave'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: SpaceMembers.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\SpaceMembers.jsx
+  [WARN] Line 23: React Hook useEffect has a missing dependency: 'loadMembers'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: Spaces.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\Spaces.jsx
+  [WARN] Line 32: React Hook useEffect has a missing dependency: 'loadSpaces'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: NotesEditor.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\editors\NotesEditor.jsx
+  [ERROR] Line 23: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  21 |
+  22 |   useEffect(() => {
+> 23 |     setText(content?.textContent || '');
+     |     ^^^^^^^ Avoid calling setState() directly within an effect
+  24 |   }, [content]);
+  25 |
+  26 |   const handleChange = (e) => { (react-hooks/set-state-in-effect)
+
+File: WhiteboardEditor.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\spaces\editors\WhiteboardEditor.jsx
+  [WARN] Line 46: React Hook useEffect has a missing dependency: 'content.drawingData.imageData'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: ScrumBoard.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\tasks\ScrumBoard.jsx
+  [WARN] Line 73: React Hook useEffect has a missing dependency: 'loadSprintTasks'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+  [WARN] Line 83: React Hook useEffect has missing dependencies: 'loadSprintTasks' and 'selectedSprint'. Either include them or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: TaskBoard.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\tasks\TaskBoard.jsx
+  [ERROR] Line 84: 'getProgressPercentage' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u. (no-unused-vars)
+
+File: JourneyPlayer.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\wellness\JourneyPlayer.jsx
+  [WARN] Line 21: The 'pattern' conditional could make the dependencies of useEffect Hook (at line 75) change on every render. To fix this, wrap the initialization of 'pattern' in its own useMemo() Hook. (react-hooks/exhaustive-deps)
+  [WARN] Line 21: The 'pattern' conditional could make the dependencies of useEffect Hook (at line 84) change on every render. To fix this, wrap the initialization of 'pattern' in its own useMemo() Hook. (react-hooks/exhaustive-deps)
+  [ERROR] Line 80: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  78 |     useEffect(() => {
+  79 |         if (phase === 'inhale') {
+> 80 |             setScale(1 + (count / pattern.inhale) * 0.5);
+     |             ^^^^^^^^ Avoid calling setState() directly within an effect
+  81 |         } else if (phase === 'exhale') {
+  82 |             setScale(1.5 - (count / pattern.exhale) * 0.5);
+  83 |         } (react-hooks/set-state-in-effect)
+  [ERROR] Line 467: Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  465 |         { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" }
+  466 |     ], []);
+> 467 |     const quote = useMemo(() => quotes[Math.floor(Math.random() * quotes.length)], [quotes]);
+      |                                                   ^^^^^^^^^^^^^ Cannot call impure function
+  468 |
+  469 |     return (
+  470 |         <Box sx={{ py: 5, textAlign: 'center' }}> (react-hooks/purity)
+
+File: TimerWidget.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\work-logs\TimerWidget.jsx
+  [ERROR] Line 19: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  17 |   useEffect(() => {
+  18 |     if (!runningTimer) {
+> 19 |       setShowWidget(false);
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  20 |       return;
+  21 |     }
+  22 | (react-hooks/set-state-in-effect)
+
+File: WorkLogPanel.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\work-logs\WorkLogPanel.jsx
+  [WARN] Line 56: React Hook useEffect has a missing dependency: 'loadWorkLogs'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: IssueDetailDrawer.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\components\work\IssueDetailDrawer.jsx
+  [ERROR] Line 128: 'setLoadingField' is not defined. (no-undef)
+  [ERROR] Line 149: 'setLoadingField' is not defined. (no-undef)
+  [ERROR] Line 228: 'loadingField' is not defined. (no-undef)
+  [ERROR] Line 246: 'loadingField' is not defined. (no-undef)
+  [ERROR] Line 261: 'loadingField' is not defined. (no-undef)
+  [ERROR] Line 262: 'loadingField' is not defined. (no-undef)
+  [ERROR] Line 304: 'loadingField' is not defined. (no-undef)
+
+File: TimerContext.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\context\TimerContext.jsx
+  [WARN] Line 48: React Hook useEffect has a missing dependency: 'runningTimer'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+  [ERROR] Line 160: Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components. (react-refresh/only-export-components)
+
+File: useGatekeeperFeed.js
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\hooks\useGatekeeperFeed.js
+  [WARN] Line 106: React Hook useCallback has a missing dependency: 'feed'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+  [WARN] Line 112: React Hook useEffect has a missing dependency: 'fetchGatekeeperFeed'. Either include it or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: useRealtimeNotifications.js
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\hooks\useRealtimeNotifications.js
+  [ERROR] Line 147: Error: Cannot access variable before it is declared
+
+`connect` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  145 |
+  146 |       // Retry connection after delay
+> 147 |       reconnectTimeoutRef.current = setTimeout(connect, 5000);
+      |                                                ^^^^^^^ `connect` accessed before it is declared
+  148 |     }
+  149 |   }, [token, lastNotificationId]);
+  150 |
+
+   25 |    * Initialize WebSocket connection
+   26 |    */
+>  27 |   const connect = useCallback(() => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  28 |     if (socketRef.current?.connected) {
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  29 |       return;
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 148 |     }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 149 |   }, [token, lastNotificationId]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `connect` is declared here
+  150 |
+  151 |   /**
+  152 |    * Mark notification as read (react-hooks/immutability)
+  [WARN] Line 252: React Hook useEffect has missing dependencies: 'connect' and 'disconnect'. Either include them or remove the dependency array. (react-hooks/exhaustive-deps)
+
+File: useSpaceWebSocket.js
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\hooks\useSpaceWebSocket.js
+  [ERROR] Line 102: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  100 |     });
+  101 |
+> 102 |     setSocket(newSocket);
+      |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  103 |
+  104 |     // Cleanup on unmount
+  105 |     return () => { (react-hooks/set-state-in-effect)
+
+File: useTechDebtSocket.js
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\hooks\useTechDebtSocket.js
+  [ERROR] Line 144: Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  142 |         subscribeToRepo,
+  143 |         unsubscribeFromRepo,
+> 144 |         socket: socketRef.current
+      |                 ^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  145 |     };
+  146 | };
+  147 | (react-hooks/refs)
+  [ERROR] Line 144: Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+  142 |         subscribeToRepo,
+  143 |         unsubscribeFromRepo,
+> 144 |         socket: socketRef.current
+      |                 ^^^^^^^^^^^^^^^^^ Cannot access ref value during render
+  145 |     };
+  146 | };
+  147 | (react-hooks/refs)
+
+File: LoginPage.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\pages\LoginPage.jsx
+  [ERROR] Line 11: 'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u. (no-unused-vars)
+
+File: RegisterPage.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\pages\RegisterPage.jsx
+  [ERROR] Line 12: 'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u. (no-unused-vars)
+
+File: LandingPage.jsx
+Path: D:\Openai NxtWave\digital-dockers-suite\Digital-Dockers-Suite\frontend\src\pages\landing\LandingPage.jsx
+  [ERROR] Line 9: 'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u. (no-unused-vars)
+
+Total Errors: 29
+Total Warnings: 25

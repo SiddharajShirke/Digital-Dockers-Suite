@@ -3,7 +3,7 @@ import { CalendarOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import './EpicTimeline.css';
 
-const EpicTimeline = ({ epics, timeRange, onEpicUpdate }) => {
+const EpicTimeline = ({ epics, timeRange }) => {
     if (!epics || epics.length === 0) {
         return <Empty description="No epics to display" />;
     }

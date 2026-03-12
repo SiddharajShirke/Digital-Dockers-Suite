@@ -11,13 +11,14 @@ const { Text, Title } = Typography;
  * Displays sprint burndown data with ideal vs actual lines
  * Shows health status, velocity, and forecast
  */
-const SprintBurndownChart = ({ sprintId, sprintName = 'Current Sprint' }) => {
+const SprintBurndownChart = ({ sprintId }) => {
   const [burndownData, setBurndownData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     loadBurndownData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sprintId]);
 
   const loadBurndownData = async () => {

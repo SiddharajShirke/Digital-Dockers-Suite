@@ -13,9 +13,11 @@ dotenv.config();
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const path = require("path");
+const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const passport = require("./config/passport");
+const cookieParser = require("cookie-parser");
+const cookie = require("cookie");
 
 // Connect to database
 connectDB();
@@ -60,6 +62,16 @@ const WebSocketNotificationHandler = require("./websocket/notificationHandler");
 const notificationHandler = new WebSocketNotificationHandler(io);
 notificationHandler.initialize();
 
+io.use((socket, next) => {
+  if (socket.handshake.headers.cookie) {
+    const cookies = cookie.parse(socket.handshake.headers.cookie);
+    if (cookies.token) {
+      socket.token = cookies.token;
+    }
+  }
+  next();
+});
+
 // Socket.io Logic
 io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
@@ -98,11 +110,10 @@ io.on("connection", (socket) => {
 app.set("io", io);
 app.set("notificationHandler", notificationHandler);
 
-// ... Middlewares ...
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -193,8 +204,6 @@ server.listen(PORT, () => {
 });
 
 // Graceful shutdown
-const queues = []; // Track all queue instances if needed
-
 async function gracefulShutdown(signal) {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
 
@@ -206,7 +215,7 @@ async function gracefulShutdown(signal) {
     console.log("✅ HTTP server closed");
 
     // Close all queues
-    await closeAllQueues(queues);
+    await closeAllQueues();
 
     // Close database connection
     await mongoose.connection.close();

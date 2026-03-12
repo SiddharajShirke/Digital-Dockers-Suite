@@ -5,18 +5,18 @@ import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import './HeaderCalendarDropdown.css';
 
+// Mock work items for today and upcoming
+const workItems = [
+    { id: 1, date: dayjs(), title: 'Complete API Integration', priority: 'high', status: 'in-progress' },
+    { id: 2, date: dayjs(), title: 'Code Review Sprint Tasks', priority: 'medium', status: 'pending' },
+    { id: 3, date: dayjs().add(1, 'day'), title: 'Frontend Testing', priority: 'high', status: 'pending' },
+    { id: 4, date: dayjs().add(2, 'days'), title: 'Database Optimization', priority: 'medium', status: 'pending' },
+    { id: 5, date: dayjs().add(3, 'days'), title: 'Team Standup', priority: 'low', status: 'pending' }
+];
+
 const HeaderCalendarDropdown = () => {
     const navigate = useNavigate();
     const [selectedDate, setSelectedDate] = useState(dayjs());
-
-    // Mock work items for today and upcoming
-    const workItems = [
-        { id: 1, date: dayjs(), title: 'Complete API Integration', priority: 'high', status: 'in-progress' },
-        { id: 2, date: dayjs(), title: 'Code Review Sprint Tasks', priority: 'medium', status: 'pending' },
-        { id: 3, date: dayjs().add(1, 'day'), title: 'Frontend Testing', priority: 'high', status: 'pending' },
-        { id: 4, date: dayjs().add(2, 'days'), title: 'Database Optimization', priority: 'medium', status: 'pending' },
-        { id: 5, date: dayjs().add(3, 'days'), title: 'Team Standup', priority: 'low', status: 'pending' }
-    ];
 
     const todayWorkItems = useMemo(() => {
         return workItems.filter(item => item.date.isSame(dayjs(), 'day'));

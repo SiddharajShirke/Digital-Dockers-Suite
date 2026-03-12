@@ -25,6 +25,7 @@ const FileDetailsModal = ({ file, isOpen, onClose, onCreateTask }) => {
         if (isOpen && file?._id) {
             fetchFileDetails();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, file?._id]);
 
     const fetchFileDetails = async () => {

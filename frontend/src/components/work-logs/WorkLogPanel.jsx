@@ -53,6 +53,7 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
       const interval = setInterval(loadWorkLogs, 10000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workItemId, isTimerRunning, currentWorkItemId]);
 
   const handleStartTimer = async () => {

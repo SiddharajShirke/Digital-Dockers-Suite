@@ -19,8 +19,6 @@ const COLUMNS = {
 
 const TaskBoard = () => {
     const { currentProject, activeSprint } = useProject();
-    const [issues, setIssues] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [selectedIssue, setSelectedIssue] = useState(null);
     const [boardData, setBoardData] = useState({});
     const [searchFilter, setSearchFilter] = useState('');
@@ -36,25 +34,20 @@ const TaskBoard = () => {
         if (currentProject && activeSprint) {
             loadSprintIssues();
         } else {
-            setIssues([]);
             setBoardData({});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentProject, activeSprint]);
 
     const loadSprintIssues = async () => {
-        setLoading(true);
         try {
             const data = await taskService.getTasks({
                 projectId: currentProject._id,
                 sprintId: activeSprint._id
             });
-            setIssues(data);
             groupIssuesByStatus(data);
         } catch (error) {
             console.error("Failed to load board issues", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -86,20 +79,9 @@ const TaskBoard = () => {
         });
     };
 
-    const getPriorityColor = (priority) => {
-        const priorityMap = {
-            'high': '#ff4d4f',
-            'medium': '#faad14',
-            'low': '#52c41a'
-        };
-        return priorityMap[priority] || '#d9d9d9';
-    };
 
-    const getProgressPercentage = () => {
-        const total = Object.values(boardData).flat().length;
-        const done = boardData['done']?.length || 0;
-        return total === 0 ? 0 : Math.round((done / total) * 100);
-    };
+
+
 
     const handleDragEnd = async (result) => {
         const { destination, source, draggableId } = result;
@@ -154,18 +136,9 @@ const TaskBoard = () => {
                 </div>
                 {!isMobile && (
                     <div className="header-right">
-                        <Space size="middle">
-                            <span className="task-count-badge">
-                                <Text type="secondary">{Object.values(boardData).flat().length} issues</Text>
-                            </span>
-                            <Button 
-                                type="primary" 
-                                icon={<PlusOutlined />}
-                                onClick={() => setCreateModalOpen(true)}
-                            >
-                                Create Issue
-                            </Button>
-                        </Space>
+                        <span className="task-count-badge">
+                            <Text type="secondary">{Object.values(boardData).flat().length} issues</Text>
+                        </span>
                     </div>
                 )}
             </div>
@@ -211,6 +184,15 @@ const TaskBoard = () => {
                 >
                     <Button icon={<FilterOutlined />}>Quick filters</Button>
                 </Dropdown>
+                <div style={{ marginLeft: 'auto' }}>
+                    <Button 
+                        type="primary" 
+                        icon={<PlusOutlined />}
+                        onClick={() => setCreateModalOpen(true)}
+                    >
+                        Create Issue
+                    </Button>
+                </div>
             </div>
 
             {isMobile ? (

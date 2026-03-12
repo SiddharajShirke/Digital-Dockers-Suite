@@ -12,7 +12,7 @@ const HeatmapMatrix = ({ data = [], isDarkMode, onCellClick }) => {
     const [hoveredCell, setHoveredCell] = useState(null);
 
     // Process data into folder × time matrix
-    const { folders, sprints, matrix, maxRisk } = useMemo(() => {
+    const { folders, sprints, matrix } = useMemo(() => {
         if (!data.length) {
             return { folders: [], sprints: [], matrix: [], maxRisk: 0 };
         }

@@ -203,7 +203,7 @@
 .kanban-card {
     background: white;
     border: 1px solid #dfe1e6;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 12px;
     cursor: grab;
     transition: all 0.2s ease;
@@ -231,7 +231,7 @@
 .key-badge {
     display: inline-block;
     padding: 3px 8px;
-    border-radius: 3px;
+    border-radius: 4px;
     color: white;
     font-size: 11px;
     font-weight: 700;
@@ -416,4 +416,105 @@
 
 .kanban-card {
     animation: slideIn 0.2s ease;
+}
+
+/* ==========================================
+   DARK MODE OVERRIDES – KANBAN BOARD
+   ========================================== */
+
+.dark .kanban-board-container {
+    background: var(--surface-primary, #161b22);
+}
+
+.dark .kanban-header {
+    border-bottom-color: var(--border-surface, #30363d);
+}
+
+.dark .header-title-section h2 {
+    color: var(--text-on-surface, #e6edf3) !important;
+}
+
+.dark .header-breadcrumb {
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .task-count-badge {
+    background: var(--surface-tertiary, #21262d);
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .kanban-filters {
+    background: var(--surface-secondary, #1c2128);
+    border: 1px solid var(--border-surface, #30363d);
+}
+
+.dark .kanban-filters .ant-input-affix-wrapper,
+.dark .kanban-filters .ant-select-selector,
+.dark .kanban-filters .ant-btn {
+    background: var(--surface-tertiary, #21262d) !important;
+    border-color: var(--border-surface, #30363d) !important;
+    color: var(--text-on-surface, #e6edf3);
+}
+
+.dark .kanban-column {
+    background: var(--surface-secondary, #1c2128);
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.dark .column-header {
+    background: var(--surface-primary, #161b22);
+    border-bottom-color: var(--border-surface, #30363d);
+}
+
+.dark .column-name {
+    color: var(--text-on-surface, #e6edf3);
+}
+
+.dark .column-tasks {
+    background-color: var(--surface-secondary, #1c2128) !important;
+}
+
+.dark .column-tasks.dragging-over {
+    background-color: rgba(0, 82, 204, 0.1) !important;
+}
+
+.dark .kanban-card {
+    background: var(--surface-primary, #161b22);
+    border-color: var(--border-surface, #30363d);
+    box-shadow: var(--shadow-dark-sm, 0 1px 3px rgba(0,0,0,0.4));
+}
+
+.dark .kanban-card:hover {
+    box-shadow: var(--shadow-dark-md, 0 4px 12px rgba(0,0,0,0.5));
+    border-color: rgba(0, 82, 204, 0.5);
+}
+
+.dark .kanban-card.dragging {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+.dark .card-title .ant-typography {
+    color: var(--text-on-surface, #e6edf3);
+}
+
+.dark .card-labels .ant-tag {
+    background: var(--surface-tertiary, #21262d);
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .card-footer {
+    border-top-color: var(--border-surface, #30363d);
+}
+
+.dark .footer-left {
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .card-footer .ant-tag {
+    background: var(--surface-tertiary, #21262d) !important;
+    color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .empty-column {
+    color: var(--text-on-surface-secondary, #8b949e);
 }

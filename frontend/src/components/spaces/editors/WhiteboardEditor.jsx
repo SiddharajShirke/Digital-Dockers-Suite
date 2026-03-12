@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Space, message, Popover } from 'antd';
+import { Button, Space, Popover } from 'antd';
 import { SaveOutlined, ClearOutlined, BgColorsOutlined, UndoOutlined, RedoOutlined } from '@ant-design/icons';
 import './WhiteboardEditor.css';
 
@@ -9,12 +9,10 @@ import './WhiteboardEditor.css';
  */
 const WhiteboardEditor = ({
   content,
-  setContent,
   onSave,
   isConnected,
   activeUsers,
   sendCursorMove,
-  currentUser,
   isSaving
 }) => {
   const canvasRef = useRef(null);
@@ -45,6 +43,7 @@ const WhiteboardEditor = ({
     // Initialize history
     setHistory([canvas.toDataURL()]);
     setHistoryStep(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCanvasContext = () => {

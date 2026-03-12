@@ -15,7 +15,7 @@ export const ChatProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001');
+            const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', { withCredentials: true });
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setSocket(newSocket);
 
