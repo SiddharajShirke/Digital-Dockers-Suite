@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, List, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme } from 'antd';
-import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Typography, List, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button } from 'antd';
+import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { useProject } from '../../context/ProjectContext';
@@ -115,8 +115,41 @@ const ProjectDashboard = () => {
 
     if (loading) {
         return (
-            <div className="dashboard-loading">
-                <Spin size="large" tip="Loading dashboard..." />
+            <div className="dashboard-container" style={{ padding: 24 }}>
+                {/* Header skeleton */}
+                <div style={{ marginBottom: 32 }}>
+                    <div className="skeleton-line" style={{ width: '40%', height: 28 }}></div>
+                    <div className="skeleton-line short" style={{ marginTop: 8 }}></div>
+                </div>
+                {/* KPI row skeleton */}
+                <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+                    {[1, 2, 3, 4].map(i => (
+                        <Col xs={24} sm={12} lg={6} key={i}>
+                            <div className="skeleton-card" style={{ height: 100, padding: 16 }}>
+                                <div className="skeleton-line short" style={{ marginBottom: 8 }}></div>
+                                <div className="skeleton-line" style={{ width: '60%', height: 24 }}></div>
+                            </div>
+                        </Col>
+                    ))}
+                </Row>
+                {/* Charts row skeleton */}
+                <Row gutter={[24, 24]}>
+                    <Col xs={24} lg={16}>
+                        <div className="skeleton-card" style={{ height: 300, marginBottom: 24 }}></div>
+                        <Row gutter={[24, 24]}>
+                            <Col xs={24} md={12}>
+                                <div className="skeleton-card" style={{ height: 200 }}></div>
+                            </Col>
+                            <Col xs={24} md={12}>
+                                <div className="skeleton-card" style={{ height: 200 }}></div>
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col xs={24} lg={8}>
+                        <div className="skeleton-card" style={{ height: 250, marginBottom: 24 }}></div>
+                        <div className="skeleton-card" style={{ height: 200 }}></div>
+                    </Col>
+                </Row>
             </div>
         );
     }
@@ -124,17 +157,23 @@ const ProjectDashboard = () => {
     return (
         <div className="dashboard-container">
             {/* Header */}
-            <div className="dashboard-header">
-                <Title level={2}>Project Overview: {currentProject?.name || 'No Project Selected'}</Title>
-                <Typography.Text type="secondary">
-                    <span>Lead: {currentProject?.lead?.fullName ? currentProject.lead.fullName : (
-                        <>Unassigned <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: '13px', marginLeft: 4, textDecoration: 'underline' }}>Assign</a></>
-                    )}</span>
-                    <span>•</span>
-                    <span>Key: {currentProject?.key}</span>
-                    <span>•</span>
-                    <span>Type: {currentProject?.projectType || 'Scrum'}</span>
-                </Typography.Text>
+            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+                <div>
+                    <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>Project Overview: {currentProject?.name || 'No Project Selected'}</Title>
+                    <Typography.Text type="secondary">
+                        <span>Lead: {currentProject?.lead?.fullName ? currentProject.lead.fullName : (
+                            <>Unassigned <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: '13px', marginLeft: 4, textDecoration: 'underline' }}>Assign</a></>
+                        )}</span>
+                        <span style={{ margin: '0 8px' }}>•</span>
+                        <span>Key: {currentProject?.key}</span>
+                        <span style={{ margin: '0 8px' }}>•</span>
+                        <span>Type: {currentProject?.projectType || 'Scrum'}</span>
+                    </Typography.Text>
+                </div>
+                <div style={{ display: 'flex', gap: 12 }}>
+                    <Button icon={<SettingOutlined />}>Settings</Button>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => message.info('Create task opened')}>Create Issue</Button>
+                </div>
             </div>
 
             {/* For You Section */}
@@ -154,8 +193,13 @@ const ProjectDashboard = () => {
                         </div>
                         <div className="kpi-content">
                             <div className="kpi-label">Sprint Progress</div>
-                            <div className="kpi-value">{syncedProgress}%</div>
-                            <div className="kpi-progress">
+                            <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {syncedProgress}%
+                                <span style={{ fontSize: 13, color: '#10B981', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+                                    <ArrowUpOutlined style={{ fontSize: 12, marginRight: 2 }} /> 4%
+                                </span>
+                            </div>
+                            <div className="kpi-progress" style={{ marginTop: 8 }}>
                                 <Progress
                                     percent={syncedProgress}
                                     showInfo={false}
@@ -173,8 +217,13 @@ const ProjectDashboard = () => {
                         </div>
                         <div className="kpi-content">
                             <div className="kpi-label">Completed</div>
-                            <div className="kpi-value">{displayDoneCount}</div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
+                            <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {displayDoneCount}
+                                <span style={{ fontSize: 13, color: '#10B981', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+                                    <ArrowUpOutlined style={{ fontSize: 12, marginRight: 2 }} /> 12%
+                                </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 4 }}>
                                 of {displayTotalCount} total
                             </div>
                         </div>
@@ -187,8 +236,10 @@ const ProjectDashboard = () => {
                         </div>
                         <div className="kpi-content">
                             <div className="kpi-label">Days Remaining</div>
-                            <div className="kpi-value">{stats?.daysRemaining || 0}</div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
+                            <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {stats?.daysRemaining || 0}
+                            </div>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 4 }}>
                                 in sprint
                             </div>
                         </div>
@@ -201,8 +252,13 @@ const ProjectDashboard = () => {
                         </div>
                         <div className="kpi-content">
                             <div className="kpi-label">Velocity</div>
-                            <div className="kpi-value">{stats?.velocity || 0}</div>
-                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 8 }}>
+                            <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {stats?.velocity || 0}
+                                <span style={{ fontSize: 13, color: '#EF4444', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+                                    <ArrowDownOutlined style={{ fontSize: 12, marginRight: 2 }} /> 2%
+                                </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 4 }}>
                                 points/day
                             </div>
                         </div>
@@ -322,8 +378,8 @@ const ProjectDashboard = () => {
                                         </div>
 
                                         {/* Data Rows */}
-                                        {stats.workload.map((item, idx) => {
-                                            const maxPoints = Math.max(...stats.workload.map(w => w.points || 0), 1);
+                                        {(stats.workload || []).map((item, idx) => {
+                                            const maxPoints = Math.max(...(stats.workload || []).map(w => w.points || 0), 1);
                                             const percentage = (item.points / maxPoints) * 100;
                                             return (
                                                 <div
@@ -334,7 +390,7 @@ const ProjectDashboard = () => {
                                                         paddingRight: 16,
                                                         paddingTop: 12,
                                                         paddingBottom: 12,
-                                                        borderBottom: idx < stats.workload.length - 1 ? `1px solid ${token.colorBorderSecondary}` : 'none',
+                                                        borderBottom: idx < (stats.workload || []).length - 1 ? `1px solid ${token.colorBorderSecondary}` : 'none',
                                                         alignItems: 'center',
                                                         gap: 24
                                                     }}

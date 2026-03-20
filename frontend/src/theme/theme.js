@@ -4,35 +4,35 @@ const theme = createTheme({
     palette: {
         mode: 'light',
         primary: {
-            main: '#0052CC', // Jira Blue
-            light: '#4C9AFF',
-            dark: '#0747A6',
+            main: '#3B82F6',      // Design system primary blue
+            light: '#60A5FA',
+            dark: '#2563EB',
             contrastText: '#FFFFFF',
         },
         secondary: {
-            main: '#6554C0', // Jira Purple
-            light: '#8777D9',
-            dark: '#5243AA',
+            main: '#6B7280',      // Neutral gray
+            light: '#9CA3AF',
+            dark: '#374151',
         },
         success: {
-            main: '#00875A',
-            light: '#36B37E',
-            dark: '#006644',
+            main: '#10B981',      // Design system success green
+            light: '#34D399',
+            dark: '#059669',
         },
         warning: {
-            main: '#FF991F',
-            light: '#FFAB00',
-            dark: '#FF8B00',
+            main: '#F59E0B',      // Design system warning amber
+            light: '#FCD34D',
+            dark: '#D97706',
         },
         error: {
-            main: '#DE350B',
-            light: '#FF5630',
-            dark: '#BF2600',
+            main: '#EF4444',      // Design system danger red
+            light: '#F87171',
+            dark: '#DC2626',
         },
         info: {
-            main: '#0065FF',
-            light: '#2684FF',
-            dark: '#0052CC',
+            main: '#3B82F6',
+            light: '#60A5FA',
+            dark: '#2563EB',
         },
         background: {
             default: '#F4F5F7',
@@ -40,10 +40,10 @@ const theme = createTheme({
         },
         text: {
             primary: '#172B4D',
-            secondary: '#5E6C84',
-            disabled: '#A5ADBA',
+            secondary: '#6B7280',
+            disabled: '#9CA3AF',
         },
-        divider: '#DFE1E6',
+        divider: '#E5E7EB',
     },
     typography: {
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
@@ -99,14 +99,14 @@ const theme = createTheme({
         },
     },
     shape: {
-        borderRadius: 3,
+        borderRadius: 8, // cards/modals = 8px per design system
     },
     shadows: [
         'none',
-        '0px 1px 1px rgba(9, 30, 66, 0.25), 0px 0px 1px rgba(9, 30, 66, 0.31)',
-        '0px 2px 4px rgba(9, 30, 66, 0.25), 0px 0px 1px rgba(9, 30, 66, 0.31)',
-        '0px 3px 5px rgba(9, 30, 66, 0.2), 0px 0px 1px rgba(9, 30, 66, 0.31)',
-        '0px 4px 8px rgba(9, 30, 66, 0.2), 0px 0px 1px rgba(9, 30, 66, 0.31)',
+        '0 1px 3px rgba(0, 0, 0, 0.08)',               // --shadow-sm
+        '0 4px 6px rgba(0, 0, 0, 0.1)',                // --shadow-md
+        '0 10px 15px rgba(0, 0, 0, 0.1)',              // --shadow-lg
+        '0 4px 8px rgba(9, 30, 66, 0.2), 0px 0px 1px rgba(9, 30, 66, 0.31)',
         '0px 5px 10px rgba(9, 30, 66, 0.2), 0px 0px 1px rgba(9, 30, 66, 0.31)',
         '0px 8px 12px rgba(9, 30, 66, 0.15), 0px 0px 1px rgba(9, 30, 66, 0.31)',
         '0px 10px 18px rgba(9, 30, 66, 0.15), 0px 0px 1px rgba(9, 30, 66, 0.31)',
@@ -118,22 +118,22 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     textTransform: 'none',
-                    borderRadius: 3,
+                    borderRadius: 6, // --radius-btn
                     fontWeight: 500,
-                    padding: '8px 12px',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    padding: '8px 16px',
+                    transition: 'all 0.15s cubic-bezier(0.4, 0, 0.2, 1)',
                 },
                 contained: {
                     boxShadow: 'none',
                     '&:hover': {
-                        boxShadow: '0px 2px 4px rgba(9, 30, 66, 0.25)',
+                        boxShadow: '0 4px 6px rgba(59, 130, 246, 0.25)',
                     },
                 },
                 outlined: {
                     borderWidth: '1px',
                     '&:hover': {
                         borderWidth: '1px',
-                        backgroundColor: 'rgba(9, 30, 66, 0.04)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.04)',
                     },
                 },
             },
@@ -141,11 +141,11 @@ const theme = createTheme({
         MuiCard: {
             styleOverrides: {
                 root: {
-                    borderRadius: 3,
-                    boxShadow: '0px 1px 1px rgba(9, 30, 66, 0.25), 0px 0px 1px rgba(9, 30, 66, 0.31)',
-                    transition: 'box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    borderRadius: 8, // --radius-md
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)', // --shadow-sm
+                    transition: 'box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
-                        boxShadow: '0px 4px 8px rgba(9, 30, 66, 0.2), 0px 0px 1px rgba(9, 30, 66, 0.31)',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', // --shadow-md
                     },
                 },
             },
@@ -156,7 +156,7 @@ const theme = createTheme({
                     backgroundImage: 'none',
                 },
                 elevation1: {
-                    boxShadow: '0px 1px 1px rgba(9, 30, 66, 0.25), 0px 0px 1px rgba(9, 30, 66, 0.31)',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
                 },
             },
         },

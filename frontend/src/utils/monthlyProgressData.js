@@ -21,7 +21,7 @@ export const generateMonthlyProgressData = () => {
     // Helper to get month display name
     const getMonthDisplay = (monthOffset) => {
         const d = new Date(currentYear, currentMonth + monthOffset, 1);
-        return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     };
 
     return {

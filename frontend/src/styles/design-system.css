@@ -1,0 +1,422 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Shared Component Styles
+   Priority Badges · Status Badges · Buttons · Form Inputs
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ──────────────────────────────────────────────────────────────
+   2.2 PRIORITY BADGES
+   ────────────────────────────────────────────────────────────── */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 18px;
+  white-space: nowrap;
+  height: 22px;
+  border: none;
+}
+
+.priority-badge .priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Highest / Critical */
+.priority-badge.priority-highest,
+.priority-badge.priority-critical {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+.priority-badge.priority-highest .priority-dot,
+.priority-badge.priority-critical .priority-dot {
+  background: #DC2626;
+}
+
+/* High */
+.priority-badge.priority-high {
+  background: #FEF3C7;
+  color: #B45309;
+}
+.priority-badge.priority-high .priority-dot {
+  background: #B45309;
+}
+
+/* Medium */
+.priority-badge.priority-medium {
+  background: #FFFBEB;
+  color: #D97706;
+}
+.priority-badge.priority-medium .priority-dot {
+  background: #D97706;
+}
+
+/* Low */
+.priority-badge.priority-low {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+.priority-badge.priority-low .priority-dot {
+  background: #2563EB;
+}
+
+/* Lowest */
+.priority-badge.priority-lowest {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+.priority-badge.priority-lowest .priority-dot {
+  background: #4B5563;
+}
+
+/* Overrides for Ant Design Tag elements used as priority badges */
+.ant-tag.priority-badge {
+  border: none !important;
+  margin: 0;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   2.3 STATUS BADGES
+   ────────────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 18px;
+  height: 22px;
+  white-space: nowrap;
+  border: none;
+}
+
+/* To Do */
+.status-badge.status-todo,
+.status-badge.status-backlog {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+/* In Progress */
+.status-badge.status-in_progress,
+.status-badge.status-in-progress {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563EB;
+}
+
+/* In Review */
+.status-badge.status-review,
+.status-badge.status-in_review,
+.status-badge.status-in-review {
+  background: #F3E8FF;
+  color: #7C3AED;
+}
+
+/* Done / Completed */
+.status-badge.status-done,
+.status-badge.status-completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+/* Blocked */
+.status-badge.status-blocked {
+  background: rgba(239, 68, 68, 0.12);
+  color: #DC2626;
+}
+
+/* Cancelled */
+.status-badge.status-cancelled {
+  background: #F3F4F6;
+  color: #6B7280;
+  text-decoration: line-through;
+}
+
+/* Ant Design Tag overrides */
+.ant-tag.status-badge {
+  border: none !important;
+  margin: 0;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   2.4 BUTTONS
+   ────────────────────────────────────────────────────────────── */
+
+/* Base button reset & shared */
+.ds-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease,
+    border-color 0.15s ease;
+  text-decoration: none;
+  outline: none;
+}
+
+.ds-btn:hover {
+  transform: translateY(-1px);
+}
+
+.ds-btn:active {
+  transform: translateY(0);
+  box-shadow: none !important;
+}
+
+/* Focus ring for keyboard accessibility */
+.ds-btn:focus-visible,
+.ant-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Primary */
+.ds-btn.ds-btn-primary {
+  background: #3B82F6;
+  color: #fff;
+  border-color: #3B82F6;
+}
+.ds-btn.ds-btn-primary:hover {
+  background: #2563EB;
+  border-color: #2563EB;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Secondary */
+.ds-btn.ds-btn-secondary {
+  background: #fff;
+  color: #374151;
+  border-color: #D1D5DB;
+}
+.ds-btn.ds-btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #9CA3AF;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Danger */
+.ds-btn.ds-btn-danger {
+  background: #EF4444;
+  color: #fff;
+  border-color: #EF4444;
+}
+.ds-btn.ds-btn-danger:hover {
+  background: #DC2626;
+  border-color: #DC2626;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Ant Design button overrides (global) */
+.ant-btn-primary {
+  background-color: #3B82F6 !important;
+  border-color: #3B82F6 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+.ant-btn-primary:hover {
+  background-color: #2563EB !important;
+  border-color: #2563EB !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3) !important;
+}
+
+.ant-btn-default {
+  border-radius: 6px !important;
+  border-color: #D1D5DB !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+.ant-btn-default:hover {
+  border-color: #9CA3AF !important;
+  color: #374151 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+.ant-btn-dangerous {
+  background-color: #EF4444 !important;
+  border-color: #EF4444 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+}
+.ant-btn-dangerous:hover {
+  background-color: #DC2626 !important;
+  border-color: #DC2626 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+.ant-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+.ant-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   2.5 FORM INPUTS
+   ────────────────────────────────────────────────────────────── */
+
+/* Global input styling */
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-picker,
+.ant-input-number,
+.ant-input-number-input {
+  border-color: #D1D5DB !important;
+  border-radius: 6px !important;
+  min-height: 36px !important;
+  font-size: 14px !important;
+  transition: all 0.15s ease !important;
+}
+
+/* Consistent internal padding */
+.ant-input,
+.ant-input-number-input {
+  padding: 6px 12px !important;
+}
+
+.ant-input-affix-wrapper {
+  padding: 0 12px !important;
+}
+
+.ant-input-affix-wrapper .ant-input {
+  min-height: unset !important;
+  padding: 0 !important;
+}
+
+/* Placeholder color */
+.ant-input::placeholder,
+.ant-input-number::placeholder {
+  color: #9CA3AF !important;
+}
+
+/* Focus state: blue border + subtle glow */
+.ant-input:focus,
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused,
+.ant-input-number:focus,
+.ant-input-number-focused {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+  outline: none !important;
+}
+
+/* Hover state */
+.ant-input:hover:not(:focus),
+.ant-input-affix-wrapper:hover:not(.ant-input-affix-wrapper-focused),
+.ant-select:not(.ant-select-focused) .ant-select-selector:hover,
+.ant-picker:hover:not(.ant-picker-focused) {
+  border-color: #9CA3AF !important;
+}
+
+/* Select dropdown max height */
+.ant-select-dropdown {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Textarea */
+textarea.ant-input {
+  min-height: 80px !important;
+  padding: 8px 12px !important;
+}
+
+
+/* ──────────────────────────────────────────────────────────────
+   DARK MODE adjustments
+   ────────────────────────────────────────────────────────────── */
+.dark .ant-btn-default {
+  background: var(--surface-secondary, #1c2128) !important;
+  border-color: var(--border-surface, #30363d) !important;
+  color: var(--text-on-surface, #e6edf3) !important;
+}
+.dark .ant-btn-default:hover {
+  background: var(--surface-tertiary, #21262d) !important;
+  border-color: #58a6ff !important;
+}
+
+.dark .ant-input,
+.dark .ant-input-affix-wrapper,
+.dark .ant-select-selector,
+.dark .ant-picker {
+  background: var(--surface-secondary, #1c2128) !important;
+  border-color: var(--border-surface, #30363d) !important;
+  color: var(--text-on-surface, #e6edf3) !important;
+}
+
+.dark .ant-input::placeholder {
+  color: var(--text-on-surface-secondary, #8b949e) !important;
+}
+
+.dark .priority-badge.priority-highest,
+.dark .priority-badge.priority-critical {
+  background: rgba(220, 38, 38, 0.15);
+}
+.dark .priority-badge.priority-high {
+  background: rgba(180, 83, 9, 0.15);
+}
+.dark .priority-badge.priority-medium {
+  background: rgba(217, 119, 6, 0.15);
+}
+.dark .priority-badge.priority-low {
+  background: rgba(37, 99, 235, 0.15);
+}
+.dark .priority-badge.priority-lowest {
+  background: rgba(75, 85, 99, 0.15);
+}
+
+.dark .status-badge.status-todo,
+.dark .status-badge.status-backlog {
+  background: rgba(75, 85, 99, 0.2);
+  color: #9CA3AF;
+}
+.dark .status-badge.status-done,
+.dark .status-badge.status-completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34D399;
+}
+.dark .status-badge.status-in_progress,
+.dark .status-badge.status-in-progress {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60A5FA;
+}
+.dark .status-badge.status-review {
+  background: rgba(124, 58, 237, 0.15);
+  color: #A78BFA;
+}
+.dark .status-badge.status-blocked {
+  background: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+}

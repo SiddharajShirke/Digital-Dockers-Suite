@@ -235,7 +235,7 @@ const Header = ({ onMenuClick }) => {
                         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
                         onClick={() => navigate('/dashboard')}
                     >
-                        <AppstoreOutlined style={{ fontSize: 24, color: '#0052CC' }} />
+                        <AppstoreOutlined style={{ fontSize: 24, color: '#3B82F6' }} />
                         <Text
                             strong
                             className="hidden md:block"
@@ -268,9 +268,15 @@ const Header = ({ onMenuClick }) => {
                             onOpenChange={(open) => !open && setSearchOpen(false)}
                         >
                             <Input
-                                placeholder="Search issues and projects"
-                                prefix={<SearchOutlined style={{ color: isDarkMode ? '#8b949e' : '#bfbfbf' }} />}
-                                className="w-[180px] lg:w-[240px] rounded"
+                                placeholder="Search issues, projects, people..."
+                                prefix={<SearchOutlined style={{ color: isDarkMode ? '#8b949e' : '#9CA3AF' }} />}
+                                className="w-[280px] lg:w-[400px] rounded"
+                                style={{
+                                    borderRadius: 8,
+                                    height: 36,
+                                    fontSize: 13,
+                                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F9FAFB',
+                                }}
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                                 onFocus={() => setSearchOpen(true)}
@@ -294,9 +300,27 @@ const Header = ({ onMenuClick }) => {
                         </div>
 
                         <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
-                            <Avatar style={{ backgroundColor: '#0052CC', cursor: 'pointer' }} icon={<UserOutlined />}>
-                                {user?.fullName?.[0]}
-                            </Avatar>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <Avatar
+                                    style={{ backgroundColor: '#3B82F6', cursor: 'pointer', fontWeight: 600 }}
+                                    icon={<UserOutlined />}
+                                    size={32}
+                                >
+                                    {user?.fullName?.[0]}
+                                </Avatar>
+                                {!isMobile && (
+                                    <Text
+                                        className="hidden lg:block"
+                                        style={{ fontSize: 13, fontWeight: 500, color: isDarkMode ? '#e6edf3' : '#172B4D', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                    >
+                                        {user?.fullName?.split(' ')[0]}
+                                    </Text>
+                                )}
+                                <DownOutlined style={{ fontSize: 9, color: isDarkMode ? '#8b949e' : '#6B7280' }} className="hidden lg:block" />
+                            </div>
                         </Dropdown>
 
                         {canCreate && (

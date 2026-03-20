@@ -263,7 +263,7 @@ const TeamManagement = () => {
                         okText="Delete"
                         okButtonProps={{ danger: true }}
                     >
-                        <Button type="text" danger icon={<DeleteOutlined />} />
+                        <Button type="text" danger icon={<DeleteOutlined />} aria-label="Remove team member" />
                     </Popconfirm>
                 </Space>
             )

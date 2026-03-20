@@ -105,7 +105,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
                       title="Delete comment?"
                       onConfirm={() => handleDeleteComment(comment._id)}
                     >
-                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="Delete comment" />
                     </Popconfirm>
                   )}
                 </Space>

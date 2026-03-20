@@ -1,25 +1,31 @@
 /* Dashboard Styles - Enhanced UI/UX */
 
 :root {
-    --primary-color: #0052cc;
-    --success-color: #00875a;
-    --danger-color: #ff5630;
-    --warning-color: #ffab00;
-    --info-color: #0055cc;
-    --text-primary: #161b22;
-    --text-secondary: #626f86;
-    --border-color: #eaeef2;
-    --bg-secondary: #f6f8fa;
-    --bg-hover: #f0f5ff;
+    /* ─ Tokens aligned to global design system ─ */
+    --primary-color:  #3B82F6;
+    --success-color:  #10B981;
+    --danger-color:   #EF4444;
+    --warning-color:  #F59E0B;
+    --info-color:     #3B82F6;
+    --text-primary:   #172B4D;
+    --text-secondary: #6B7280;
+    --border-color:   #E5E7EB;
+    --bg-secondary:   #F4F5F7;
+    --bg-hover:       #EFF6FF;
+
+    /* Shadows (aligned) */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12);
-    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+    /* Radius (aligned) */
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
 }
 
 .dashboard-container {
+    padding: var(--card-padding, 16px);
     padding: 24px;
     background: linear-gradient(135deg, #f8f9fa 0%, #f5f7fa 100%);
     min-height: 100vh;
@@ -255,7 +261,7 @@
 }
 
 .status-count-label {
-    font-size: 11px;
+    font-size: 11px; /* caption scale — min for accessibility */
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-secondary);
@@ -302,24 +308,25 @@
     margin: 4px 0;
 }
 
+/* Due date badges — consistent with semantic color spec */
 .due-date-badge.overdue {
-    background: #fee;
-    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
 }
 
 .due-date-badge.urgent {
-    background: #fef3c7;
-    color: #d97706;
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
 }
 
 .due-date-badge.soon {
-    background: #fef3c7;
-    color: #d97706;
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
 }
 
 .due-date-badge.later {
-    background: #dbeafe;
-    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    color: #3B82F6;
 }
 
 /* Activity Panel */
@@ -384,24 +391,25 @@
     border: none;
 }
 
+/* Status Tags — semantic color must match label intent */
 .status-tag.todo {
-    background: #f3f4f6;
-    color: #4b5563;
+    background: #F3F4F6;
+    color: #4B5563;
 }
 
 .status-tag.in-progress {
-    background: #dbeafe;
-    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    color: #3B82F6;
 }
 
 .status-tag.review {
-    background: #fed7aa;
-    color: #d97706;
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
 }
 
 .status-tag.done {
-    background: #d1fae5;
-    color: var(--success-color);
+    background: rgba(16, 185, 129, 0.1); /* success green — never mixed with negative label */
+    color: #10B981;
 }
 
 /* Recommendations & Insights */

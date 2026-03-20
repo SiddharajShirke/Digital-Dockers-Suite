@@ -3,6 +3,7 @@ import { Layout, ConfigProvider, theme, Grid } from 'antd';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import AppBreadcrumb from './AppBreadcrumb';
 import ChatbotWidget from '../chatbot/ChatbotWidget';
 import { useThemeMode } from '../../context/ThemeContext';
 
@@ -48,7 +49,7 @@ const DashboardLayout = () => {
             theme={{
                 algorithm,
                 token: {
-                    colorPrimary: '#0052CC',
+                    colorPrimary: '#3B82F6',
                     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
                     borderRadius: 8,
                     colorBgLayout: mode === 'dark' ? '#0d1117' : '#f4f5f7',
@@ -59,7 +60,13 @@ const DashboardLayout = () => {
                         borderRadiusLG: 12,
                     },
                     Button: {
-                        borderRadius: 8,
+                        borderRadius: 6,
+                    },
+                    Menu: {
+                        itemSelectedColor: '#3B82F6',
+                        itemSelectedBg: 'rgba(59,130,246,0.08)',
+                        itemHoverBg: 'rgba(0,0,0,0.04)',
+                        itemActiveBg: 'rgba(59,130,246,0.12)',
                     },
                 },
             }}
@@ -76,7 +83,7 @@ const DashboardLayout = () => {
                     <Content
                         style={{
                             marginLeft: getContentMargin(),
-                            padding: isMobile ? 12 : isTablet ? 16 : 24,
+                            padding: isMobile ? '12px 12px' : isTablet ? '16px 20px' : '16px 24px',
                             minHeight: 'calc(100vh - 60px)',
                             transition: 'margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s ease',
                             overflow: 'auto',
@@ -85,6 +92,9 @@ const DashboardLayout = () => {
                                 : 'linear-gradient(135deg, #f8f9fa 0%, #f0f2f5 100%)',
                         }}
                     >
+                        {/* Breadcrumb Navigation */}
+                        {!isMobile && <AppBreadcrumb />}
+
                         <div className="scale-in">
                             <Outlet />
                         </div>
@@ -97,4 +107,5 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+
 

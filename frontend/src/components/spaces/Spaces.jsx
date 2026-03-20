@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Button, Card, Row, Col, Space, Modal, Form, Input, Select, Popconfirm, Tooltip, Empty, Spin, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Tabs, Button, Card, Row, Col, Space, Modal, Form, Input, Select, Popconfirm, Tooltip, Empty, Spin, message, Dropdown } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, TeamOutlined, HistoryOutlined, SearchOutlined, FolderOpenOutlined, MoreOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useProject } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
@@ -24,6 +24,8 @@ const Spaces = () => {
   const [loading, setLoading] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [membersModalVisible, setMembersModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [form] = Form.useForm();
 
   // Load spaces on mount
@@ -98,14 +100,46 @@ const Spaces = () => {
 
   // Render list view
   const renderListView = () => {
-    if (loading) return <Spin />;
-    if (spaces.length === 0) {
+    if (loading) return (
+      <Row gutter={[16, 16]}>
+        {[1, 2, 3].map(i => (
+          <Col xs={24} sm={12} lg={8} key={i}>
+            <div className="skeleton-card" style={{ height: 140, padding: 16 }}>
+              <div className="skeleton-line medium" style={{ height: 18, marginBottom: 12 }}></div>
+              <div className="skeleton-line full"></div>
+              <div className="skeleton-line short" style={{ marginTop: 12 }}></div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+    );
+
+    // Filter and Sort
+    let filteredSpaces = [...spaces];
+    if (searchQuery) {
+        filteredSpaces = filteredSpaces.filter(s => 
+            s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+    }
+    
+    if (sortBy === 'newest') filteredSpaces.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    if (sortBy === 'oldest') filteredSpaces.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    if (sortBy === 'a-z') filteredSpaces.sort((a, b) => a.title.localeCompare(b.title));
+
+    if (spaces.length === 0 && !searchQuery) {
       return (
         <Empty
-          description="No spaces yet"
-          style={{ marginTop: 48 }}
+          image={<FolderOpenOutlined style={{ fontSize: 64, color: '#e2e8f0' }} />}
+          description={
+             <div style={{ color: '#64748b', marginTop: 16 }}>
+                 <h3 style={{ color: '#334155', marginBottom: 4 }}>No spaces yet</h3>
+                 <p>Create a space to start organizing notes and documents together.</p>
+             </div>
+          }
+          style={{ padding: '64px 0', background: '#fff', borderRadius: 8, border: '1px dashed #e2e8f0' }}
           extra={
-            <Button type="primary" onClick={() => setCreateModalVisible(true)}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
               Create First Space
             </Button>
           }
@@ -114,47 +148,87 @@ const Spaces = () => {
     }
 
     return (
-      <Row gutter={[16, 16]}>
-        {spaces.map(space => (
-          <Col xs={24} sm={12} lg={8} key={space._id}>
-            <Card
-              hoverable
-              className="space-card"
-              onClick={() => {
-                setSelectedSpace(space);
-                setActiveTab('editor');
-              }}
-            >
-              <div className="space-card-header">
-                <h3>{space.title}</h3>
-                <Space size="small">
-                  <Tooltip title="Members">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<TeamOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSpace(space);
-                        setMembersModalVisible(true);
+      <>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+            <Input
+                placeholder="Search spaces..."
+                prefix={<SearchOutlined style={{ color: '#94a3b8' }} />}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ width: 250 }}
+            />
+            <Select
+                value={sortBy}
+                onChange={setSortBy}
+                style={{ width: 140 }}
+                options={[
+                    { value: 'newest', label: 'Newest First' },
+                    { value: 'oldest', label: 'Oldest First' },
+                    { value: 'a-z', label: 'Alphabetical' }
+                ]}
+            />
+        </div>
+        {filteredSpaces.length === 0 ? (
+            <Empty description="No spaces match your search" />
+        ) : (
+        <Row gutter={[16, 16]}>
+          {filteredSpaces.map(space => (
+            <Col xs={24} sm={12} lg={8} key={space._id}>
+              <Card
+                hoverable
+                className="space-card"
+                onClick={() => {
+                  setSelectedSpace(space);
+                  setActiveTab('editor');
+                }}
+              >
+                <div className="space-card-header">
+                  <h3>{space.title}</h3>
+                  <Space size="small">
+                    <Tooltip title="Members">
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<TeamOutlined />}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSpace(space);
+                          setMembersModalVisible(true);
+                        }}
+                      >
+                        {space.contributorCount || 0}
+                      </Button>
+                    </Tooltip>
+                    
+                    <Dropdown
+                      menu={{
+                          items: [
+                              {
+                                  key: 'delete',
+                                  danger: true,
+                                  icon: <DeleteOutlined />,
+                                  label: (
+                                      <Popconfirm
+                                          title="Archive Space?"
+                                          description="This space will be archived"
+                                          onConfirm={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteSpace(space._id);
+                                          }}
+                                          onCancel={(e) => e.stopPropagation()}
+                                      >
+                                          <div onClick={(e) => e.stopPropagation()}>Archive Space</div>
+                                      </Popconfirm>
+                                  )
+                              }
+                          ]
                       }}
+                      trigger={['click']}
                     >
-                      {space.contributorCount || 0}
-                    </Button>
-                  </Tooltip>
-                  <Popconfirm
-                    title="Archive Space?"
-                    description="This space will be archived but can be recovered"
-                    onConfirm={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSpace(space._id);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button type="text" danger size="small" icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </Space>
-              </div>
+                        <Button type="text" size="small" icon={<MoreOutlined />} aria-label="Space actions menu" onClick={(e) => e.stopPropagation()} />
+                    </Dropdown>
+                  </Space>
+                </div>
 
               {space.description && (
                 <p className="space-description">{space.description}</p>
@@ -169,6 +243,8 @@ const Spaces = () => {
           </Col>
         ))}
       </Row>
+      )}
+      </>
     );
   };
 

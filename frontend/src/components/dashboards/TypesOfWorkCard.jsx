@@ -111,7 +111,8 @@ const TypesOfWorkCard = ({ projectId, onTypeClick }) => {
         );
     }
 
-    const total = workTypes.reduce((sum, wt) => sum + wt.count, 0);
+    const safeWorkTypes = Array.isArray(workTypes) ? workTypes : [];
+    const total = safeWorkTypes.reduce((sum, wt) => sum + (wt.count || 0), 0);
     const hasData = total > 0;
 
     return (
@@ -150,7 +151,7 @@ const TypesOfWorkCard = ({ projectId, onTypeClick }) => {
                     </div>
 
                     {/* Data Rows */}
-                    {workTypes.map((workType, idx) => {
+                    {safeWorkTypes.map((workType, idx) => {
                         const config = typeConfig[workType.type] || { icon: FileTextOutlined, color: '#626f86' };
                         return (
                             <DistributionBar

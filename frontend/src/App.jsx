@@ -2,6 +2,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { message } from 'antd';
+
+// Configure Ant Design message notifications
+message.config({
+  duration: 4,
+  maxCount: 3,
+  top: undefined,
+});
 
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -119,7 +127,16 @@ function App() {
           </ProjectProvider>
         </ChatProvider>
       </AuthProvider>
-      <ToastContainer position="top-right" />
+      <ToastContainer
+        position="bottom-right"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </ThemeProvider>
   );
 }

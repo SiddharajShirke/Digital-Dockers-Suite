@@ -7,58 +7,88 @@
 :root {
   /* Core Design Tokens */
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --color-primary: #0052CC;
-  --color-primary-hover: #0747A6;
-  --color-primary-light: rgba(0, 82, 204, 0.1);
-  --color-success: #36B37E;
-  --color-success-light: rgba(54, 179, 126, 0.1);
-  --color-warning: #FFAB00;
-  --color-warning-light: rgba(255, 171, 0, 0.1);
-  --color-danger: #FF5630;
-  --color-danger-light: rgba(255, 86, 48, 0.1);
-  --color-bg-light: #F4F5F7;
-  --color-bg-dark: #0d1117;
-  --color-bg-card: #ffffff;
-  --color-text-primary: #172B4D;
-  --color-text-secondary: #626f86;
-  --color-border: #e1e4e8;
 
-  /* Responsive Spacing */
+  /* ── Semantic Color System ────────────────────────────────────────────── */
+  --color-primary:        #3B82F6; /* actions, links, active states, primary buttons */
+  --color-primary-hover:  #2563EB;
+  --color-primary-light:  rgba(59, 130, 246, 0.1);
+  --color-success:        #10B981; /* completed, done, on-track, positive */
+  --color-success-light:  rgba(16, 185, 129, 0.1);
+  --color-warning:        #F59E0B; /* at-risk, needs attention, medium priority */
+  --color-warning-light:  rgba(245, 158, 11, 0.1);
+  --color-danger:         #EF4444; /* overdue, blocked, critical, high priority */
+  --color-danger-light:   rgba(239, 68, 68, 0.1);
+  --color-neutral:        #6B7280; /* secondary text, borders, disabled */
+  --color-neutral-light:  rgba(107, 114, 128, 0.1);
+
+  /* ── Backgrounds & Surfaces ─────────────────────────────────────────── */
+  --color-bg-light:       #F4F5F7;
+  --color-bg-dark:        #0d1117;
+  --color-bg-card:        #ffffff;
+  --color-text-primary:   #172B4D;
+  --color-text-secondary: #6B7280;
+  --color-border:         #E5E7EB;
+
+  /* ── Typography Scale ──────────────────────────────────────────────── */
+  --text-page-title:    24px; /* semibold */
+  --text-section-head:  18px; /* semibold */
+  --text-card-title:    16px; /* medium */
+  --text-body:          14px; /* regular — base */
+  --text-label:         12px; /* medium — badges, labels */
+  --text-caption:       11px; /* regular — timestamps, captions */
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+
+  /* ── 8px Spacing Grid ─────────────────────────────────────────────── */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  /* Responsive aliases */
   --space-xs: clamp(4px, 1vw, 8px);
   --space-sm: clamp(8px, 2vw, 12px);
   --space-md: clamp(16px, 3vw, 24px);
   --space-lg: clamp(24px, 4vw, 32px);
   --space-xl: clamp(32px, 5vw, 48px);
+  /* Card internals */
+  --card-padding:   16px;
+  --card-gap:       12px;
+  --section-gap:    24px;
 
-  /* Container Widths */
+  /* ── Container Widths ─────────────────────────────────────────────── */
   --container-sm: 640px;
   --container-md: 768px;
   --container-lg: 1024px;
   --container-xl: 1280px;
 
-  /* Transitions */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  /* ── Transitions ──────────────────────────────────────────────────── */
+  --transition-fast:   0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.15);
-  --shadow-glow: 0 0 20px rgba(0, 82, 204, 0.15);
+  /* ── Shadows ─────────────────────────────────────────────────────── */
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.08);   /* cards at rest */
+  --shadow-md:   0 4px 6px rgba(0, 0, 0, 0.1);    /* cards on hover */
+  --shadow-lg:   0 10px 15px rgba(0, 0, 0, 0.1);  /* modals / dropdowns */
+  --shadow-xl:   0 20px 40px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
 
-  /* Border Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
+  /* ── Border Radius ────────────────────────────────────────────────── */
+  --radius-badge:  4px;  /* badges, tags */
+  --radius-btn:    6px;  /* buttons, inputs */
+  --radius-sm:     6px;
+  --radius-md:     8px;  /* cards, modals */
+  --radius-lg:     12px;
+  --radius-xl:     16px;
+  --radius-full:   9999px; /* avatars, pills */
 
   font-family: var(--font-primary);
-  line-height: 1.6;
-  font-weight: 400;
+  line-height: 1.5;
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-regular);
   color-scheme: light dark;
   color: var(--color-text-primary);
   background-color: var(--color-bg-light);
@@ -217,43 +247,104 @@ body {
   transform: translateY(0);
 }
 
-/* Ant Design Overrides for better UX */
+/* Ant Design Overrides — aligned to design system */
 .ant-card {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-sm) !important;
   transition: box-shadow var(--transition-normal), transform var(--transition-fast);
 }
 
 .ant-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md) !important;
 }
 
 .ant-btn {
+  border-radius: var(--radius-btn) !important;
   transition: all var(--transition-fast);
 }
 
 .ant-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.ant-input,
+.ant-select-selector {
+  border-radius: var(--radius-btn) !important;
 }
 
 .ant-input:focus,
 .ant-select-focused .ant-select-selector {
-  box-shadow: 0 0 0 3px rgba(0, 82, 204, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
 
-/* Responsive Typography */
+.ant-tag,
+.ant-badge {
+  border-radius: var(--radius-badge) !important;
+  font-size: var(--text-label) !important;
+  font-weight: var(--font-weight-medium) !important;
+}
+
+.ant-modal-content {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.ant-dropdown-menu,
+.ant-select-dropdown {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+/* Typography Scale — design system */
+body, p, span, div {
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+/* Page title */
+.page-title,
 h1 {
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  line-height: 1.2;
-}
-
-h2 {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  line-height: 1.25;
-}
-
-h3 {
-  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  font-size: var(--text-page-title);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.3;
+}
+
+/* Section header */
+.section-header,
+h2 {
+  font-size: var(--text-section-head);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+}
+
+/* Card title */
+.card-title,
+h3 {
+  font-size: var(--text-card-title);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
+
+h4 {
+  font-size: var(--text-card-title);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.4;
+}
+
+/* Labels / badges */
+.label-text,
+.badge-text {
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Timestamps / captions — min 11px for accessibility */
+.caption,
+.timestamp {
+  font-size: var(--text-caption);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
 }
 
 /* Mobile Touch Targets */
@@ -325,9 +416,10 @@ h3 {
     --color-text-primary: #e6edf3;
     --color-text-secondary: #8b949e;
     --color-border: #30363d;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+    /* Dark mode shadow adjustments */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
     color: var(--color-text-primary);
     background-color: var(--color-bg-light);
   }
@@ -465,3 +557,63 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Global Utility Classes
+   ══════════════════════════════════════════════════════════════ */
+
+/* Cards */
+.ds-card {
+  background: var(--color-bg-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--card-padding);
+  transition: box-shadow var(--transition-normal), transform var(--transition-fast);
+}
+
+.ds-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Badges — semantic variants */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-badge);
+  font-size: var(--text-label);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.badge-primary {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.badge-neutral {
+  background: var(--color-neutral-light);
+  color: var(--color-neutral);
+}
+
+/* Spacing helpers (8px grid) */
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.p-card { padding: var(--card-padding); }
+.mb-section { margin-bottom: var(--section-gap); }

@@ -104,7 +104,7 @@ const MonthlyInsights = ({ monthsData }) => {
                                     className="capacity-fill"
                                     style={{
                                         width: `${Math.min(month.capacityUtilization, 100)}%`,
-                                        backgroundColor: month.capacityUtilization > 100 ? '#ff4d4f' : '#52c41a'
+                                        backgroundColor: month.capacityUtilization > 100 ? '#ff4d4f' : '#3B82F6'
                                     }}
                                 >
                                     {month.capacityUtilization > 0 && (
@@ -124,20 +124,27 @@ const MonthlyInsights = ({ monthsData }) => {
             </Card>
 
             {/* Quick Tips */}
-            <Card className="insights-card tips-card">
-                <h3>🤖 AI Insights</h3>
-                <div className="tips-list">
-                    <div className="tip success">
-                        <strong>Strong Performance:</strong> Team has maintained consistent velocity. Keep up the momentum!
+            <Card className="insights-card tips-card" bodyStyle={{ padding: '16px 20px' }} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                    <span style={{ fontSize: 16 }}>✨</span>
+                    <strong style={{ color: '#0f172a', fontSize: 14 }}>AI Insights</strong>
+                </div>
+                <div className="tips-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
+                    <div className="tip" style={{ backgroundColor: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13 }}>
+                        <span style={{ color: '#10B981', fontWeight: 600, marginRight: 4 }}>Strong Performance:</span> 
+                        Team has maintained consistent velocity. Keep up the momentum!
                     </div>
-                    <div className="tip warning">
-                        <strong>Capacity Alert:</strong> March is overloaded at {capacityData.futureCapacity[1]?.capacityUtilization}%. Consider deferring non-critical items.
+                    <div className="tip" style={{ backgroundColor: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13 }}>
+                        <span style={{ color: '#EF4444', fontWeight: 600, marginRight: 4 }}>Capacity Alert:</span> 
+                        March is overloaded at {capacityData.futureCapacity[1]?.capacityUtilization}%. Consider deferring items.
                     </div>
-                    <div className="tip info">
-                        <strong>Trend:</strong> Velocity improving month-over-month. {velocityTrend_direction === 'up' ? 'Team efficiency increasing.' : 'Monitor for bottlenecks.'}
+                    <div className="tip" style={{ backgroundColor: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13 }}>
+                        <span style={{ color: '#3B82F6', fontWeight: 600, marginRight: 4 }}>Trend:</span> 
+                        Velocity improving month-over-month. {velocityTrend_direction === 'up' ? 'Team efficiency increasing.' : 'Monitor for bottlenecks.'}
                     </div>
-                    <div className="tip info">
-                        <strong>Recommendation:</strong> With current velocity, project completes in ~4 months. Adjust scope or add resources if timeline critical.
+                    <div className="tip" style={{ backgroundColor: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 13 }}>
+                        <span style={{ color: '#8B5CF6', fontWeight: 600, marginRight: 4 }}>Forecast:</span> 
+                        With current velocity, project completes in ~4 months.
                     </div>
                 </div>
             </Card>

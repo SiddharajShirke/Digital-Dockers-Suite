@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Card, Button, Select, Table, Tag, Avatar, Space, Empty, message, Typography, Row, Col, Divider, Input } from 'antd';
-import { PlusOutlined, BugOutlined, CheckCircleOutlined, FileTextOutlined, HolderOutlined, SearchOutlined } from '@ant-design/icons';
+import { Card, Button, Select, Table, Tag, Avatar, Space, Empty, message, Typography, Row, Col, Divider, Input, Checkbox } from 'antd';
+import { PlusOutlined, BugOutlined, CheckCircleOutlined, FileTextOutlined, HolderOutlined, SearchOutlined, CalendarOutlined } from '@ant-design/icons';
 import { useProject } from '../../context/ProjectContext';
 import taskService from '../../services/taskService';
 import CreateIssueModal from '../tasks/CreateIssueModal';
@@ -10,20 +10,46 @@ import './BacklogPage.css';
 const { Title, Text } = Typography;
 
 const ISSUE_TYPE_ICONS = {
-    bug: <BugOutlined style={{ color: '#ae2a19' }} />,
-    task: <CheckCircleOutlined style={{ color: '#0052cc' }} />,
-    story: <FileTextOutlined style={{ color: '#216e4e' }} />,
-    feature: <FileTextOutlined style={{ color: '#0052cc' }} />,
-    epic: <FileTextOutlined style={{ color: '#974f0c' }} />
+    bug:     <BugOutlined style={{ color: '#EF4444' }} />,
+    task:    <CheckCircleOutlined style={{ color: '#3B82F6' }} />,
+    story:   <FileTextOutlined style={{ color: '#10B981' }} />,
+    feature: <FileTextOutlined style={{ color: '#3B82F6' }} />,
+    epic:    <FileTextOutlined style={{ color: '#F59E0B' }} />,
 };
 
-const PRIORITY_COLORS = {
-    highest: '#ae2a19',
-    high: '#eb5757',
-    medium: '#f59e0b',
-    low: '#10b981',
-    lowest: '#6b7280'
+// Returns a CSS class for priority badges (design-system.css)
+const getPriorityClass = (priority) => {
+    const p = (priority || 'medium').toLowerCase();
+    return `priority-badge priority-${p}`;
 };
+
+const PRIORITY_LABEL = {
+    highest: '↑↑ Highest',
+    critical: '!! Critical',
+    high:    '↑ High',
+    medium:  '~ Medium',
+    low:     '↓ Low',
+    lowest:  '↓↓ Lowest',
+};
+
+// Returns a CSS class for status badges (design-system.css)
+const getStatusClass = (status) => {
+    const s = (status || 'todo').toLowerCase().replace(' ', '_');
+    return `status-badge status-${s}`;
+};
+
+const STATUS_LABEL = {
+    todo:        'To Do',
+    backlog:     'Backlog',
+    in_progress: 'In Progress',
+    review:      'In Review',
+    in_review:   'In Review',
+    done:        'Done',
+    completed:   'Completed',
+    blocked:     'Blocked',
+    cancelled:   'Cancelled',
+};
+
 
 const BacklogPage = () => {
     const { currentProject, sprints, activeSprint } = useProject();
@@ -35,6 +61,42 @@ const BacklogPage = () => {
     const [assigneeFilter, setAssigneeFilter] = useState(null);
     const [epicFilter, setEpicFilter] = useState(null);
     const [, setLoading] = useState(false);
+    const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
+
+    const toggleSelection = (issueId) => {
+        setSelectedIssueIds(prev => {
+            const next = new Set(prev);
+            if (next.has(issueId)) next.delete(issueId);
+            else next.add(issueId);
+            return next;
+        });
+    };
+
+    const toggleAllBacklog = (e) => {
+        if (e.target.checked) {
+            const newSet = new Set(selectedIssueIds);
+            filteredBacklogIssues.forEach(i => newSet.add(i._id));
+            setSelectedIssueIds(newSet);
+        } else {
+            const newSet = new Set(selectedIssueIds);
+            filteredBacklogIssues.forEach(i => newSet.delete(i._id));
+            setSelectedIssueIds(newSet);
+        }
+    };
+
+    const toggleAllSprint = (e) => {
+        if (e.target.checked) {
+            const newSet = new Set(selectedIssueIds);
+            filteredSprintIssues.forEach(i => newSet.add(i._id));
+            setSelectedIssueIds(newSet);
+        } else {
+            const newSet = new Set(selectedIssueIds);
+            filteredSprintIssues.forEach(i => newSet.delete(i._id));
+            setSelectedIssueIds(newSet);
+        }
+    };
+
+    const totalSprintPoints = sprintIssues.reduce((sum, issue) => sum + (Number(issue.storyPoints) || 0), 0);
 
     const filteredBacklogIssues = useMemo(() => {
         return backlogIssues.filter(issue => {
@@ -116,7 +178,9 @@ const BacklogPage = () => {
     };
 
     const IssueRow = ({ issue, index }) => {
-        const isCompleted = ['done', 'completed'].includes((issue.status || issue.issueStatus || '').toLowerCase());
+        const isCompleted = ['done', 'completed', 'cancelled'].includes((issue.status || issue.issueStatus || '').toLowerCase());
+        const priority = (issue.priority || 'medium').toLowerCase();
+        const status   = (issue.status  || issue.issueStatus || 'todo').toLowerCase();
 
         return (
             <Draggable draggableId={issue._id} index={index}>
@@ -124,70 +188,112 @@ const BacklogPage = () => {
                     <div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`issue-row ${snapshot.isDragging ? 'dragging' : ''} ${isCompleted ? 'opacity-60 line-through' : ''}`}
+                        className={`issue-row ${snapshot.isDragging ? 'dragging' : ''}`}
                         style={{
                             ...provided.draggableProps.style,
-                            backgroundColor: snapshot.isDragging ? '#f0f2f5' : 'transparent',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            marginBottom: '8px',
-                            border: '1px solid #e8e8e8',
+                            backgroundColor: snapshot.isDragging ? '#EFF6FF' : 'transparent',
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            marginBottom: '6px',
+                            border: `1px solid ${snapshot.isDragging ? '#3B82F6' : '#E5E7EB'}`,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px'
+                            gap: '8px',
+                            opacity: isCompleted ? 0.65 : 1,
+                            transition: 'box-shadow 0.15s, border-color 0.15s, background-color 0.15s',
+                            boxShadow: snapshot.isDragging ? '0 8px 16px rgba(0,0,0,0.12)' : 'none',
                         }}
                     >
-                        <div {...provided.dragHandleProps} style={{ cursor: 'grab', padding: '0 4px', color: '#bfbfbf' }}>
-                            <HolderOutlined />
+                        {/* Drag handle */}
+                        <div {...provided.dragHandleProps} style={{ cursor: 'grab', padding: '0 4px', color: '#9CA3AF', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                            <HolderOutlined style={{ fontSize: 16 }} />
                         </div>
-                        <div className="flex flex-col md:flex-row md:items-center w-full gap-2 md:gap-4 overflow-hidden py-1">
-                            {/* Mobile Top Row: ID, Icon, Priority */}
+
+                        {/* Checkbox */}
+                        <div className="flex-shrink-0 mr-1">
+                            <Checkbox 
+                                checked={selectedIssueIds.has(issue._id)} 
+                                onChange={() => toggleSelection(issue._id)} 
+                            />
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center w-full gap-2 md:gap-3 overflow-hidden py-0.5">
+                            {/* Mobile top row */}
                             <div className="flex items-center justify-between md:hidden w-full">
                                 <div className="flex items-center gap-2">
                                     {ISSUE_TYPE_ICONS[issue.issueType?.toLowerCase()] || ISSUE_TYPE_ICONS.task}
-                                    <Text strong style={{ fontSize: 12, color: '#0052cc' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6' }}>
                                         {issue.key || `ISSUE-${issue._id?.slice(-4).toUpperCase()}`}
-                                    </Text>
+                                    </span>
                                 </div>
                                 {issue.priority && (
-                                    <Tag
-                                        color={PRIORITY_COLORS[issue.priority?.toLowerCase()] || '#666'}
-                                        style={{ fontSize: 11, margin: 0 }}
-                                    >
-                                        {issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1).toLowerCase()}
-                                    </Tag>
+                                    <span className={getPriorityClass(issue.priority)}>
+                                        <span className="priority-dot" />
+                                        {PRIORITY_LABEL[priority] || issue.priority}
+                                    </span>
                                 )}
                             </div>
 
-                            {/* Desktop Left: Icon, ID */}
-                            <div className="hidden md:flex items-center gap-3 w-32 shrink-0">
+                            {/* Desktop: Icon + key */}
+                            <div className="hidden md:flex items-center gap-2 w-36 shrink-0">
                                 {ISSUE_TYPE_ICONS[issue.issueType?.toLowerCase()] || ISSUE_TYPE_ICONS.task}
-                                <Text strong style={{ fontSize: 12, color: '#0052cc' }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6' }}>
                                     {issue.key || `ISSUE-${issue._id?.slice(-4).toUpperCase()}`}
-                                </Text>
+                                </span>
                             </div>
 
-                            {/* Middle: Title */}
+                            {/* Title */}
                             <div className="min-w-0 flex-1">
-                                <div className="w-full" style={{ fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.5' }} title={issue.title}>
+                                <div
+                                    style={{
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        color: '#172B4D',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        lineHeight: '1.5',
+                                        textDecoration: isCompleted ? 'line-through' : 'none',
+                                    }}
+                                    title={issue.title}
+                                >
                                     {issue.title}
                                 </div>
                             </div>
 
-                            {/* Desktop Right: Priority */}
-                            <div className="hidden md:block w-24 shrink-0">
+                            {/* Desktop: Priority badge + Status badge */}
+                            <div className="hidden md:flex items-center gap-2 shrink-0">
                                 {issue.priority && (
-                                    <Tag
-                                        color={PRIORITY_COLORS[issue.priority?.toLowerCase()] || '#666'}
-                                        style={{ fontSize: 11, margin: 0 }}
-                                    >
-                                        {issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1).toLowerCase()}
-                                    </Tag>
+                                    <span className={getPriorityClass(issue.priority)}>
+                                        <span className="priority-dot" />
+                                        {PRIORITY_LABEL[priority] || issue.priority}
+                                    </span>
+                                )}
+                                {issue.status && (
+                                    <span className={getStatusClass(issue.status)}>
+                                        {STATUS_LABEL[status] || issue.status}
+                                    </span>
                                 )}
                             </div>
 
-                            {/* Right / Bottom Assignee */}
-                            <div className="flex justify-start md:justify-end w-full md:w-32 shrink-0 border-t md:border-0 border-gray-100 pt-2 md:pt-0 mt-1 md:mt-0">
+                            {/* Desktop: Story Points & Due Date */}
+                            <div className="hidden lg:flex items-center gap-3 shrink-0 text-xs text-gray-500 min-w-[90px] justify-end">
+                                {issue.storyPoints != null && (
+                                    <div style={{ background: '#E5E7EB', padding: '2px 6px', borderRadius: 10, fontWeight: 600, color: '#374151' }}>
+                                        {issue.storyPoints}
+                                    </div>
+                                )}
+                                {issue.dueDate && (
+                                    <div className="flex items-center gap-1" style={{ color: new Date(issue.dueDate) < new Date() ? '#DC2626' : 'inherit' }}>
+                                        <CalendarOutlined />
+                                        <span>{new Date(issue.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Assignee */}
+                            <div className="flex justify-start md:justify-end w-full md:w-auto shrink-0 min-w-[40px]">
                                 {issue.assignedTo && issue.assignedTo.length > 0 ? (
                                     <Avatar.Group maxCount={2} size="small">
                                         {issue.assignedTo.map(assignee => (
@@ -195,6 +301,7 @@ const BacklogPage = () => {
                                                 key={assignee._id}
                                                 size="small"
                                                 title={assignee.fullName || assignee.name}
+                                                style={{ backgroundColor: '#3B82F6', fontSize: 10 }}
                                             >
                                                 {(assignee.fullName || assignee.name)?.[0]?.toUpperCase()}
                                             </Avatar>
@@ -210,6 +317,7 @@ const BacklogPage = () => {
             </Draggable>
         );
     };
+
 
     if (!currentProject) {
         return <Empty description="Select a Project" />;
@@ -276,9 +384,21 @@ const BacklogPage = () => {
                     <Col xs={24} lg={12}>
                         <Card
                             title={
-                                <Text strong>
-                                    Backlog ({filteredBacklogIssues.length})
-                                </Text>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox 
+                                        onChange={toggleAllBacklog} 
+                                        checked={filteredBacklogIssues.length > 0 && filteredBacklogIssues.every(i => selectedIssueIds.has(i._id))}
+                                        indeterminate={filteredBacklogIssues.some(i => selectedIssueIds.has(i._id)) && !filteredBacklogIssues.every(i => selectedIssueIds.has(i._id))}
+                                    />
+                                    <Text strong>
+                                        Backlog ({filteredBacklogIssues.length})
+                                    </Text>
+                                    {selectedIssueIds.size > 0 && (
+                                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                                            {selectedIssueIds.size} selected
+                                        </Text>
+                                    )}
+                                </div>
                             }
                             style={{ height: '100%' }}
                             bodyStyle={{ maxHeight: '600px', overflowY: 'auto' }}
@@ -319,6 +439,11 @@ const BacklogPage = () => {
                             title={
                                 <div className="flex flex-col md:flex-row md:items-center justify-between w-full gap-2">
                                     <div className="flex items-center flex-wrap gap-2">
+                                        <Checkbox 
+                                            onChange={toggleAllSprint} 
+                                            checked={filteredSprintIssues.length > 0 && filteredSprintIssues.every(i => selectedIssueIds.has(i._id))}
+                                            indeterminate={filteredSprintIssues.some(i => selectedIssueIds.has(i._id)) && !filteredSprintIssues.every(i => selectedIssueIds.has(i._id))}
+                                        />
                                         <Text strong>
                                             {activeSprint?.name || 'No Active Sprint'} ({filteredSprintIssues.length})
                                         </Text>
@@ -331,6 +456,11 @@ const BacklogPage = () => {
                                                 style={{ margin: 0 }}
                                             >
                                                 {activeSprint.status}
+                                            </Tag>
+                                        )}
+                                        {activeSprint && totalSprintPoints > 0 && (
+                                            <Tag color="purple" style={{ margin: 0, borderRadius: 12 }}>
+                                                {totalSprintPoints} pts allocated
                                             </Tag>
                                         )}
                                     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -9,8 +9,8 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
-import { Box, Paper, Typography, Avatar, Chip, Tooltip, Skeleton, useTheme } from '@mui/material';
-import { Business, Group, Person, WorkOutline } from '@mui/icons-material';
+import { Box, Paper, Typography, Avatar, Chip, Tooltip, Skeleton, useTheme, TextField, InputAdornment } from '@mui/material';
+import { Business, Group, Person, WorkOutline, Search } from '@mui/icons-material';
 import teamService from '../../services/teamService';
 import GlassCard from '../common/GlassCard';
 
@@ -210,6 +210,7 @@ const OrgGraph = () => {
     const [nodes, setNodes] = useNodesState([]);
     const [edges, setEdges] = useEdgesState([]);
     const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
     const theme = useTheme();
 
     useEffect(() => {
@@ -256,7 +257,7 @@ const OrgGraph = () => {
                         id: `e-company-${teamId}`,
                         source: companyId,
                         target: teamId,
-                        type: 'smoothstep',
+                        type: 'step',
                         style: { stroke: team.color || '#6554C0', strokeWidth: 2 },
                         animated: true
                     });
@@ -281,7 +282,7 @@ const OrgGraph = () => {
                             id: `e-${teamId}-${leadId}`,
                             source: teamId,
                             target: leadId,
-                            type: 'smoothstep',
+                            type: 'step',
                             style: { stroke: '#4f46e5', strokeWidth: 2 },
                             animated: true
                         });
@@ -314,7 +315,7 @@ const OrgGraph = () => {
                             id: `e-${sourceNode}-${memberId}`,
                             source: sourceNode,
                             target: memberId,
-                            type: 'smoothstep',
+                            type: 'step',
                             style: { stroke: theme.palette.text.secondary, strokeWidth: 1.5 }
                         });
                     });
@@ -335,9 +336,30 @@ const OrgGraph = () => {
         fetchOrgData();
     }, [setNodes, setEdges, theme]);
 
-    // Read-only handlers - do nothing
     const onNodesChange = () => { };
     const onEdgesChange = () => { };
+
+    // Filter nodes based on search term by updating opacity
+    const filteredNodes = useMemo(() => {
+        if (!searchTerm) return nodes;
+
+        const lowerTerm = searchTerm.toLowerCase();
+        return nodes.map(node => {
+            const isMatch = 
+                (node.data.name && node.data.name.toLowerCase().includes(lowerTerm)) ||
+                (node.data.fullName && node.data.fullName.toLowerCase().includes(lowerTerm)) ||
+                (node.data.role && node.data.role.toLowerCase().includes(lowerTerm));
+            
+            return {
+                ...node,
+                style: {
+                    ...node.style,
+                    opacity: isMatch ? 1 : 0.2,
+                    transition: 'opacity 0.3s ease'
+                }
+            };
+        });
+    }, [nodes, searchTerm]);
 
     if (loading) {
         return (
@@ -382,15 +404,31 @@ const OrgGraph = () => {
                 }}>
                     Organization Structure
                 </Typography>
-                <Chip
-                    icon={<WorkOutline />}
-                    label="View Only"
-                    size="small"
-                    sx={{
-                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.18)' : 'rgba(100,100,100,0.1)',
-                        color: 'text.secondary'
-                    }}
-                />
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <TextField
+                        size="small"
+                        placeholder="Search people, roles, teams..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        sx={{ width: 250 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search fontSize="small" />
+                                </InputAdornment>
+                            ),
+                        }}
+                    />
+                    <Chip
+                        icon={<WorkOutline />}
+                        label="View Only"
+                        size="small"
+                        sx={{
+                            bgcolor: theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.18)' : 'rgba(100,100,100,0.1)',
+                            color: 'text.secondary'
+                        }}
+                    />
+                </Box>
             </Box>
             <Paper sx={{
                 height: '100%',
@@ -404,7 +442,7 @@ const OrgGraph = () => {
                     : '0 4px 20px rgba(0,0,0,0.08)'
             }}>
                 <ReactFlow
-                    nodes={nodes}
+                    nodes={filteredNodes}
                     edges={edges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}

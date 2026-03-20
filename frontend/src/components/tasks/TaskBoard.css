@@ -75,14 +75,55 @@
 .kanban-filters .ant-select-selector,
 .kanban-filters .ant-btn {
     background: #ffffff;
-    border: 1px solid #dfe1e6;
-    border-radius: 4px;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
     font-size: 13px;
 }
 
 .kanban-filters .ant-input-affix-wrapper:focus-within,
 .kanban-filters .ant-input-affix-wrapper:hover {
-    border-color: #0052cc;
+    border-color: #3B82F6;
+}
+
+/* Filter pills */
+.filter-pills {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.filter-pill {
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    color: #6B7280;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.filter-pill:hover {
+    background: #F3F4F6;
+    border-color: #D1D5DB;
+    color: #374151;
+}
+
+.filter-pill.active {
+    background: rgba(59,130,246,0.1);
+    border-color: #3B82F6;
+    color: #3B82F6;
+    font-weight: 600;
+}
+
+/* Active filter chips */
+.active-filters {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 /* Main Kanban Board */
@@ -113,13 +154,27 @@
 
 /* Kanban Column */
 .kanban-column {
-    flex: 0 0 360px;
+    flex: 0 0 340px;
     display: flex;
     flex-direction: column;
     background: #f8f9fa;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 1px rgba(9, 30, 66, 0.13), 0 0 1px rgba(9, 30, 66, 0.13);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.2s ease;
+}
+
+.kanban-column.wip-exceeded {
+    box-shadow: 0 0 0 2px rgba(220,38,38,0.3), 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* WIP badge */
+.wip-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+    transition: all 0.2s;
 }
 
 /* Column Header */
@@ -191,36 +246,91 @@
 
 .empty-column {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #626f86;
+    color: #9CA3AF;
     font-size: 13px;
-    padding: 20px 0;
+    padding: 32px 16px;
+    min-height: 120px;
+}
+
+.column-tasks.empty-drop-zone {
+    border: 2px dashed #D1D5DB;
+    border-radius: 6px;
+    margin: 4px 8px 8px;
+    background: transparent !important;
 }
 
 /* Kanban Card */
 .kanban-card {
     background: white;
-    border: 1px solid #dfe1e6;
+    border: 1px solid #E5E7EB;
     border-radius: 8px;
     padding: 12px;
     cursor: grab;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 1px rgba(9, 30, 66, 0.13);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     position: relative;
+    overflow: hidden;
 }
 
 .kanban-card:hover {
-    box-shadow: 0 4px 8px rgba(9, 30, 66, 0.15);
-    border-color: #0052cc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-color: #3B82F6;
     transform: translateY(-2px);
 }
 
+.kanban-card:hover .card-menu-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 .kanban-card.dragging {
-    opacity: 0.7;
+    opacity: 0.85;
     cursor: grabbing;
-    box-shadow: 0 8px 16px rgba(9, 30, 66, 0.25);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Card top row: priority + key + menu ── */
+.card-top-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: nowrap;
+}
+
+.card-issue-key {
+    font-size: 11px;
+    font-weight: 600;
+    color: #3B82F6;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+/* Three-dot menu — hidden at rest, shown on card hover */
+.card-menu-btn {
+    margin-left: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    flex-shrink: 0;
+}
+
+.card-menu-btn .ant-btn {
+    color: #6B7280 !important;
+    border-radius: 4px !important;
+}
+
+.card-menu-btn .ant-btn:hover {
+    background: #F3F4F6 !important;
+    color: #172B4D !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 /* Card Key */
@@ -316,12 +426,49 @@
 .card-footer .ant-tag {
     margin: 0;
     font-size: 11px;
-    background: #f1f2f4 !important;
+    background: #F3F4F6 !important;
     border: none !important;
 }
 
 .card-footer .ant-avatar-group {
     margin-left: 4px;
+}
+
+/* Story points badge */
+.card-story-points {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3B82F6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+    line-height: 18px;
+    height: 20px;
+}
+
+/* Progress bar — thin strip at card bottom */
+.card-progress-bar-wrap {
+    margin-top: 10px;
+    margin-left: -12px;
+    margin-right: -12px;
+    margin-bottom: -12px;
+    padding: 0;
+}
+
+.card-progress-bar-track {
+    width: 100%;
+    height: 3px;
+    background: #E5E7EB;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.card-progress-bar-fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.4s ease;
 }
 
 /* Mobile View */
@@ -481,16 +628,29 @@
 .dark .kanban-card {
     background: var(--surface-primary, #161b22);
     border-color: var(--border-surface, #30363d);
-    box-shadow: var(--shadow-dark-sm, 0 1px 3px rgba(0,0,0,0.4));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .dark .kanban-card:hover {
-    box-shadow: var(--shadow-dark-md, 0 4px 12px rgba(0,0,0,0.5));
-    border-color: rgba(0, 82, 204, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+    border-color: rgba(59, 130, 246, 0.5);
 }
 
 .dark .kanban-card.dragging {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+}
+
+.dark .card-issue-key {
+    color: #60A5FA;
+}
+
+.dark .card-menu-btn .ant-btn {
+    color: #8b949e !important;
+}
+
+.dark .card-menu-btn .ant-btn:hover {
+    background: var(--surface-tertiary, #21262d) !important;
+    color: #e6edf3 !important;
 }
 
 .dark .card-title .ant-typography {
@@ -513,6 +673,15 @@
 .dark .card-footer .ant-tag {
     background: var(--surface-tertiary, #21262d) !important;
     color: var(--text-on-surface-secondary, #8b949e);
+}
+
+.dark .card-story-points {
+    background: rgba(96, 165, 250, 0.15);
+    color: #60A5FA;
+}
+
+.dark .card-progress-bar-track {
+    background: var(--border-surface, #30363d);
 }
 
 .dark .empty-column {

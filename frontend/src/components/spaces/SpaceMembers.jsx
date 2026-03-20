@@ -174,7 +174,7 @@ const SpaceMembers = ({ space, visible, onClose }) => {
                     title="Remove member?"
                     onConfirm={() => handleRemoveMember(member.id)}
                   >
-                    <Button danger icon={<DeleteOutlined />} type="text" size="small" />
+                    <Button danger icon={<DeleteOutlined />} type="text" size="small" aria-label="Remove member" />
                   </Popconfirm>
                 )
               ]}
