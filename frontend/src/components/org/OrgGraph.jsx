@@ -5,7 +5,8 @@ import ReactFlow, {
     Background,
     useNodesState,
     useEdgesState,
-    Position
+    Position,
+    Handle
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
@@ -74,6 +75,7 @@ const CompanyNode = ({ data }) => {
                     {data.subtitle}
                 </Typography>
             </Box>
+            <Handle type="source" position={Position.Bottom} style={{ background: '#4f46e5', border: '2px solid white' }} />
         </GlassCard>
     );
 };
@@ -114,6 +116,8 @@ const TeamNode = ({ data }) => {
                         {data.memberCount} members
                     </Typography>
                 </Box>
+                <Handle type="target" position={Position.Top} style={{ background: data.color || '#6554C0', border: '1px solid white' }} />
+                <Handle type="source" position={Position.Bottom} style={{ background: data.color || '#6554C0', border: '1px solid white' }} />
             </GlassCard>
         </Tooltip>
     );
@@ -195,6 +199,8 @@ const PersonNode = ({ data }) => {
                         }}
                     />
                 </Box>
+                <Handle type="target" position={Position.Top} style={{ background: data.isLead ? '#4f46e5' : '#94a3b8', border: '1px solid white' }} />
+                <Handle type="source" position={Position.Bottom} style={{ background: data.isLead ? '#4f46e5' : '#94a3b8', border: '1px solid white' }} />
             </GlassCard>
         </Tooltip>
     );

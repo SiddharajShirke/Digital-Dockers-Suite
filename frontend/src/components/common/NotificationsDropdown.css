@@ -43,13 +43,29 @@
   background: var(--color-primary) !important;
 }
 
+.notifications-item-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.notifications-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
 .notifications-item-message {
   font-size: 13px;
   color: #111827;
+  display: block;
+  line-height: 1.4;
 }
 
 .notifications-item-time {
   font-size: 12px;
+  color: #6b778c;
 }
 
 .notifications-trigger-icon {

@@ -29,11 +29,8 @@ const Spaces = () => {
   const [form] = Form.useForm();
 
   // Load spaces on mount
-  useEffect(() => {
-    loadSpaces();
-  }, [projectId]);
-
-  const loadSpaces = async () => {
+  const loadSpaces = React.useCallback(async () => {
+    if (!projectId) return;
     setLoading(true);
     try {
       const response = await axios.get(
@@ -47,9 +44,14 @@ const Spaces = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
 
-  const handleCreateSpace = async (values) => {
+  useEffect(() => {
+    loadSpaces();
+  }, [loadSpaces]);
+
+
+  const handleCreateSpace = React.useCallback(async (values) => {
     if (!projectId) {
       message.error('Please select a project first');
       return;
@@ -70,7 +72,7 @@ const Spaces = () => {
         { withCredentials: true }
       );
 
-      setSpaces([response.data.data, ...spaces]);
+      setSpaces(prev => [response.data.data, ...prev]);
       setCreateModalVisible(false);
       form.resetFields();
       message.success('Space created successfully');
@@ -78,16 +80,16 @@ const Spaces = () => {
       console.error('Create space error:', error);
       message.error(error.response?.data?.message || 'Failed to create space');
     }
-  };
+  }, [projectId, currentUser, form]);
 
-  const handleDeleteSpace = async (spaceId) => {
+  const handleDeleteSpace = React.useCallback(async (spaceId) => {
     try {
       await axios.delete(
         `/api/spaces/${spaceId}`,
         { withCredentials: true }
       );
 
-      setSpaces(spaces.filter(s => s._id !== spaceId));
+      setSpaces(prev => prev.filter(s => s._id !== spaceId));
       if (selectedSpace?._id === spaceId) {
         setSelectedSpace(null);
         setActiveTab('list');
@@ -96,7 +98,7 @@ const Spaces = () => {
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to archive space');
     }
-  };
+  }, [selectedSpace?._id]);
 
   // Render list view
   const renderListView = () => {

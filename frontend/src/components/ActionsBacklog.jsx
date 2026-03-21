@@ -9,7 +9,7 @@ import {
   FaFilter,
 } from "react-icons/fa";
 
-const ActionsBacklog = ({ isDarkMode }) => {
+const ActionsBacklog = ({ isDarkMode, repoId }) => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -20,8 +20,16 @@ const ActionsBacklog = ({ isDarkMode }) => {
 
   useEffect(() => {
     const fetchTasks = async () => {
+      if (!repoId) {
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
       try {
-        const params = statusFilter ? `?status=${statusFilter}` : "";
+        const paramsArray = [];
+        if (statusFilter) paramsArray.push(`status=${statusFilter}`);
+        if (repoId) paramsArray.push(`repoId=${repoId}`);
+        const params = paramsArray.length > 0 ? `?${paramsArray.join('&')}` : "";
         const { data } = await api.get(`/tech-debt/tasks${params}`);
         setTasks(data);
         setLoading(false);
@@ -31,7 +39,7 @@ const ActionsBacklog = ({ isDarkMode }) => {
       }
     };
     fetchTasks();
-  }, [statusFilter]);
+  }, [statusFilter, repoId]);
 
   const handleEdit = (task) => {
     setEditingId(task._id);
@@ -121,6 +129,17 @@ const ActionsBacklog = ({ isDarkMode }) => {
         Loading Backlog...
       </div>
     );
+
+  if (!repoId) {
+    return (
+      <div
+        className={`shadow rounded-lg p-8 text-center transition-colors border ${isDarkMode ? "bg-slate-800 border-slate-700 text-gray-400" : "bg-white border-gray-100 text-gray-500"}`}
+      >
+        <FaFilter className="mx-auto mb-3 text-indigo-400 opacity-50" size={32} />
+        <p className="text-sm font-medium">Connect a repository to view refactor actions</p>
+      </div>
+    );
+  }
 
   return (
     <div

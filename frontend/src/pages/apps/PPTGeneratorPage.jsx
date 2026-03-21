@@ -159,7 +159,7 @@ const PPTGeneratorPage = () => {
                             boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
                         }}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }} size="large">
+                        <Space orientation="vertical" style={{ width: '100%' }} size="large">
                             <div>
                                 <Title level={4} style={{
                                     margin: 0,

@@ -29,8 +29,8 @@ const getOrgTree = asyncHandler(async (req, res) => {
     // For now, return the tree structure suitable for React Flow (Nodes + Edges)
 
     // Transform to React Flow format (condensed list of nodes and edges)
-    const nodes = [];
-    const edges = [];
+    // const nodes = [];
+    // const edges = [];
 
     // Layout logic should be frontend (dagre), but we send flat list + hierarchy
 

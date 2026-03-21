@@ -295,7 +295,7 @@ const BacklogPage = () => {
                             {/* Assignee */}
                             <div className="flex justify-start md:justify-end w-full md:w-auto shrink-0 min-w-[40px]">
                                 {issue.assignedTo && issue.assignedTo.length > 0 ? (
-                                    <Avatar.Group maxCount={2} size="small">
+                                    <Avatar.Group max={{ count: 2 }} size="small">
                                         {issue.assignedTo.map(assignee => (
                                             <Avatar
                                                 key={assignee._id}
@@ -401,7 +401,7 @@ const BacklogPage = () => {
                                 </div>
                             }
                             style={{ height: '100%' }}
-                            bodyStyle={{ maxHeight: '600px', overflowY: 'auto' }}
+                            styles={{ body: { maxHeight: '600px', overflowY: 'auto' } }}
                         >
                             <Droppable droppableId="backlog">
                                 {(provided, snapshot) => (

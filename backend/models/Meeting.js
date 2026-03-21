@@ -67,8 +67,8 @@ const meetingSchema = mongoose.Schema({
     },
     meetingType: {
         type: String,
-        enum: ['google_meet', 'zoom', 'teams', 'other'],
-        default: 'google_meet'
+        enum: ['google_meet', 'zoom', 'teams', 'mirotalk', 'other'],
+        default: 'mirotalk'
     },
     calendarEventId: String,
     linkedTasks: [{

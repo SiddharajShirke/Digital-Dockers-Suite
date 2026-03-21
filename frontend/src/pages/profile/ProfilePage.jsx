@@ -9,10 +9,10 @@ const ProfilePage = () => {
             <Typography variant="h4" gutterBottom>Profile</Typography>
             <Paper sx={{ p: 3 }}>
                 <Grid container spacing={3} alignItems="center">
-                    <Grid item>
-                        <Avatar sx={{ width: 100, height: 100, fontsize: 40 }}>{user?.fullName?.[0]}</Avatar>
+                    <Grid size="auto">
+                        <Avatar sx={{ width: 100, height: 100, fontSize: 40 }}>{user?.fullName?.[0]}</Avatar>
                     </Grid>
-                    <Grid item>
+                    <Grid size="grow">
                         <Typography variant="h5">{user?.fullName}</Typography>
                         <Typography color="textSecondary">{user?.role}</Typography>
                         <Typography color="textSecondary">{user?.email}</Typography>
@@ -21,13 +21,13 @@ const ProfilePage = () => {
 
                 <Box component="form" sx={{ mt: 4 }}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <TextField fullWidth label="Full Name" defaultValue={user?.fullName} />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        <Grid size={{ xs: 12, md: 6 }}>
                             <TextField fullWidth label="Email" defaultValue={user?.email} disabled />
                         </Grid>
-                        <Grid item xs={12}>
+                        <Grid size={12}>
                             <Button variant="contained">Save Changes</Button>
                         </Grid>
                     </Grid>

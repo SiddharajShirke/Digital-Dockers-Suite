@@ -10,9 +10,12 @@ const getFrontendUrl = () => process.env.CLIENT_URL || 'http://localhost:5173';
 
 const getTokenCookieOptions = () => {
     const isProduction = process.env.NODE_ENV === 'production';
+    // Use secure cookies if in production or if running on SSL port 5001
+    const isSecure = isProduction || process.env.PORT === '5001';
+    
     const options = {
         httpOnly: true,
-        secure: isProduction,
+        secure: isSecure,
         sameSite: isProduction ? 'none' : 'lax',
         maxAge: TOKEN_MAX_AGE_MS,
         path: '/'

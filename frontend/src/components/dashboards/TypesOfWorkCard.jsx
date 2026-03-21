@@ -79,7 +79,7 @@ const TypesOfWorkCard = ({ projectId, onTypeClick }) => {
                     borderRadius: 8,
                     border: '1px solid #f0f0f0'
                 }}
-                bodyStyle={{ padding: '16px 0' }}
+                styles={{ body: { padding: '16px 0' } }}
             >
                 <Skeleton active paragraph={{ rows: 5 }} />
             </Card>
@@ -104,7 +104,7 @@ const TypesOfWorkCard = ({ projectId, onTypeClick }) => {
                     borderRadius: 8,
                     border: '1px solid #f0f0f0'
                 }}
-                bodyStyle={{ padding: '16px 0' }}
+                styles={{ body: { padding: '16px 0' } }}
             >
                 <Empty description={error} />
             </Card>
@@ -135,7 +135,7 @@ const TypesOfWorkCard = ({ projectId, onTypeClick }) => {
             styles={{ body: { padding: '16px 0' } }}
         >
             {hasData ? (
-                <Space direction="vertical" style={{ width: '100%' }} size={0}>
+                <Space orientation="vertical" style={{ width: '100%' }} size={0}>
                     {/* Header Row */}
                     <div style={{ display: 'flex', paddingLeft: 16, paddingRight: 16, marginBottom: 8, gap: 12 }}>
                         <div style={{ flex: 0.8, minWidth: '120px' }}>

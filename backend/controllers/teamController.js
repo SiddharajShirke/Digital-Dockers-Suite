@@ -1,7 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
 const Team = require('../models/Team');
-const Project = require('../models/Project');
 const Task = require('../models/Task');
 const Sprint = require('../models/Sprint');
 

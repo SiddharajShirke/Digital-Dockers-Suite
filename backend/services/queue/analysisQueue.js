@@ -1,6 +1,6 @@
 const { createQueue } = require('../../config/queue.config');
 const PullRequest = require('../../models/PullRequest');
-const File = require('../../models/File');
+const CodebaseFile = require('../../models/CodebaseFile');
 const staticService = require('../analysis/staticService');
 const complexityService = require('../analysis/complexityService');
 const ticketAlignmentService = require('../analysis/ticketAlignmentService');

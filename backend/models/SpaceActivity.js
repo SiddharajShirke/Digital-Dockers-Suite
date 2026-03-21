@@ -32,8 +32,7 @@ const spaceActivitySchema = new mongoose.Schema(
         'SPACE_SHARED',
         'SPACE_UNSHARED'
       ],
-      required: true,
-      index: true
+      required: true
     },
     
     // Actor

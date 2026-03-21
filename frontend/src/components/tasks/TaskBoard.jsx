@@ -63,11 +63,11 @@ const TaskBoard = () => {
 
     // ── Quick filter options as visible pills ─────────────────────────
     const PRIORITY_PILLS = [
-        { key: 'all',      label: 'All' },
-        { key: 'highest',  label: '↑↑ Critical' },
-        { key: 'high',     label: '↑ High' },
-        { key: 'medium',   label: '~ Medium' },
-        { key: 'low',      label: '↓ Low' },
+        { key: 'all', label: 'All' },
+        { key: 'highest', label: '↑↑ Critical' },
+        { key: 'high', label: '↑ High' },
+        { key: 'medium', label: '~ Medium' },
+        { key: 'low', label: '↓ Low' },
     ];
 
     useEffect(() => {
@@ -113,7 +113,7 @@ const TaskBoard = () => {
     const getFilteredIssues = (columnIssues) => {
         return columnIssues.filter(issue => {
             const matchesSearch = issue.title.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                                 issue.key.toLowerCase().includes(searchFilter.toLowerCase());
+                issue.key.toLowerCase().includes(searchFilter.toLowerCase());
             const matchesPriority = priorityFilter === 'all' || issue.priority === priorityFilter;
             return matchesSearch && matchesPriority;
         });
@@ -238,8 +238,8 @@ const TaskBoard = () => {
                 )}
 
                 <div style={{ marginLeft: 'auto' }}>
-                    <Button 
-                        type="primary" 
+                    <Button
+                        type="primary"
                         icon={<PlusOutlined />}
                         onClick={() => setCreateModalOpen(true)}
                     >
@@ -308,8 +308,8 @@ const TaskBoard = () => {
                                                     </span>
                                                 </Tooltip>
                                             ) : (
-                                                <Badge 
-                                                    count={filteredIssues.length} 
+                                                <Badge
+                                                    count={filteredIssues.length}
                                                     style={{ backgroundColor: col.headerColor }}
                                                 />
                                             )}
@@ -378,8 +378,8 @@ const TaskBoard = () => {
                 }}
             />
 
-            <CreateIssueModal 
-                open={createModalOpen} 
+            <CreateIssueModal
+                open={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
                 onIssueCreated={() => {
                     loadSprintIssues();
@@ -394,41 +394,41 @@ const TaskBoard = () => {
 const PRIORITY_BADGE_CLASS = {
     highest: 'priority-badge priority-highest',
     critical: 'priority-badge priority-critical',
-    high:    'priority-badge priority-high',
-    medium:  'priority-badge priority-medium',
-    low:     'priority-badge priority-low',
-    lowest:  'priority-badge priority-lowest',
+    high: 'priority-badge priority-high',
+    medium: 'priority-badge priority-medium',
+    low: 'priority-badge priority-low',
+    lowest: 'priority-badge priority-lowest',
 };
 
 const PRIORITY_LABEL = {
     highest: '↑↑ Highest',
     critical: '!! Critical',
-    high:    '↑ High',
-    medium:  '~ Medium',
-    low:     '↓ Low',
-    lowest:  '↓↓ Lowest',
+    high: '↑ High',
+    medium: '~ Medium',
+    low: '↓ Low',
+    lowest: '↓↓ Lowest',
 };
 
 // ─── Kanban Card Component ────────────────────────────────────────────────────
 const KanbanCard = ({ issue, isDragging }) => {
     const isOverdue = issue.dueDate && new Date(issue.dueDate) < new Date();
-    const priority  = (issue.priority || 'medium').toLowerCase();
+    const priority = (issue.priority || 'medium').toLowerCase();
 
     // Deterministic avatar color from issue id
     const AVATAR_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6'];
-    const avatarColor   = AVATAR_COLORS[(issue._id?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+    const avatarColor = AVATAR_COLORS[(issue._id?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
     // Progress: use subtasks completion ratio if available, else 0
-    const totalSubs     = issue.subtasks?.length || 0;
-    const doneSubs      = issue.subtasks?.filter(s => s.status === 'done' || s.completed).length || 0;
-    const progress      = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : (issue.progress ?? 0);
+    const totalSubs = issue.subtasks?.length || 0;
+    const doneSubs = issue.subtasks?.filter(s => s.status === 'done' || s.completed).length || 0;
+    const progress = totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : (issue.progress ?? 0);
 
     // Three-dot menu items
     const menuItems = [
-        { key: 'edit',    label: 'Edit issue' },
-        { key: 'assign',  label: 'Assign to me' },
+        { key: 'edit', label: 'Edit issue' },
+        { key: 'assign', label: 'Assign to me' },
         { type: 'divider' },
-        { key: 'delete',  label: <span style={{ color: '#EF4444' }}>Delete</span> },
+        { key: 'delete', label: <span style={{ color: '#EF4444' }}>Delete</span> },
     ];
 
     return (
@@ -518,7 +518,7 @@ const KanbanCard = ({ issue, isDragging }) => {
                                     fontSize: 11,
                                     margin: 0,
                                     background: isOverdue ? '#FEF2F2' : '#F3F4F6',
-                                    color:  isOverdue ? '#DC2626' : '#6B7280',
+                                    color: isOverdue ? '#DC2626' : '#6B7280',
                                     border: 'none',
                                     borderRadius: 4,
                                     padding: '1px 6px',
@@ -546,7 +546,7 @@ const KanbanCard = ({ issue, isDragging }) => {
                 <div className="footer-right">
                     {issue.assignedTo && issue.assignedTo.length > 0 ? (
                         <Tooltip title={issue.assignedTo.map(u => u.fullName || u.name).join(', ')}>
-                            <Avatar.Group maxCount={2} size="small">
+                            <Avatar.Group max={{ count: 2 }} size="small">
                                 {issue.assignedTo.map(assignee => (
                                     <Avatar
                                         key={assignee._id}

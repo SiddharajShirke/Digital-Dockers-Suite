@@ -25,7 +25,12 @@ export const AuthProvider = ({ children }) => {
                     localStorage.setItem('user', JSON.stringify(res.data));
                 }
             } catch (error) {
-                console.log('No active session found or expired', error);
+                // If 401, it just means no active session, which is normal for initial load.
+                if (error.response?.status !== 401) {
+                    console.error('Session check failed', error);
+                } else {
+                    console.log('No active session found (normal for first-time visitors)');
+                }
                 localStorage.removeItem('user');
                 setUser(null);
             } finally {

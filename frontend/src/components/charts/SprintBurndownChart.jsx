@@ -33,11 +33,7 @@ const SprintBurndownChart = ({ sprintId }) => {
     border: isDark ? '1px solid var(--border-surface)' : '1px solid #f0f0f0'
   };
 
-  useEffect(() => {
-    loadBurndownData();
-  }, [sprintId]);
-
-  const loadBurndownData = async () => {
+  const loadBurndownData = React.useCallback(async () => {
     if (!sprintId) {
       setError('No sprint selected');
       setLoading(false);
@@ -71,13 +67,19 @@ const SprintBurndownChart = ({ sprintId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sprintId]);
+
+  useEffect(() => {
+    loadBurndownData();
+  }, [sprintId, loadBurndownData]);
 
   if (loading) {
     return (
       <Card style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <Spin size="large" tip="Loading burndown data..." />
+          <Spin size="large" tip="Loading burndown data...">
+            <div />
+          </Spin>
         </div>
       </Card>
     );
@@ -301,7 +303,7 @@ const SprintBurndownChart = ({ sprintId }) => {
           {/* Trend */}
           <Col xs={24} sm={8}>
             <div style={{ padding: '12px', backgroundColor: infoCardBackground, borderRadius: 6 }}>
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <Space orientation="vertical" style={{ width: '100%' }}>
                 <Text strong style={{ fontSize: 12, color: isDark ? '#e2e8f0' : '#111827' }}>Velocity Trend</Text>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {trend === 'improving' && (
@@ -331,7 +333,7 @@ const SprintBurndownChart = ({ sprintId }) => {
           <Col xs={24} sm={8}>
             {forecast ? (
               <div style={{ padding: '12px', backgroundColor: infoCardBackground, borderRadius: 6 }}>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                   <Text strong style={{ fontSize: 12, color: isDark ? '#e2e8f0' : '#111827' }}>Forecast</Text>
                   <div>
                     <Text style={{ fontSize: 12, color: isDark ? '#e2e8f0' : '#111827' }}>
@@ -354,7 +356,7 @@ const SprintBurndownChart = ({ sprintId }) => {
             ) : (
               <Tooltip title="Requires at least 2 completed sprints to forecast">
                 <div style={{ padding: '12px', backgroundColor: infoCardBackground, borderRadius: 6, minHeight: 74 }}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <Text strong style={{ fontSize: 12, color: isDark ? '#e2e8f0' : '#111827' }}>Forecast</Text>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                       <LineChartOutlined style={{ fontSize: 16, color: mutedTextColor }} />
@@ -376,7 +378,7 @@ const SprintBurndownChart = ({ sprintId }) => {
               borderRadius: 6,
               border: `1px solid ${health === 'healthy' ? (isDark ? '#34d399' : '#4BCE97') : (isDark ? '#fb7185' : '#f87462')}`
             }}>
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <Space orientation="vertical" style={{ width: '100%' }}>
                 <Text strong style={{ fontSize: 12, color: health === 'healthy' ? healthyColor : riskColor }}>
                   {health === 'healthy' ? '✓ Health: Good' : '⚠ Health: At Risk'}
                 </Text>

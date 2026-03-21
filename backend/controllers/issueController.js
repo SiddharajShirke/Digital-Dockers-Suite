@@ -26,10 +26,12 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const Issue = require('../models/Issue');
 const Project = require('../models/Project');
-const User = require('../models/User');
-const Notification = require('../models/Notification');
-const { validateTransition, moveIssueToStatus } = require('../services/issueWorkflow');
+const { 
+  validateTransition, 
+  moveIssueToStatus 
+} = require('../services/issueWorkflow');
 
 // Middleware: Extract user from JWT token
 // Assumed to be added by auth middleware before routing
@@ -438,75 +440,14 @@ router.put('/issues/:issueId/move', async (req, res) => {
         const { issueId } = req.params;
         const { status: newStatus, blockedReason } = req.body;
 
-        // Get current issue
-        const issue = await Task.findById(issueId);
-        if (!issue) {
-            return res.status(404).json({
-                success: false,
-                code: 'ISSUE_NOT_FOUND',
-                message: `Issue ${issueId} not found`,
-            });
-        }
-
-        const currentStatus = issue.status.toUpperCase();
-        const targetStatus = newStatus?.toUpperCase();
-
-        if (!targetStatus) {
-            return res.status(400).json({
-                success: false,
-                code: 'MISSING_STATUS',
-                message: 'Status is required',
-            });
-        }
-
-        // Validate transition using issueWorkflow service
-        const validation = validateTransition(currentStatus, targetStatus);
-        if (!validation.allowed) {
-            return res.status(400).json({
-                success: false,
-                code: 'INVALID_TRANSITION',
-                message: `Cannot move from ${currentStatus} to ${targetStatus}`,
-                currentStatus,
-                requestedStatus: targetStatus,
-                allowedTransitions: validation.allowedTransitions,
-            });
-        }
-
-        // Special handling for BLOCKED status
-        if (targetStatus === 'BLOCKED' && !blockedReason) {
-            return res.status(400).json({
-                success: false,
-                code: 'BLOCKED_REASON_REQUIRED',
-                message: 'Blocked reason is required when marking as BLOCKED',
-            });
-        }
-
-        // Update issue
-        const updateData = {
-            status: targetStatus,
-            updatedAt: new Date(),
-            statusChangedBy: userId,
-            statusChangedAt: new Date(),
-        };
-
-        // Set dates based on status
-        if (targetStatus === 'IN_PROGRESS' && !issue.startDate) {
-            updateData.startDate = new Date();
-        }
-        if (targetStatus === 'DONE') {
-            updateData.completedDate = new Date();
-        }
-
-        // Handle blocked reason
-        if (targetStatus === 'BLOCKED') {
-            updateData.blockedReason = blockedReason;
-        } else {
-            updateData.blockedReason = null;
-        }
-
-        const updatedIssue = await Task.findByIdAndUpdate(issueId, updateData, {
-            new: true,
+        // Use the centralized workflow service to move the issue
+        const result = await moveIssueToStatus(issueId, newStatus, userId, {
+            reason: blockedReason,
         });
+
+        const updatedIssue = result.issue;
+        const currentStatus = result.history.oldValue;
+        const targetStatus = result.history.newValue;
 
         // Send status change notification to assignee
         if (updatedIssue.assigneeId) {

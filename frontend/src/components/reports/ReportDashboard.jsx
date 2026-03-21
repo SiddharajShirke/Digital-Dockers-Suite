@@ -91,7 +91,7 @@ const ReportDashboard = () => {
   useEffect(() => {
     if (!socketRef.current) {
       const socket = io(
-        import.meta.env.VITE_API_URL || "http://localhost:5001",
+        import.meta.env.VITE_API_URL || "https://localhost:5001",
         {
           transports: ["websocket", "polling"],
           withCredentials: true,
@@ -99,6 +99,8 @@ const ReportDashboard = () => {
           reconnectionDelay: 1000,
           reconnectionDelayMax: 5000,
           reconnectionAttempts: 5,
+          secure: true,
+          rejectUnauthorized: false,
         },
       );
 
@@ -340,7 +342,7 @@ const ReportDashboard = () => {
                 title="Total Tasks"
                 value={metrics?.totalTasks || 0}
                 prefix={<CheckCircleOutlined />}
-                valueStyle={{ color: isDark ? "#58a6ff" : "#0052cc" }}
+                styles={{ content: { color: isDark ? "#58a6ff" : "#0052cc" } }}
               />
             </Card>
           )}
@@ -354,7 +356,7 @@ const ReportDashboard = () => {
                 title="Completed"
                 value={metrics?.completedTasks || 0}
                 suffix={`/ ${metrics?.totalTasks || 0}`}
-                valueStyle={{ color: isDark ? "#3fb950" : "#00875a" }}
+                styles={{ content: { color: isDark ? "#3fb950" : "#00875a" } }}
               />
             </Card>
           )}
@@ -368,15 +370,17 @@ const ReportDashboard = () => {
                 title="Completion Rate"
                 value={metrics?.completionRate || 0}
                 suffix="%"
-                valueStyle={{
-                  color:
-                    (metrics?.completionRate || 0) >= 50
-                      ? isDark
-                        ? "#3fb950"
-                        : "#00875a"
-                      : isDark
-                        ? "#e3b341"
-                        : "#faad14",
+                styles={{
+                  content: {
+                    color:
+                      (metrics?.completionRate || 0) >= 50
+                        ? isDark
+                          ? "#3fb950"
+                          : "#00875a"
+                        : isDark
+                          ? "#e3b341"
+                          : "#faad14",
+                  },
                 }}
               />
             </Card>
@@ -392,7 +396,7 @@ const ReportDashboard = () => {
                 value={metrics?.avgVelocity || 0}
                 suffix="pts"
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: isDark ? "#58a6ff" : "#0052cc" }}
+                styles={{ content: { color: isDark ? "#58a6ff" : "#0052cc" } }}
               />
             </Card>
           )}
@@ -409,7 +413,7 @@ const ReportDashboard = () => {
                 <span>Velocity Trend</span>
               </div>
             }
-            bordered={false}
+            variant="borderless"
             style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)' }}
           >
             {metricsLoading ? (
@@ -445,7 +449,7 @@ const ReportDashboard = () => {
                 <span>Task Distribution</span>
               </div>
             }
-            bordered={false}
+            variant="borderless"
             style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)' }}
           >
             {metricsLoading ? (
@@ -491,7 +495,7 @@ const ReportDashboard = () => {
               <Skeleton active paragraph={{ rows: 3 }} />
             ) : (
               <Space
-                direction="vertical"
+                orientation="vertical"
                 style={{ width: "100%" }}
                 size="large"
               >

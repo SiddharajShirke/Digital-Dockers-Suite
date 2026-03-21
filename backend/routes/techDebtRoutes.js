@@ -21,7 +21,6 @@ const {
     analyzePullRequest,
     analyzeAllPRs
 } = require('../controllers/techDebtController');
-const { protect } = require('../middlewares/authMiddleware');
 
 // Pull Requests
 router.get('/prs', getPullRequests);

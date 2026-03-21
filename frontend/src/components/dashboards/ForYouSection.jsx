@@ -1,4 +1,4 @@
-import { Card, List, Tag, Typography, Row, Col, Button, Empty } from 'antd';
+import { Card, Tag, Typography, Row, Col, Button, Empty } from 'antd';
 import { FireOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 

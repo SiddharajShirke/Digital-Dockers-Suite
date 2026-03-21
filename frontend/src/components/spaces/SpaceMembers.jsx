@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, List, Button, Select, Space, Popconfirm, Spin, message, Avatar, Tag } from 'antd';
+import { Modal, Button, Select, Space, Popconfirm, Spin, message, Avatar, Tag } from 'antd';
 import { UserAddOutlined, DeleteOutlined, LockOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
@@ -15,14 +15,7 @@ const SpaceMembers = ({ space, visible, onClose }) => {
   const [selectedRole, setSelectedRole] = useState('EDITOR');
   const [users, setUsers] = useState([]);
 
-  useEffect(() => {
-    if (visible) {
-      loadMembers();
-      loadUsers();
-    }
-  }, [visible, space._id]);
-
-  const loadMembers = async () => {
+  const loadMembers = React.useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(
@@ -35,9 +28,9 @@ const SpaceMembers = ({ space, visible, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [space._id]);
 
-  const loadUsers = async () => {
+  const loadUsers = React.useCallback(async () => {
     try {
       const response = await axios.get(
         '/api/users',
@@ -47,9 +40,16 @@ const SpaceMembers = ({ space, visible, onClose }) => {
     } catch {
       console.error('Failed to load users');
     }
-  };
+  }, []);
 
-  const handleAddMember = async () => {
+  useEffect(() => {
+    if (visible && space?._id) {
+      loadMembers();
+      loadUsers();
+    }
+  }, [visible, space?._id, loadMembers, loadUsers]);
+
+  const handleAddMember = React.useCallback(async () => {
     if (!selectedUserId) {
       message.warning('Please select a user');
       return;
@@ -72,9 +72,9 @@ const SpaceMembers = ({ space, visible, onClose }) => {
     } finally {
       setAddingMember(false);
     }
-  };
+  }, [selectedUserId, selectedRole, space._id, loadMembers]);
 
-  const handleUpdateRole = async (memberId, newRole) => {
+  const handleUpdateRole = React.useCallback(async (memberId, newRole) => {
     try {
       await axios.patch(
         `/api/spaces/${space._id}/members/${memberId}`,
@@ -87,9 +87,9 @@ const SpaceMembers = ({ space, visible, onClose }) => {
     } catch {
       message.error('Failed to update role');
     }
-  };
+  }, [space._id, loadMembers]);
 
-  const handleRemoveMember = async (memberId) => {
+  const handleRemoveMember = React.useCallback(async (memberId) => {
     try {
       await axios.delete(
         `/api/spaces/${space._id}/members/${memberId}`,
@@ -101,7 +101,7 @@ const SpaceMembers = ({ space, visible, onClose }) => {
     } catch {
       message.error('Failed to remove member');
     }
-  };
+  }, [space._id, loadMembers]);
 
   const roleColors = { OWNER: 'red', EDITOR: 'blue', COMMENTER: 'gold', VIEWER: 'default' };
 
@@ -152,12 +152,32 @@ const SpaceMembers = ({ space, visible, onClose }) => {
         </div>
 
         {/* Members list */}
-        <List
-          dataSource={members}
-          renderItem={(member) => (
-            <List.Item
+        <div className="members-list">
+          {members.map((member) => (
+            <div
               key={member.id}
-              actions={[
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 0',
+                borderBottom: '1px solid #f0f0f0'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Avatar src={member.user.avatar} icon="👤" />
+                <div>
+                  <div style={{ fontWeight: 500 }}>{member.user.name}</div>
+                  <Space size="small">
+                    <Tag color={roleColors[member.role]}>
+                      {member.role === 'OWNER' && <LockOutlined />}
+                      {member.role}
+                    </Tag>
+                    <span style={{ fontSize: 12, color: '#999' }}>{member.contributionCount} edits</span>
+                  </Space>
+                </div>
+              </div>
+              <Space>
                 <Select
                   value={member.role}
                   onChange={(value) => handleUpdateRole(member.id, value)}
@@ -168,33 +188,20 @@ const SpaceMembers = ({ space, visible, onClose }) => {
                     { label: 'Viewer', value: 'VIEWER' }
                   ]}
                   style={{ width: '100px' }}
-                />,
-                member.role !== 'OWNER' && (
+                  size="small"
+                />
+                {member.role !== 'OWNER' && (
                   <Popconfirm
                     title="Remove member?"
                     onConfirm={() => handleRemoveMember(member.id)}
                   >
                     <Button danger icon={<DeleteOutlined />} type="text" size="small" aria-label="Remove member" />
                   </Popconfirm>
-                )
-              ]}
-            >
-              <List.Item.Meta
-                avatar={<Avatar src={member.user.avatar} icon="👤" />}
-                title={member.user.name}
-                description={
-                  <Space size="small">
-                    <Tag color={roleColors[member.role]}>
-                      {member.role === 'OWNER' && <LockOutlined />}
-                      {member.role}
-                    </Tag>
-                    <span>{member.contributionCount} edits</span>
-                  </Space>
-                }
-              />
-            </List.Item>
-          )}
-        />
+                )}
+              </Space>
+            </div>
+          ))}
+        </div>
       </Spin>
     </Modal>
   );

@@ -1,5 +1,4 @@
-﻿/* eslint-env node */
-const fs = require('fs');
+import fs from 'fs';
 const report = JSON.parse(fs.readFileSync('eslint_report.json', 'utf8'));
 
 let totalErrors = 0;

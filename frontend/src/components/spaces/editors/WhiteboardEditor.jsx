@@ -22,6 +22,23 @@ const WhiteboardEditor = ({
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
 
+  const redrawFromHistory = React.useCallback((step) => {
+    if (step < 0 || step >= history.length) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    const img = new Image();
+
+    img.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (img.src) {
+        context.drawImage(img, 0, 0);
+      }
+    };
+
+    img.src = history[step];
+  }, [history]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -41,16 +58,18 @@ const WhiteboardEditor = ({
     }
 
     // Initialize history
-    setHistory([canvas.toDataURL()]);
+    const initialData = canvas.toDataURL();
+    setHistory([initialData]);
     setHistoryStep(0);
-  }, []);
+  }, [content]);
 
   const getCanvasContext = () => {
     return canvasRef.current?.getContext('2d');
   };
 
-  const startDrawing = (e) => {
+  const startDrawing = React.useCallback((e) => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -58,36 +77,38 @@ const WhiteboardEditor = ({
     setIsDrawing(true);
     sendCursorMove(x, y, `drawing-${Date.now()}`, 'draw');
 
-    const context = getCanvasContext();
+    const context = canvas.getContext('2d');
     context.beginPath();
     context.moveTo(x, y);
     context.strokeStyle = color;
     context.lineWidth = brushSize;
     context.lineCap = 'round';
     context.lineJoin = 'round';
-  };
+  }, [color, brushSize, sendCursorMove]);
 
-  const draw = (e) => {
+  const draw = React.useCallback((e) => {
     if (!isDrawing) return;
 
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
     sendCursorMove(x, y, `drawing-${Date.now()}`, 'draw');
 
-    const context = getCanvasContext();
+    const context = canvas.getContext('2d');
     context.lineTo(x, y);
     context.stroke();
-  };
+  }, [isDrawing, sendCursorMove]);
 
-  const stopDrawing = () => {
+  const stopDrawing = React.useCallback(() => {
     if (!isDrawing) return;
     setIsDrawing(false);
 
     const canvas = canvasRef.current;
-    const context = getCanvasContext();
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
     context.closePath();
 
     // Save to history
@@ -95,53 +116,40 @@ const WhiteboardEditor = ({
     newHistory.push(canvas.toDataURL());
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
-  };
+  }, [isDrawing, history, historyStep]);
 
-  const handleClear = () => {
+  const handleClear = React.useCallback(() => {
     const canvas = canvasRef.current;
-    const context = getCanvasContext();
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     const newHistory = history.slice(0, historyStep + 1);
     newHistory.push('');
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
-  };
+  }, [history, historyStep]);
 
-  const handleUndo = () => {
+  const handleUndo = React.useCallback(() => {
     if (historyStep > 0) {
       const newStep = historyStep - 1;
       setHistoryStep(newStep);
       redrawFromHistory(newStep);
     }
-  };
+  }, [historyStep, redrawFromHistory]);
 
-  const handleRedo = () => {
+  const handleRedo = React.useCallback(() => {
     if (historyStep < history.length - 1) {
       const newStep = historyStep + 1;
       setHistoryStep(newStep);
       redrawFromHistory(newStep);
     }
-  };
+  }, [historyStep, history.length, redrawFromHistory]);
 
-  const redrawFromHistory = (step) => {
+  const handleSave = React.useCallback(async () => {
     const canvas = canvasRef.current;
-    const context = getCanvasContext();
-    const img = new Image();
-
-    img.onload = () => {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      if (img.src) {
-        context.drawImage(img, 0, 0);
-      }
-    };
-
-    img.src = history[step];
-  };
-
-  const handleSave = async () => {
-    const canvas = canvasRef.current;
-    const context = getCanvasContext();
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
     const updated = {
@@ -155,7 +163,7 @@ const WhiteboardEditor = ({
     };
 
     await onSave(updated, 'Updated whiteboard drawing');
-  };
+  }, [canvasRef, content, onSave]);
 
   const colorOptions = ['#0052cc', '#ff5630', '#00875a', '#974f0c', '#5e4db2', '#ae2a19'];
 

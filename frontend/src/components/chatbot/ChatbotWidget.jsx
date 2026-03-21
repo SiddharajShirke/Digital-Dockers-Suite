@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Input, Avatar, Spin, Space, Typography, Badge, Tooltip } from 'antd';
 import {
     MessageOutlined,
@@ -31,14 +31,7 @@ const ChatbotWidget = () => {
         scrollToBottom();
     }, [messages]);
 
-    // Load welcome message when opened for the first time
-    useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            loadWelcome();
-        }
-    }, [isOpen]);
-
-    const loadWelcome = async () => {
+    const loadWelcome = useCallback(async () => {
         try {
             const data = await chatbotService.getWelcome();
             setMessages([{
@@ -54,7 +47,14 @@ const ChatbotWidget = () => {
                 timestamp: new Date()
             }]);
         }
-    };
+    }, []);
+
+    // Load welcome message when opened for the first time
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            loadWelcome();
+        }
+    }, [isOpen, messages.length, loadWelcome]);
 
     const handleSend = async (text = inputValue) => {
         if (!text.trim() || isLoading) return;

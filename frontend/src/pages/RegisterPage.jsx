@@ -9,7 +9,7 @@ import {
 import { Email, Lock, Person, Visibility, VisibilityOff, Work, Business, ArrowForward } from '@mui/icons-material';
 import { Sparkles, Users, BarChart3, Layers, Globe } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 const RegisterPage = () => {
     const [formData, setFormData] = useState({
@@ -96,7 +96,7 @@ const RegisterPage = () => {
                 p: { xs: 3, sm: 4, md: 5 },
                 bgcolor: 'background.paper', zIndex: 2, overflowY: 'auto',
             }}>
-                <motion.div
+                <Motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
@@ -245,7 +245,7 @@ const RegisterPage = () => {
                             </Box>
                         </Box>
                     </Box>
-                </motion.div>
+                </Motion.div>
             </Grid>
 
             {/* Right Side - Feature Panel */}

@@ -198,7 +198,6 @@ const generatePptx = asyncHandler(async (req, res) => {
         const slideScreenshots = [];
 
         for (let i = 0; i < slides.length; i++) {
-            const slide = slides[i];
 
             // Make sure only this slide is visible (for multi-slide presentations)
             await page.evaluate((slideIndex, selectors) => {
@@ -266,7 +265,7 @@ const generatePptx = asyncHandler(async (req, res) => {
         const tempDir = path.join(__dirname, '..', 'temp');
         try {
             await fs.mkdir(tempDir, { recursive: true });
-        } catch (err) {
+        } catch (_err) {
             // Directory might already exist
         }
 

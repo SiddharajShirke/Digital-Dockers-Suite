@@ -13,6 +13,11 @@ export const TimerProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const timerRef = React.useRef(runningTimer);
+  useEffect(() => {
+    timerRef.current = runningTimer;
+  }, [runningTimer]);
+
   // Load running timer on mount
   useEffect(() => {
     const loadRunningTimer = async () => {
@@ -34,7 +39,7 @@ export const TimerProvider = ({ children }) => {
 
     // Stop timers when user logs out (before unload)
     const handleBeforeUnload = async () => {
-      if (runningTimer) {
+      if (timerRef.current) {
         try {
           await axios.post('/api/users/me/timers/stop');
         } catch (err) {

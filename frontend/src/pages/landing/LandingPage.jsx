@@ -225,7 +225,7 @@ const LandingPage = () => {
             <Box component="section" className="dd-hero" id="top">
                 <Container maxWidth="lg">
                     <Grid container spacing={{ xs: 4, md: 5 }} alignItems="stretch">
-                        <Grid item xs={12} md={7}>
+                        <Grid size={{ xs: 12, md: 7 }}>
                             <Stack spacing={3} className="dd-hero-copy">
                                 <Box className="dd-pill">
                                     <Sparkles size={14} />
@@ -259,7 +259,7 @@ const LandingPage = () => {
                                 <Box className="dd-kpi-panel">
                                     <Grid container>
                                         {KPI_ITEMS.map((item, index) => (
-                                            <Grid item xs={4} key={item.label}>
+                                            <Grid size={{ xs: 4 }} key={item.label}>
                                                 <Box className="dd-kpi-item" sx={{ borderRight: index < KPI_ITEMS.length - 1 ? '1px solid var(--dd-border)' : 'none' }}>
                                                     <Typography variant="h5" className="dd-kpi-value">
                                                         {item.value}
@@ -275,7 +275,7 @@ const LandingPage = () => {
                             </Stack>
                         </Grid>
 
-                        <Grid item xs={12} md={5}>
+                        <Grid size={{ xs: 12, md: 5 }}>
                             <Box className="dd-hero-panel">
                                 <Typography variant="h6" className="dd-panel-title">
                                     Everything in one workflow hub
@@ -333,7 +333,7 @@ const LandingPage = () => {
                             const accent = TONE_ACCENTS[feature.tone] || TONE_ACCENTS.primary;
 
                             return (
-                                <Grid item xs={12} sm={6} md={4} key={feature.title}>
+                                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={feature.title}>
                                     <Box className="dd-feature-card" sx={{ '--dd-accent': accent, '--dd-delay': `${index * 0.07}s` }}>
                                         <Box className="dd-feature-icon-wrap">
                                             <Icon size={20} />
@@ -362,7 +362,7 @@ const LandingPage = () => {
                             {WORKFLOW_STEPS.map((step, index) => {
                                 const Icon = step.icon;
                                 return (
-                                    <Grid item xs={12} md={4} key={step.title}>
+                                    <Grid size={{ xs: 12, md: 4 }} key={step.title}>
                                         <Box className="dd-workflow-card" sx={{ '--dd-delay': `${index * 0.08}s` }}>
                                             <Box className="dd-workflow-top">
                                                 <Box className="dd-workflow-index">0{index + 1}</Box>

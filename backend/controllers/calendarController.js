@@ -1,5 +1,4 @@
 const asyncHandler = require('express-async-handler');
-const Calendar = require('../models/Calendar');
 const { getAuthUrl, getTokens, listEvents } = require('../services/calendarService');
 
 // @desc    Get Auth URL

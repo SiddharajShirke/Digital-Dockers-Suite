@@ -18,14 +18,14 @@ import dayjs from 'dayjs';
 
 const ChatPage = () => {
     const { user } = useAuth();
-    const { socket, channels, fetchChannels, joinRoom } = useChat();
-    
+    const { socket, channels, joinRoom } = useChat();
+
     // State
     const [activeChannel, setActiveChannel] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [messageInput, setMessageInput] = useState('');
-    
+
     // Edit state
     const [editingMessageId, setEditingMessageId] = useState(null);
     const [editContent, setEditContent] = useState('');
@@ -69,7 +69,7 @@ const ChatPage = () => {
             try {
                 // Join socket room
                 joinRoom(`channel_${activeChannel._id}`);
-                
+
                 // Fetch history
                 const res = await api.get(`/chat/channel/${activeChannel._id}`);
                 setMessages(res.data || []);
@@ -80,7 +80,7 @@ const ChatPage = () => {
                 setLoading(false);
             }
         };
-        
+
         loadMessages();
     }, [activeChannel, joinRoom]);
 
@@ -135,11 +135,11 @@ const ChatPage = () => {
 
         try {
             const res = await api.post('/chat', msgData);
-            
+
             // Optimistic or rely on res: we will rely on res here to ensure full populate
             setMessages(prev => [...prev, res.data]);
             scrollToBottom();
-            
+
             // Emit to others
             socket.emit('send_message', { ...res.data, room: `channel_${activeChannel._id}` });
         } catch (err) {
@@ -212,7 +212,7 @@ const ChatPage = () => {
                 <div className="sidebar-header">
                     Workspace Chat
                 </div>
-                
+
                 <div className="sidebar-content">
                     {/* Public Channels */}
                     <div className="sidebar-section">
@@ -221,8 +221,8 @@ const ChatPage = () => {
                             <Add className="add-btn" onClick={() => setIsCreateOpen(true)} />
                         </div>
                         {publicChannels.map(c => (
-                            <div 
-                                key={c._id} 
+                            <div
+                                key={c._id}
                                 className={`sidebar-item ${activeChannel?._id === c._id ? 'active' : ''}`}
                                 onClick={() => setActiveChannel(c)}
                             >
@@ -239,8 +239,8 @@ const ChatPage = () => {
                                 <span>Private Channels</span>
                             </div>
                             {privateChannels.map(c => (
-                                <div 
-                                    key={c._id} 
+                                <div
+                                    key={c._id}
                                     className={`sidebar-item ${activeChannel?._id === c._id ? 'active' : ''}`}
                                     onClick={() => setActiveChannel(c)}
                                 >
@@ -256,21 +256,18 @@ const ChatPage = () => {
                         <div className="section-header">
                             <span>Direct Messages</span>
                         </div>
-                        
+
                         {/* List existing DMs */}
                         {directChannels.map(c => {
                             // Find the other member in the DM
-                            const otherMemberId = c.members.find(mId => 
-                                mId === user?._id ? false : true // members array might contain IDs or objects depending on populate
-                            );
-                            
+
                             // It's populated so members are objects
                             const otherMember = c.members.find(m => m._id !== user?._id) || c.members[0];
                             const name = otherMember?.fullName || "Unknown User";
-                            
+
                             return (
-                                <div 
-                                    key={c._id} 
+                                <div
+                                    key={c._id}
                                     className={`sidebar-item ${activeChannel?._id === c._id ? 'active' : ''}`}
                                     onClick={() => setActiveChannel(c)}
                                 >
@@ -287,8 +284,8 @@ const ChatPage = () => {
                             <span>Start new conversation</span>
                         </div>
                         {users.filter(u => !directChannels.some(c => c.members.some(m => m._id === u._id))).map(u => (
-                            <div 
-                                key={u._id} 
+                            <div
+                                key={u._id}
                                 className="sidebar-item"
                                 onClick={() => handleStartDirectMessage(u._id)}
                             >
@@ -309,22 +306,22 @@ const ChatPage = () => {
                         <div className="chat-header">
                             <div className="chat-header-info">
                                 <span className="chat-title">
-                                    {activeChannel.type === 'private' ? <Lock fontSize="small" /> : 
-                                     activeChannel.type === 'direct' ? <Person fontSize="small" /> : <Tag fontSize="small" />}
-                                    {activeChannel.type === 'direct' ? 
-                                     (activeChannel.members.find(m => m._id !== user?._id)?.fullName || "Direct Message") : 
-                                     activeChannel.name}
+                                    {activeChannel.type === 'private' ? <Lock fontSize="small" /> :
+                                        activeChannel.type === 'direct' ? <Person fontSize="small" /> : <Tag fontSize="small" />}
+                                    {activeChannel.type === 'direct' ?
+                                        (activeChannel.members.find(m => m._id !== user?._id)?.fullName || "Direct Message") :
+                                        activeChannel.name}
                                 </span>
                                 {activeChannel.description && (
                                     <span className="chat-subtitle">{activeChannel.description}</span>
                                 )}
                             </div>
                             <div className="chat-header-actions">
-                                <Chip 
-                                    icon={<Person />} 
-                                    label={`${activeChannel.members?.length || 1} members`} 
-                                    size="small" 
-                                    variant="outlined" 
+                                <Chip
+                                    icon={<Person />}
+                                    label={`${activeChannel.members?.length || 1} members`}
+                                    size="small"
+                                    variant="outlined"
                                 />
                             </div>
                         </div>
@@ -343,13 +340,13 @@ const ChatPage = () => {
                                 messages.map(msg => {
                                     const isMe = msg.sender._id === user._id;
                                     const isEditing = editingMessageId === msg._id;
-                                    
+
                                     return (
                                         <div key={msg._id} className="message-item">
                                             <div className="message-avatar">
                                                 {msg.sender.fullName ? msg.sender.fullName[0].toUpperCase() : '?'}
                                             </div>
-                                            
+
                                             <div className="message-content">
                                                 <div className="message-meta">
                                                     <span className="message-author">{msg.sender.fullName}</span>
@@ -360,7 +357,7 @@ const ChatPage = () => {
                                                         <span className="message-edited">(edited)</span>
                                                     )}
                                                 </div>
-                                                
+
                                                 {isEditing ? (
                                                     <div className="edit-input-wrapper">
                                                         <TextField
@@ -439,8 +436,8 @@ const ChatPage = () => {
                                     <span className="text-xs text-slate-400">
                                         <strong>Return</strong> to send, <strong>Shift + Return</strong> for new line
                                     </span>
-                                    <button 
-                                        type="submit" 
+                                    <button
+                                        type="submit"
                                         className="send-btn"
                                         disabled={!messageInput.trim()}
                                     >

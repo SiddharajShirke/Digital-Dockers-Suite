@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Dropdown, Button, Tag, Empty, List, Badge, Tooltip } from 'antd';
+import { Dropdown, Button, Tag, Empty, Badge, Tooltip } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -117,13 +117,13 @@ const HeaderCalendarDropdown = () => {
                     <Badge count={todayWorkItems.length} style={{ backgroundColor: '#1890ff' }} />
                 </div>
                 {todayWorkItems.length > 0 ? (
-                    <List
-                        size="small"
-                        dataSource={todayWorkItems}
-                        renderItem={(item) => (
-                            <List.Item
+                    <div className="calendar-work-list">
+                        {todayWorkItems.map((item) => (
+                            <div
+                                key={item.id}
                                 className="calendar-work-item"
                                 onClick={() => navigate('/dashboard/work-planner')}
+                                style={{ cursor: 'pointer', padding: '8px 4px' }}
                             >
                                 <Tooltip title={item.title}>
                                     <div className="calendar-work-row">
@@ -136,9 +136,9 @@ const HeaderCalendarDropdown = () => {
                                         </Tag>
                                     </div>
                                 </Tooltip>
-                            </List.Item>
-                        )}
-                    />
+                            </div>
+                        ))}
+                    </div>
                 ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No work today" style={{ margin: '8px 0' }} />
                 )}
@@ -151,13 +151,13 @@ const HeaderCalendarDropdown = () => {
                     <Badge count={upcomingWorkItems.length} style={{ backgroundColor: '#faad14' }} />
                 </div>
                 {upcomingWorkItems.length > 0 ? (
-                    <List
-                        size="small"
-                        dataSource={upcomingWorkItems}
-                        renderItem={(item) => (
-                            <List.Item
+                    <div className="calendar-work-list">
+                        {upcomingWorkItems.map((item) => (
+                            <div
+                                key={item.id}
                                 className="calendar-work-item compact"
                                 onClick={() => navigate('/dashboard/work-planner')}
+                                style={{ cursor: 'pointer', padding: '8px 4px' }}
                             >
                                 <Tooltip title={`${item.date.format('MMM DD')} - ${item.title}`}>
                                     <div className="calendar-work-row">
@@ -169,9 +169,9 @@ const HeaderCalendarDropdown = () => {
                                         </span>
                                     </div>
                                 </Tooltip>
-                            </List.Item>
-                        )}
-                    />
+                            </div>
+                        ))}
+                    </div>
                 ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No upcoming work" style={{ margin: '8px 0' }} />
                 )}

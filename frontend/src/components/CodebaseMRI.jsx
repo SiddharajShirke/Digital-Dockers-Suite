@@ -71,8 +71,8 @@ const CodebaseMRI = ({ isDarkMode, repoId }) => {
 
   // Socket listener for real-time updates
   useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-    const socket = socketIo(API_URL, { transports: ["websocket", "polling"], withCredentials: true });
+    const API_URL = import.meta.env.VITE_API_URL || "https://localhost:5001";
+    const socket = socketIo(API_URL, { transports: ["websocket", "polling"], withCredentials: true, secure: true, rejectUnauthorized: false });
 
     socket.on("connect", () => {
       console.log("[MRI] Socket connected");

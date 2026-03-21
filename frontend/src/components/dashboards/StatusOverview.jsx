@@ -107,7 +107,7 @@ const StatusOverview = ({ stats }) => {
             }}
             styles={{ body: { padding: '10px' } }}
         >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
 
                 {/* SECTION 1: Sprint Completion */}
                 <div>
@@ -125,13 +125,8 @@ const StatusOverview = ({ stats }) => {
                         percent={completionRate}
                         strokeColor={getProgressColor(completionRate)}
                         format={() => null}
-                        size="small"
                         status={completionRate === 100 ? 'success' : 'normal'}
-                        style={{
-                            '.ant-progress-bar': {
-                                height: '6px'
-                            }
-                        }}
+                        size={{ height: 6 }}
                     />
                     <Text type="secondary" style={{ fontSize: 11, marginTop: 6, display: 'block' }}>
                         {displayDoneCount} of {displayTotalCount} issues completed
@@ -146,7 +141,7 @@ const StatusOverview = ({ stats }) => {
                     <Text strong style={{ fontSize: 11, color: '#262626', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: 12 }}>
                         Status Distribution
                     </Text>
-                    <Space direction="vertical" style={{ width: '100%' }} size="small">
+                    <Space orientation="vertical" style={{ width: '100%' }} size="small">
                         {statusRows.map((status) => {
                             const percentage = totalCount > 0 ? Math.round((status.count / totalCount) * 100) : 0;
                             return (

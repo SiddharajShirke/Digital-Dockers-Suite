@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, List, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button } from 'antd';
+import { Row, Col, Card, Typography, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button } from 'antd';
 import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';

@@ -68,8 +68,8 @@ const RepoConnectionBar = ({
 
     // Socket listener for real-time scan updates
     useEffect(() => {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-        const socket = socketIo(API_URL, { transports: ['websocket', 'polling'], withCredentials: true });
+        const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:5001';
+        const socket = socketIo(API_URL, { transports: ['websocket', 'polling'], withCredentials: true, secure: true, rejectUnauthorized: false });
 
         // Track either the connected repo or the one being analyzed
         const targetRepoId = connectedRepo?.fullName || analysisProgress?.repoId;

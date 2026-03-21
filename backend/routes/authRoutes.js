@@ -35,7 +35,7 @@ router.get('/google/callback', (req, res, next) => {
                 // Calendar integration - skip passport, go directly to handler
                 return googleAuthCallback(req, res, next);
             }
-        } catch (error) {
+        } catch (_error) {
             // Invalid state, continue with passport authentication
             console.log('Invalid state token, using passport authentication');
         }

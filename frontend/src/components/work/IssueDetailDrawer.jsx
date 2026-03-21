@@ -1,4 +1,4 @@
-import { Drawer, Typography, Descriptions, Tag, Space, Avatar, Divider, Tabs, Button, Input, List, message, Select, Grid, Card, Timeline, Tooltip, Empty, Popconfirm, Spin, Modal } from 'antd';
+import { Drawer, Typography, Descriptions, Tag, Space, Avatar, Divider, Tabs, Button, Input, message, Select, Grid, Card, Timeline, Tooltip, Empty, Popconfirm, Spin, Modal } from 'antd';
 import {
     CloseOutlined,
     LinkOutlined,
@@ -118,7 +118,7 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
 
         // Save original state for rollback
         const originalValue = currentIssue[field];
-        
+
         // Optimistic update: update UI immediately
         setCurrentIssue(prev => ({
             ...prev,
@@ -130,10 +130,10 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
 
         try {
             // API call in background
-            const updated = await taskService.updateTask(currentIssue._id, { 
-                [field]: value 
+            const updated = await taskService.updateTask(currentIssue._id, {
+                [field]: value
             });
-            
+
             // Sync with server response
             setCurrentIssue(updated);
             message.success(`${field} updated`);
@@ -160,7 +160,7 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
      */
     const handleAddComment = async () => {
         if (!comment.trim()) return;
-        
+
         setSending(true);
         try {
             // Call API to add comment
@@ -389,11 +389,11 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
                                                 />
                                                 {comment && (
                                                     <div style={{ marginTop: 8 }}>
-                                                        <Button 
-                                                            type="primary" 
-                                                            size="small" 
-                                                            onClick={handleAddComment} 
-                                                            loading={sending} 
+                                                        <Button
+                                                            type="primary"
+                                                            size="small"
+                                                            onClick={handleAddComment}
+                                                            loading={sending}
                                                             style={{ marginRight: 8 }}
                                                         >
                                                             {sending ? 'Posting...' : 'Post'}
@@ -403,35 +403,32 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         {/* Comments List */}
-                                        <List
-                                            itemLayout="horizontal"
-                                            dataSource={currentIssue.comments || []}
-                                            locale={{ emptyText: 'No comments yet. Start the conversation!' }}
-                                            renderItem={(item) => (
-                                                <List.Item style={{ paddingLeft: 0, paddingRight: 0 }}>
-                                                    <List.Item.Meta
-                                                        avatar={<Avatar size="small" style={{ backgroundColor: '#5E6C84' }}>
+                                        <div className="comments-list">
+                                            {(!currentIssue.comments || currentIssue.comments.length === 0) ? (
+                                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No comments yet. Start the conversation!" />
+                                            ) : (
+                                                currentIssue.comments.map((item) => (
+                                                    <div key={item._id} style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                                                        <Avatar size="small" style={{ backgroundColor: '#5E6C84', flexShrink: 0 }}>
                                                             {item.user?.fullName?.[0] || 'U'}
-                                                        </Avatar>}
-                                                        title={
-                                                            <Space size="small">
+                                                        </Avatar>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                                                                 <Text strong>{item.user?.fullName || 'Unknown'}</Text>
                                                                 <Text type="secondary" style={{ fontSize: 11 }}>
                                                                     {formatRelativeTime(item.timestamp)}
                                                                 </Text>
-                                                            </Space>
-                                                        }
-                                                        description={
-                                                            <div style={{ marginTop: 4, color: '#262626', whiteSpace: 'pre-wrap' }}>
+                                                            </div>
+                                                            <div style={{ color: '#262626', whiteSpace: 'pre-wrap', fontSize: 14 }}>
                                                                 {item.text}
                                                             </div>
-                                                        }
-                                                    />
-                                                </List.Item>
+                                                        </div>
+                                                    </div>
+                                                ))
                                             )}
-                                        />
+                                        </div>
                                     </>
                                 ),
                             },
@@ -452,7 +449,7 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
                                 key: '3',
                                 label: 'Time Logs',
                                 children: (
-                                    <WorkLogPanel 
+                                    <WorkLogPanel
                                         workItemId={currentIssue._id}
                                         onTimeUpdated={() => {
                                             // Refresh issue data if needed
@@ -493,7 +490,7 @@ const IssueDetailDrawer = ({ open, onClose, issue }) => {
                         <Descriptions column={1} layout="horizontal" items={items} size="small" />
                         <Divider />
                         <div style={{ fontSize: 12, color: '#6B778C' }}>
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 <Text type="secondary">Created {currentIssue.createdAt ? new Date(currentIssue.createdAt).toLocaleDateString() : 'unknown'}</Text>
                                 <Text type="secondary">
                                     Updated {currentIssue.updatedAt ? formatRelativeTime(currentIssue.updatedAt) : 'unknown'}

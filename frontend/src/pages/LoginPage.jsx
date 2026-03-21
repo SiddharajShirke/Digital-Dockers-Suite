@@ -8,7 +8,7 @@ import {
 import { Email, Lock, Visibility, VisibilityOff, ArrowForward } from '@mui/icons-material';
 import { Sparkles, Brain, Zap, Shield, CheckCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -47,7 +47,7 @@ const LoginPage = () => {
                 bgcolor: 'background.paper',
                 zIndex: 2,
             }}>
-                <motion.div
+                <Motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
@@ -212,7 +212,7 @@ const LoginPage = () => {
                             </Box>
                         </Box>
                     </Box>
-                </motion.div>
+                </Motion.div>
             </Grid>
 
             {/* Right Side - Feature Panel */}

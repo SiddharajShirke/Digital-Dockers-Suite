@@ -21,7 +21,7 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
   const [isStartingTimer, setIsStartingTimer] = useState(false);
 
   // Load work logs and summary
-  const loadWorkLogs = async () => {
+  const loadWorkLogs = React.useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -43,7 +43,7 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [workItemId, onTimeUpdated]);
 
   useEffect(() => {
     loadWorkLogs();
@@ -53,9 +53,9 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
       const interval = setInterval(loadWorkLogs, 10000);
       return () => clearInterval(interval);
     }
-  }, [workItemId, isTimerRunning, currentWorkItemId]);
+  }, [isTimerRunning, currentWorkItemId, workItemId, loadWorkLogs]);
 
-  const handleStartTimer = async () => {
+  const handleStartTimer = React.useCallback(async () => {
     try {
       setIsStartingTimer(true);
       await startTimer(workItemId, `Work on ${workItemId}`);
@@ -67,9 +67,9 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
     } finally {
       setIsStartingTimer(false);
     }
-  };
+  }, [workItemId, startTimer, loadWorkLogs]);
 
-  const handleStopTimer = async () => {
+  const handleStopTimer = React.useCallback(async () => {
     try {
       await stopTimer(workItemId);
       // Refresh logs to see the completed timer
@@ -78,16 +78,16 @@ const WorkLogPanel = ({ workItemId, onTimeUpdated }) => {
       setError('Failed to stop timer');
       console.error(err);
     }
-  };
+  }, [workItemId, stopTimer, loadWorkLogs]);
 
-  const handleManualLogCreated = async () => {
+  const handleManualLogCreated = React.useCallback(async () => {
     setShowManualModal(false);
     await loadWorkLogs();
-  };
+  }, [loadWorkLogs]);
 
-  const handleLogDeleted = async () => {
+  const handleLogDeleted = React.useCallback(async () => {
     await loadWorkLogs();
-  };
+  }, [loadWorkLogs]);
 
   const isTimerActiveOnThisItem = runningTimer && currentWorkItemId === workItemId;
 

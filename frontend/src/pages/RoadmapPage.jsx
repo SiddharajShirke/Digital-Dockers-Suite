@@ -16,7 +16,13 @@ import '../styles/RoadmapPage.css';
  */
 const RoadmapPage = () => {
   const scrollContainerRef = useRef(null);
-  const [roadmapData] = useState(() => getRoadmapData());
+  const [roadmapData, setRoadmapData] = useState(null);
+
+  useEffect(() => {
+    setRoadmapData(getRoadmapData());
+  }, []);
+
+  if (!roadmapData) return null;
 
   /**
    * Scroll the timeline horizontally

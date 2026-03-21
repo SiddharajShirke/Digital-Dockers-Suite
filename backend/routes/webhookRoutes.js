@@ -10,7 +10,7 @@ const {
     deleteRefactorTask
 } = require('../controllers/techDebtController');
 const { handlePREvent, testWebhook } = require('../controllers/githubWebhookController');
-const { protect } = require('../middlewares/authMiddleware');
+const { handleGitHubWebhook } = require('../controllers/webhookController');
 
 // GitHub Webhook
 router.post('/github/pr', handlePREvent);

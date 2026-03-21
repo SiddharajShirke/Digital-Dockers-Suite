@@ -28,22 +28,7 @@ const SpaceEditor = ({ space, currentUser }) => {
     sendUpdate
   } = useSpaceWebSocket(space._id, currentUser._id);
 
-  useEffect(() => {
-    loadContent();
-  }, [space._id]);
-
-  // Autosave every 30 seconds
-  useEffect(() => {
-    if (!content) return;
-
-    const autoSaveInterval = setInterval(() => {
-      handleAutosave();
-    }, 30000);
-
-    return () => clearInterval(autoSaveInterval);
-  }, [content, space._id]);
-
-  const loadContent = async () => {
+  const loadContent = React.useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(
@@ -58,9 +43,25 @@ const SpaceEditor = ({ space, currentUser }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [space._id]);
 
-  const handleAutosave = async () => {
+  useEffect(() => {
+    loadContent();
+  }, [loadContent]);
+
+  // Autosave every 30 seconds
+  useEffect(() => {
+    if (!content) return;
+
+    const autoSaveInterval = setInterval(() => {
+      handleAutosave();
+    }, 30000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [content, handleAutosave]);
+
+
+  const handleAutosave = React.useCallback(async () => {
     if (!content) return;
 
     try {
@@ -89,9 +90,9 @@ const SpaceEditor = ({ space, currentUser }) => {
     } catch (error) {
       console.error('Autosave failed:', error);
     }
-  };
+  }, [content, space._id, sendUpdate]);
 
-  const handleSaveExplicitly = async (updatedContent, editSummary) => {
+  const handleSaveExplicitly = React.useCallback(async (updatedContent, editSummary) => {
     setIsSaving(true);
     try {
       const response = await axios.patch(
@@ -124,7 +125,7 @@ const SpaceEditor = ({ space, currentUser }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [space._id, sendUpdate]);
 
   if (loading) return <Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 100 }} />;
 

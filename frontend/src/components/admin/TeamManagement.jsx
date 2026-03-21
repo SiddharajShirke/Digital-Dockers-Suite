@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     Card, Table, Button, Modal, Form, Input, Select, Space, Tag, Avatar,
     Typography, message, Popconfirm, Tooltip, Empty, Spin, Badge, Drawer,
-    List, Checkbox, Divider, Row, Col, Statistic
+    Checkbox, Divider, Row, Col, Statistic
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined, TeamOutlined,
@@ -192,7 +192,7 @@ const TeamManagement = () => {
             key: 'members',
             render: (_, record) => (
                 <Badge count={record.members?.length || 0} showZero>
-                    <Avatar.Group maxCount={3} size="small">
+                    <Avatar.Group max={{ count: 3 }} size="small">
                         {record.members?.slice(0, 3).map(m => (
                             <Tooltip key={m._id} title={m.fullName}>
                                 <Avatar src={m.profileInfo?.avatar} size="small">
@@ -318,7 +318,7 @@ const TeamManagement = () => {
                             title="Total Teams"
                             value={teams.length}
                             prefix={<TeamOutlined />}
-                            valueStyle={{ color: '#0052CC' }}
+                            styles={{ content: { color: '#0052CC' } }}
                         />
                     </Card>
                 </Col>
@@ -328,7 +328,7 @@ const TeamManagement = () => {
                             title="Total Members"
                             value={teams.reduce((sum, t) => sum + (t.members?.length || 0), 0)}
                             prefix={<UserOutlined />}
-                            valueStyle={{ color: '#6554C0' }}
+                            styles={{ content: { color: '#6554C0' } }}
                         />
                     </Card>
                 </Col>
@@ -338,7 +338,7 @@ const TeamManagement = () => {
                             title="Active Projects"
                             value={teams.reduce((sum, t) => sum + (t.stats?.activeProjects || t.projects?.length || 0), 0)}
                             prefix={<ProjectOutlined />}
-                            valueStyle={{ color: '#00875a' }}
+                            styles={{ content: { color: '#00875a' } }}
                         />
                     </Card>
                 </Col>
@@ -433,7 +433,7 @@ const TeamManagement = () => {
                 }
                 open={membersDrawerVisible}
                 onClose={() => setMembersDrawerVisible(false)}
-                width={500}
+                size="large"
             >
                 {selectedTeam && (
                     <>
@@ -442,12 +442,29 @@ const TeamManagement = () => {
                             <Title level={5}>
                                 <UserOutlined /> Current Members ({selectedTeam.members?.length || 0})
                             </Title>
-                            <List
-                                dataSource={selectedTeam.members || []}
-                                renderItem={(member) => (
-                                    <List.Item
-                                        actions={[
-                                            member._id === selectedTeam.lead?._id ? (
+                            <div className="members-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {(selectedTeam.members || []).map((member) => (
+                                    <div 
+                                        key={member._id} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            borderBottom: '1px solid #f0f0f0'
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <Avatar src={member.profileInfo?.avatar}>
+                                                {member.fullName?.[0]}
+                                            </Avatar>
+                                            <div>
+                                                <div style={{ fontWeight: 500 }}>{member.fullName}</div>
+                                                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{member.role?.replace('_', ' ')}</div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            {member._id === selectedTeam.lead?._id ? (
                                                 <Tag color="blue">Lead</Tag>
                                             ) : (
                                                 <Button
@@ -458,22 +475,14 @@ const TeamManagement = () => {
                                                 >
                                                     Remove
                                                 </Button>
-                                            )
-                                        ]}
-                                    >
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar src={member.profileInfo?.avatar}>
-                                                    {member.fullName?.[0]}
-                                                </Avatar>
-                                            }
-                                            title={member.fullName}
-                                            description={member.role?.replace('_', ' ')}
-                                        />
-                                    </List.Item>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!selectedTeam.members || selectedTeam.members.length === 0) && (
+                                    <div style={{ textAlign: 'center', padding: '16px', color: 'rgba(0, 0, 0, 0.25)' }}>No members yet</div>
                                 )}
-                                locale={{ emptyText: 'No members yet' }}
-                            />
+                            </div>
                         </div>
 
                         <Divider />
@@ -490,34 +499,41 @@ const TeamManagement = () => {
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 style={{ marginBottom: 16 }}
                             />
-                            <List
-                                dataSource={availableUsers.slice(0, 10)}
-                                renderItem={(user) => (
-                                    <List.Item
-                                        actions={[
-                                            <Button
-                                                type="primary"
-                                                size="small"
-                                                icon={<PlusOutlined />}
-                                                onClick={() => handleAddMember(user._id)}
-                                            >
-                                                Add
-                                            </Button>
-                                        ]}
+                            <div className="available-users-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {availableUsers.slice(0, 10).map((user) => (
+                                    <div 
+                                        key={user._id} 
+                                        style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'space-between',
+                                            padding: '12px',
+                                            borderBottom: '1px solid #f0f0f0'
+                                        }}
                                     >
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar src={user.profileInfo?.avatar}>
-                                                    {user.fullName?.[0]}
-                                                </Avatar>
-                                            }
-                                            title={user.fullName}
-                                            description={user.role?.replace('_', ' ')}
-                                        />
-                                    </List.Item>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                            <Avatar src={user.profileInfo?.avatar}>
+                                                {user.fullName?.[0]}
+                                            </Avatar>
+                                            <div>
+                                                <div style={{ fontWeight: 500 }}>{user.fullName}</div>
+                                                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>{user.role?.replace('_', ' ')}</div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            type="primary"
+                                            size="small"
+                                            icon={<PlusOutlined />}
+                                            onClick={() => handleAddMember(user._id)}
+                                        >
+                                            Add
+                                        </Button>
+                                    </div>
+                                ))}
+                                {availableUsers.length === 0 && (
+                                    <div style={{ textAlign: 'center', padding: '16px', color: 'rgba(0, 0, 0, 0.25)' }}>No available users</div>
                                 )}
-                                locale={{ emptyText: 'No available users' }}
-                            />
+                            </div>
                         </div>
                     </>
                 )}

@@ -17,12 +17,15 @@ const NotesEditor = ({
   isSaving
 }) => {
   const [text, setText] = useState(content?.textContent || '');
+  const [prevContent, setPrevContent] = useState(content);
   const [isEditing, setIsEditing] = useState(false);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => {
+  // Adjust state when content prop changes (standard React pattern for syncing state with props)
+  if (content !== prevContent) {
+    setPrevContent(content);
     setText(content?.textContent || '');
-  }, [content]);
+    setIsEditing(false);
+  }
 
   const handleChange = (e) => {
     setText(e.target.value);

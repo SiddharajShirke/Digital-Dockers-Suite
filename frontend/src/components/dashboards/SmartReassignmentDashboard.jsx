@@ -21,7 +21,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
     const [requiresConfirmation, setRequiresConfirmation] = useState(false);
 
     // Fetch team analysis and recommendations
-    const fetchAnalysis = async () => {
+    const fetchAnalysis = React.useCallback(async () => {
         try {
             setLoading(true);
 
@@ -56,10 +56,10 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [sprintId]);
 
     // Get recommendation for a specific task
-    const getTaskRecommendation = async (taskId) => {
+    const getTaskRecommendation = React.useCallback(async (taskId) => {
         try {
             setLoading(true);
             const res = await api.get(`/reassignment/${taskId}/recommend`);
@@ -77,10 +77,10 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // Execute reassignment
-    const handleReassign = async () => {
+    const handleReassign = React.useCallback(async () => {
         if (!currentRecommendation) return;
 
         try {
@@ -110,11 +110,11 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
         } finally {
             setApproving(false);
         }
-    };
+    }, [currentRecommendation, selectedTask?._id, requiresConfirmation, fetchAnalysis]);
 
     useEffect(() => {
         fetchAnalysis();
-    }, [sprintId]);
+    }, [fetchAnalysis]);
 
     const overloadedColumns = [
         {
@@ -139,7 +139,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
             dataIndex: ['workloadPercentage'],
             key: 'workload',
             render: (percentage) => (
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <Progress
                         percent={percentage}
                         status={percentage > 80 ? 'exception' : percentage > 60 ? 'active' : 'normal'}
@@ -181,7 +181,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
             dataIndex: ['currentAssignee', 'name'],
             key: 'assignee',
             render: (text, record) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <span>{text}</span>
                     <span style={{ fontSize: '12px', color: '#999' }}>
                         {record.currentAssignee.workloadPercentage}% overloaded
@@ -194,7 +194,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
             dataIndex: ['recommendation', 'name'],
             key: 'recommended',
             render: (text, record) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
                         {text}
                     </span>
@@ -303,8 +303,10 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
                             title="Average Workload"
                             value={summary.avgWorkload || 0}
                             suffix="%"
-                            valueStyle={{
-                                color: summary.avgWorkload > 60 ? '#ff4d4f' : '#52c41a'
+                            styles={{
+                                content: {
+                                    color: summary.avgWorkload > 60 ? '#ff4d4f' : '#52c41a'
+                                }
                             }}
                         />
                     </Col>
@@ -435,7 +437,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
                 width={700}
             >
                 {currentRecommendation && (
-                    <Space direction="vertical" style={{ width: '100%' }} size="large">
+                    <Space orientation="vertical" style={{ width: '100%' }} size="large">
                         {/* Reason */}
                         <Alert
                             message="Recommendation Reason"
@@ -449,7 +451,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
                         {/* Current Assignee */}
                         <div>
                             <h4>Current Assignee</h4>
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 <span><strong>{currentRecommendation.currentAssignee.name}</strong></span>
                                 <Progress
                                     percent={currentRecommendation.currentAssignee.workloadPercentage}
@@ -464,7 +466,7 @@ const SmartReassignmentDashboard = ({ sprintId }) => {
                         {/* Recommended Employee */}
                         <div>
                             <h4>Recommended Employee</h4>
-                            <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                                 <Space>
                                     <strong>{currentRecommendation.recommendation.name}</strong>
                                     <Tag color="blue">{currentRecommendation.recommendation.role}</Tag>

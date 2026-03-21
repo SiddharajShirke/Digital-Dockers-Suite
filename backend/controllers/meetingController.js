@@ -1,21 +1,14 @@
 const asyncHandler = require('express-async-handler');
 const Meeting = require('../models/Meeting');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
-const { createCalendarEventWithMeet, getCalendarAuthUrl, refreshAccessToken } = require('../services/googleCalendarService');
 
-// Generate a Google Meet-like link (placeholder for when Google API is not configured)
-const generateMeetLink = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyz';
-    const segment = () => Array(3).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
-    return `https://meet.google.com/${segment()}-${segment()}-${segment()}`;
-};
-
-// Check if Google Calendar API is configured
-const isGoogleCalendarConfigured = () => {
-    return process.env.GOOGLE_CLIENT_ID &&
-        process.env.GOOGLE_CLIENT_SECRET &&
-        process.env.GOOGLE_CLIENT_ID !== 'your-google-client-id-here';
+// Generate a Mirotalk SFU link
+const generateMirotalkLink = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const segment = (len) => Array(len).fill(0).map(() => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const roomId = `${segment(4)}-${segment(4)}-${segment(4)}`;
+    const baseUrl = process.env.MIROTALK_URL || 'http://localhost:3010';
+    return `${baseUrl}/join?room=${roomId}`;
 };
 
 // @desc    Schedule a new meeting
@@ -36,69 +29,11 @@ const scheduleMeeting = asyncHandler(async (req, res) => {
         throw new Error('Please provide title and scheduled time');
     }
 
-    let meetLink = '';
-    let calendarEventId = '';
+    const meetLink = generateMirotalkLink();
+    const calendarEventId = '';
 
-    // Check if user has Google credentials linked
-    const user = await User.findById(req.user._id);
-    let googleAccessToken = user.googleAccessToken;
-
-    // Check if token is expired and refresh if needed
-    if (googleAccessToken && user.googleRefreshToken && user.googleTokenExpiry) {
-        const now = new Date();
-        const tokenExpiry = new Date(user.googleTokenExpiry);
-
-        // Refresh if token expires within 5 minutes
-        if (tokenExpiry <= new Date(now.getTime() + 5 * 60 * 1000)) {
-            try {
-                console.log('Access token expired or expiring soon, refreshing...');
-                const refreshed = await refreshAccessToken(user.googleRefreshToken);
-                googleAccessToken = refreshed.access_token;
-
-                // Update user with new token
-                user.googleAccessToken = refreshed.access_token;
-                user.googleTokenExpiry = new Date(Date.now() + refreshed.expires_in * 1000);
-                await user.save();
-            } catch (error) {
-                console.error('Token refresh failed:', error.message);
-                // Token is invalid, clear it
-                user.googleAccessToken = undefined;
-                user.googleRefreshToken = undefined;
-                user.googleTokenExpiry = undefined;
-                await user.save();
-                googleAccessToken = null;
-            }
-        }
-    }
-
-    // Try to create real Google Meet link if configured and user has valid access token
-    if (isGoogleCalendarConfigured() && googleAccessToken) {
-        try {
-            const calendarResult = await createCalendarEventWithMeet(googleAccessToken, {
-                title,
-                description,
-                scheduledAt,
-                duration,
-                participants
-            });
-            meetLink = calendarResult.meetLink;
-            calendarEventId = calendarResult.eventId;
-        } catch (error) {
-            console.error('Google Calendar API failed:', error.message);
-            // If token expired during the request, clear tokens
-            if (error.message.includes('invalid_grant') || error.message.includes('Token has been expired')) {
-                user.googleAccessToken = undefined;
-                user.googleRefreshToken = undefined;
-                user.googleTokenExpiry = undefined;
-                await user.save();
-            }
-            // Use placeholder link as fallback
-            meetLink = generateMeetLink();
-        }
-    } else {
-        // Use placeholder link if Google API not configured or user not linked
-        meetLink = generateMeetLink();
-    }
+    // Check if user has Google credentials linked (keeping user fetch for logic consistency)
+    // const user = await User.findById(req.user._id);
 
     // Process participants
     const processedParticipants = [];
@@ -133,7 +68,7 @@ const scheduleMeeting = asyncHandler(async (req, res) => {
         scheduledAt: new Date(scheduledAt),
         duration: duration || 60,
         participants: processedParticipants,
-        meetingType: meetingType || 'google_meet',
+        meetingType: meetingType || 'mirotalk',
         status: 'scheduled'
     });
 
@@ -192,13 +127,7 @@ const scheduleMeeting = asyncHandler(async (req, res) => {
 // @route   GET /api/meetings/calendar-auth
 // @access  Private
 const getCalendarAuth = asyncHandler(async (req, res) => {
-    if (!isGoogleCalendarConfigured()) {
-        res.status(400);
-        throw new Error('Google Calendar API not configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env');
-    }
-
-    const authUrl = getCalendarAuthUrl();
-    res.json({ authUrl });
+    res.json({ authUrl: '' });
 });
 
 // @desc    Get all meetings (upcoming + past)

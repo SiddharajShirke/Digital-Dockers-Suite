@@ -1,4 +1,4 @@
-import { Card, List, Avatar, Typography, Empty, Tag } from 'antd';
+import { Card, Avatar, Typography, Empty, Tag } from 'antd';
 import { CheckCircleOutlined, EditOutlined, UserAddOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { formatDistanceToNow } from 'date-fns';
 

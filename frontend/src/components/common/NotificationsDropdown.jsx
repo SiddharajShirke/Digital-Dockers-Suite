@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dropdown, Badge, List, Avatar, Typography, Button, Empty, Spin } from 'antd';
+import { Dropdown, Badge, Avatar, Typography, Button, Empty, Spin } from 'antd';
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import activityService from '../../services/activityService';
 import { formatDistanceToNow } from 'date-fns';
@@ -86,28 +86,27 @@ const NotificationsDropdown = () => {
                     <Spin />
                 </div>
             ) : notifications.length > 0 ? (
-                <List
-                    dataSource={notifications}
-                    renderItem={(item) => (
-                        <List.Item
+                <div className="notifications-list">
+                    {notifications.map((item) => (
+                        <div
+                            key={item._id}
                             className={`notifications-list-item ${item.isRead ? '' : 'unread'}`}
+                            onClick={() => {/* Handle click if needed */}}
                         >
-                            <List.Item.Meta
-                                avatar={
-                                    <Avatar className="notifications-avatar">
-                                        {item.actor?.fullName?.[0] || '?'}
-                                    </Avatar>
-                                }
-                                title={<Text className="notifications-item-message">{item.message}</Text>}
-                                description={
+                            <div className="notifications-item-content">
+                                <Avatar className="notifications-avatar">
+                                    {item.actor?.fullName?.[0] || '?'}
+                                </Avatar>
+                                <div className="notifications-item-text">
+                                    <Text className="notifications-item-message">{item.message}</Text>
                                     <Text type="secondary" className="notifications-item-time">
                                         {formatTimeAgo(item.createdAt)}
                                     </Text>
-                                }
-                            />
-                        </List.Item>
-                    )}
-                />
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             ) : (
                 <Empty
                     description="No notifications"

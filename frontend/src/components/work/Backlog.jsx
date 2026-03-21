@@ -129,7 +129,7 @@ const Backlog = () => {
                         styles={{ body: { padding: 24 } }}
                         title={
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Space direction="vertical" size={0}>
+                                <Space orientation="vertical" size={0}>
                                     <Space>
                                         <Text strong>{sprint.name}</Text>
                                         <Tag color={sprint.status === 'active' ? 'green' : 'default'}>{sprint.status}</Tag>
@@ -274,7 +274,7 @@ const Backlog = () => {
             />
 
             <Modal title="Create Sprint" open={isCreateSprintModalOpen} onOk={handleCreateSprint} onCancel={() => setIsCreateSprintModalOpen(false)}>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <Input placeholder="Sprint Name" value={sprintName} onChange={e => setSprintName(e.target.value)} />
                     <Input placeholder="Sprint Goal" value={sprintGoal} onChange={e => setSprintGoal(e.target.value)} />
                 </Space>

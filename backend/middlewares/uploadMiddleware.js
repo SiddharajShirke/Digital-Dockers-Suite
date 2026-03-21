@@ -13,7 +13,6 @@ const storage = multer.diskStorage({
 function checkFileType(file, cb) {
     const filetypes = /jpeg|jpg|png|gif|mp3|wav|m4a|mp4|pdf|doc|docx|ppt|pptx|csv|xlsx/;
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = true; // Simplified for now, mimetype checking can be tricky with some audio formats
 
     if (extname) {
         return cb(null, true);

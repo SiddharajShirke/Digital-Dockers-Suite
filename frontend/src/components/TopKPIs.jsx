@@ -196,7 +196,7 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
     }
   };
 
-  if (loading || !metrics) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -209,6 +209,17 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
             <div className={`h-8 w-16 rounded ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (!metrics) {
+    return (
+      <div className="grid grid-cols-1 gap-4 mb-6">
+        <div className={`rounded-xl shadow-sm p-8 text-center border ${isDarkMode ? "bg-slate-800 border-slate-700 text-gray-400" : "bg-white border-gray-100 text-gray-500"}`}>
+          <FaShieldAlt className="mx-auto mb-3 text-indigo-400 opacity-50" size={32} />
+          <p className="text-sm font-medium">Connect a repository to view code health metrics</p>
+        </div>
       </div>
     );
   }

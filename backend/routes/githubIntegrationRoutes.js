@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const GitHubService = require('../services/githubService');
 const AnalysisOrchestrator = require('../services/analysisOrchestrator');
-const PullRequest = require('../models/PullRequest');
-const CodebaseFile = require('../models/CodebaseFile');
 
 /**
  * Connect to GitHub (store token)

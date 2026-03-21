@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Input, Space, Popconfirm, Avatar, Tooltip, message, Spin, Empty } from 'antd';
+import { Button, Input, Space, Popconfirm, Avatar, Tooltip, message, Spin, Empty } from 'antd';
 import { SendOutlined, DeleteOutlined, LikeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
@@ -14,13 +14,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadComments();
-    const interval = setInterval(loadComments, 10000); // Poll every 10s
-    return () => clearInterval(interval);
-  }, [spaceId]);
-
-  const loadComments = async () => {
+  const loadComments = React.useCallback(async () => {
     setLoading(true);
     try {
       const response = await axios.get(
@@ -33,9 +27,15 @@ const SpaceComments = ({ spaceId, currentUser }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [spaceId]);
 
-  const handleAddComment = async () => {
+  useEffect(() => {
+    loadComments();
+    const interval = setInterval(loadComments, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, [loadComments]);
+
+  const handleAddComment = React.useCallback(async () => {
     if (!newComment.trim()) {
       message.warning('Please enter a comment');
       return;
@@ -57,9 +57,9 @@ const SpaceComments = ({ spaceId, currentUser }) => {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [newComment, spaceId, loadComments]);
 
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = React.useCallback(async (commentId) => {
     try {
       await axios.delete(
         `/api/spaces/${spaceId}/comments/${commentId}`,
@@ -71,7 +71,7 @@ const SpaceComments = ({ spaceId, currentUser }) => {
     } catch {
       message.error('Failed to delete comment');
     }
-  };
+  }, [spaceId, loadComments]);
 
   return (
     <div className="space-comments">
@@ -81,43 +81,53 @@ const SpaceComments = ({ spaceId, currentUser }) => {
         {comments.length === 0 ? (
           <Empty description="No comments yet" />
         ) : (
-          <List
-            dataSource={comments}
-            renderItem={(comment) => (
-              <List.Item key={comment._id}>
-                <List.Item.Meta
-                  avatar={<Avatar src={comment.author.avatar}>👤</Avatar>}
-                  title={
-                    <Space>
-                      <span>{comment.author.name}</span>
-                      <Tooltip title={moment(comment.createdAt).format('YYYY-MM-DD HH:mm:ss')}>
-                        <span style={{ color: '#999', fontSize: '12px' }}>
-                          {moment(comment.createdAt).fromNow()}
-                        </span>
-                      </Tooltip>
-                    </Space>
-                  }
-                  description={<p>{comment.text}</p>}
-                />
-                <Space>
-                  {comment.author._id === currentUser._id && (
-                    <Popconfirm
-                      title="Delete comment?"
-                      onConfirm={() => handleDeleteComment(comment._id)}
-                    >
-                      <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="Delete comment" />
-                    </Popconfirm>
-                  )}
-                </Space>
-              </List.Item>
-            )}
-          />
+          <div className="comments-list">
+            {comments.map((comment) => (
+              <div
+                key={comment._id}
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  marginBottom: 16,
+                  padding: '8px 0',
+                  borderBottom: '1px solid #f5f5f5'
+                }}
+              >
+                <Avatar src={comment.author.avatar} style={{ flexShrink: 0 }}>👤</Avatar>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <Space size="small">
+                        <span style={{ fontWeight: 500 }}>{comment.author.name}</span>
+                        <Tooltip title={moment(comment.createdAt).format('YYYY-MM-DD HH:mm:ss')}>
+                          <span style={{ color: '#999', fontSize: '11px' }}>
+                            {moment(comment.createdAt).fromNow()}
+                          </span>
+                        </Tooltip>
+                      </Space>
+                      <div style={{ marginTop: 4, color: '#262626', fontSize: 13, whiteSpace: 'pre-wrap' }}>
+                        {comment.text}
+                      </div>
+                    </div>
+                    {comment.author._id === currentUser._id && (
+                      <Popconfirm
+                        title="Delete comment?"
+                        onConfirm={() => handleDeleteComment(comment._id)}
+                      >
+                        <Button type="text" size="small" danger icon={<DeleteOutlined />} aria-label="Delete comment" />
+                      </Popconfirm>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </Spin>
 
       {/* Add comment */}
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Input.TextArea
             rows={3}
             placeholder="Add a comment..."

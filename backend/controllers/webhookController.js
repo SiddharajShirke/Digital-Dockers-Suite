@@ -20,7 +20,7 @@ const handleGitHubWebhook = async (req, res) => {
             if (['opened', 'synchronize', 'reopened'].includes(action)) {
 
                 // 1. Create or Update PR Record
-                const prRecord = await PullRequest.findOneAndUpdate(
+                await PullRequest.findOneAndUpdate(
                     { prNumber: prData.number, repoId: payload.repository.full_name },
                     {
                         author: prData.user.login,

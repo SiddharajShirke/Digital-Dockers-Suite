@@ -11,8 +11,8 @@ const TechDebtPage = () => {
   const { mode } = useThemeMode();
   const isDark = mode === "dark";
   const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [activeRepoId, setActiveRepoId] = useState(localStorage.getItem('tech_debt_active_repo') || null);
+  const [loading, setLoading] = useState(!!(localStorage.getItem('tech_debt_active_repo')));
   const [connectedRepo, setConnectedRepo] = useState(null);
 
   // Fetch connected repository details
@@ -76,8 +76,13 @@ const TechDebtPage = () => {
   // Update useEffect to include refreshKey
   useEffect(() => {
     const fetchMetricsData = async () => {
+      if (!activeRepoId) {
+        setMetrics(null);
+        setLoading(false);
+        return;
+      }
       try {
-        const params = activeRepoId ? { repoId: activeRepoId } : {};
+        const params = { repoId: activeRepoId };
         const { data } = await api.get("/tech-debt/summary", { params });
         setMetrics(data);
         setLoading(false);
@@ -122,7 +127,7 @@ const TechDebtPage = () => {
 
       {/* 4. Actions & Backlog (Bottom) */}
       <div className="w-full">
-        <ActionsBacklog isDarkMode={isDark} />
+        <ActionsBacklog isDarkMode={isDark} repoId={activeRepoId} />
       </div>
     </div>
   );

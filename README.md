@@ -9,7 +9,12 @@
 </p>
 
 <p align="center">
-  <em>All-in-one project management, team collaboration, and code health monitoring — supercharged with AI.</em>
+- [x] Epics & Roadmap Timelines
+- [x] Subtask Hierarchies & Work Logs
+- [x] **New**: Mirotalk SFU Video Conferencing
+- [x] **New**: HttpOnly Cookie Authentication
+- [x] AI-Powered Codebase MRI (Code Intelligence)
+- [x] Workplace Automation via n8n
 </p>
 
 <p align="center">
@@ -85,6 +90,7 @@ Built with a MERN-like stack (MongoDB, Express, React, Node.js) and enhanced wit
 | Feature | Description |
 |---|---|
 | **Meeting Scheduler** | Create, manage, and track meetings with agenda support |
+| **Mirotalk SFU** | **New**: Integrated high-performance WebRTC video conferencing for private team rooms |
 | **Email Generator** | AI-powered professional email drafting |
 | **PPT Generator** | Automated presentation creation powered by n8n + PptxGenJS |
 | **Document Manager** | Upload, analyze, and organize documents (PDF, DOCX parsing) |
@@ -131,10 +137,11 @@ Built with a MERN-like stack (MongoDB, Express, React, Node.js) and enhanced wit
 | **Express 5** | Web framework |
 | **MongoDB + Mongoose 9** | Database & ODM |
 | **Socket.IO 4** | Real-time bidirectional communication |
-| **Passport.js** | Authentication (JWT + Google OAuth 2.0) |
+| **Passport.js** | Authentication (**Secure HttpOnly Cookies** + Google OAuth 2.0) |
 | **Google Gemini AI** | AI-powered analysis and insights |
 | **Mistral AI** | Main chatbot responses |
 | **OpenAI** | Code review analysis |
+| **Mirotalk SFU** | WebRTC video conferencing server |
 | **Octokit** | GitHub API integration |
 | **Bull** | Job queue management (Redis-backed) |
 | **Sharp** | Image processing |
@@ -195,18 +202,29 @@ Edit `backend/.env` with your actual credentials (see [Environment Variables](#-
 **4. Start the application**
 
 ```bash
-# Start both frontend and backend concurrently
+The backend is proxied through the Vite development server for a seamless development experience.
+
+```bash
+# Start both frontend and backend concurrently (recommended)
 npm run dev
+
+# This will launch:
+# - Frontend: https://localhost:5173
+# - Backend:  https://localhost:5001 (Proxied)
+# - Mirotalk: https://localhost:3010
 ```
 
 Or start them separately:
 
 ```bash
-# Terminal 1 — Backend (port 5001)
+# Terminal 1 — Backend (SSL enabled)
 npm run server
 
-# Terminal 2 — Frontend (port 5173)
+# Terminal 2 — Frontend (Vite with Proxy)
 npm run client
+
+# Terminal 3 — Mirotalk SFU
+cd mirotalksfu && npm start
 ```
 
 **5. Open in browser**

@@ -17,7 +17,7 @@ const ScheduleMeetingModal = ({ open, onClose, onMeetingCreated }) => {
         description: '',
         scheduledAt: new Date(Date.now() + 3600000),
         duration: 60,
-        meetingType: 'google_meet'
+        meetingType: 'mirotalk'
     });
     const [participants, setParticipants] = useState([]);
     const [participantEmail, setParticipantEmail] = useState('');
@@ -65,7 +65,7 @@ const ScheduleMeetingModal = ({ open, onClose, onMeetingCreated }) => {
             description: '',
             scheduledAt: new Date(Date.now() + 3600000),
             duration: 60,
-            meetingType: 'google_meet'
+            meetingType: 'mirotalk'
         });
         setParticipants([]);
         setParticipantEmail('');
@@ -172,7 +172,7 @@ const ScheduleMeetingModal = ({ open, onClose, onMeetingCreated }) => {
                         </Box>
 
                         <Alert severity="info">
-                            A Google Meet link will be automatically generated for this meeting.
+                            A Mirotalk SFU meeting room will be automatically generated for this meeting.
                         </Alert>
                     </Box>
                 </DialogContent>

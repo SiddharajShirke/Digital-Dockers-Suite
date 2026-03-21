@@ -17,16 +17,23 @@ const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const passport = require("./config/passport");
 const cookieParser = require("cookie-parser");
-const cookie = require("cookie");
 
 // Connect to database
 connectDB();
 
-const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
-const server = http.createServer(app);
+
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, '../ssl/key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, '../ssl/cert.pem'))
+};
+
+const server = https.createServer(sslOptions, app);
 
 const io = new Server(server, {
   cors: {
@@ -34,7 +41,7 @@ const io = new Server(server, {
       // Allow localhost on any port during development
       // Allow production Netlify frontend
       const allowedOrigins = [
-        /^http:\/\/localhost:\d+$/,
+        /^https?:\/\/localhost:\d+$/,
         "https://digitaldockers.netlify.app",
       ];
 
@@ -64,7 +71,7 @@ notificationHandler.initialize();
 
 io.use((socket, next) => {
   if (socket.handshake.headers.cookie) {
-    const cookies = cookie.parse(socket.handshake.headers.cookie);
+    const cookies = require("cookie").parse(socket.handshake.headers.cookie);
     if (cookies.token) {
       socket.token = cookies.token;
     }
@@ -121,7 +128,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       const allowedOrigins = [
-        /^http:\/\/localhost:\d+$/,
+        /^https?:\/\/localhost:\d+$/,
         process.env.CLIENT_URL,
         "https://digitaldockers.netlify.app",
       ];
@@ -142,7 +149,17 @@ app.use(
     credentials: true,
   }),
 );
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "https://localhost:5001", "wss://localhost:5001", "https://digitaldockers.netlify.app"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
 app.use(morgan("dev"));
 app.use(passport.initialize());
 
@@ -156,7 +173,6 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/meetings', require('./routes/meetingRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
-app.use('/api/work-items', require('./routes/subtaskRoutes'));
 app.use('/api/emails', require('./routes/emailRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
@@ -168,13 +184,15 @@ app.use('/api/channels', require('./routes/channelRoutes'));
 app.use('/api/insights', require('./routes/insightsRoutes'));
 app.use('/api/rag', require('./routes/ragRoutes'));
 app.use('/api/projects', require('./routes/projectRoutes'));
+
+// Sprint & Burndown
 app.use('/api/sprints', require('./routes/sprintRoutes'));
-app.use('/api/sprints', require('./routes/burndownRoutes'));
 app.use('/api/burndown', require('./routes/burndownRoutes'));
-app.use('/api/work-items', require('./routes/workLogRoutes'));
+
+// Subtasks & Worklogs
+app.use('/api/work-items', require('./routes/subtaskRoutes'));
 app.use('/api/work-logs', require('./routes/workLogRoutes'));
-app.use('/api/users', require('./routes/workLogRoutes'));
-app.use('/api/reports', require('./routes/workLogRoutes'));
+
 app.use('/api/epics', require('./routes/epicRoutes'));
 app.use('/api/activity', require('./routes/activityRoutes'));
 app.use('/api/chatbot', require('./routes/chatbotRoutes'));
@@ -252,7 +270,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
+process.on('unhandledRejection', (err, _promise) => {
   console.log(`Error: ${err.message}`);
   // Close server & exit process
   gracefulShutdown("unhandledRejection");

@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node scripts/free-port.js && nodemon server.js",
     "seed": "node scripts/seedTechDebt.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

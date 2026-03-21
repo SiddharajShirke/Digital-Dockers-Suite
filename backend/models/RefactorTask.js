@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const refactorTaskSchema = new mongoose.Schema({
     digitalDockersTaskId: { type: String, required: true, unique: true },
     digitalDockersTaskUrl: { type: String },
-    fileId: { type: mongoose.Schema.Types.ObjectId, ref: 'File' },
+    fileId: { type: mongoose.Schema.Types.ObjectId, ref: 'CodebaseFile' },
     status: {
         type: String,
         enum: ['OPEN', 'IN_PROGRESS', 'DONE'],

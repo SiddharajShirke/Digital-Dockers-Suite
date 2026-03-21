@@ -21,15 +21,11 @@ const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
 const WorkItemService = require('../services/workItemService');
+const workLogController = require('../controllers/workLogController');
 const asyncHandler = require('express-async-handler');
+const { protect } = require('../middlewares/authMiddleware');
 
-// Middleware: Ensure user is authenticated
-const protect = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ success: false, message: 'Not authenticated' });
-    }
-    next();
-};
+// Middleware: Ensure user is authenticated (using centralized middleware)
 
 // ============================================================================
 // POST /api/work-items/:parentId/subtasks
@@ -510,5 +506,20 @@ router.post('/validate-relationship', protect, asyncHandler(async (req, res) => 
         });
     }
 }));
+
+// ============================================================================
+// WORK LOG ROUTES (Relocated from workLogRoutes.js)
+// ============================================================================
+
+// Timer endpoints
+router.post('/:id/work-logs/start', protect, workLogController.startTimer);
+router.post('/:id/work-logs/stop', protect, workLogController.stopTimer);
+
+// Manual log endpoints
+router.post('/:id/work-logs', protect, workLogController.createManualLog);
+router.get('/:id/work-logs', protect, workLogController.getWorkLogs);
+
+// Time summary for work item
+router.get('/:id/time-summary', protect, workLogController.getTimeSummary);
 
 module.exports = router;

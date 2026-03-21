@@ -27,7 +27,7 @@ const MonthlyInsights = ({ monthsData }) => {
                             value={capacityData.averageVelocity}
                             suffix="points/month"
                             prefix={<span className="velocity-badge">📊</span>}
-                            valueStyle={{ color: '#1890ff' }}
+                            styles={{ content: { color: '#1890ff' } }}
                         />
                     </Col>
                     <Col xs={24} sm={12} md={6}>
@@ -36,7 +36,7 @@ const MonthlyInsights = ({ monthsData }) => {
                             value={velocities[velocities.length - 1]}
                             suffix="points"
                             prefix={velocityTrend_direction === 'up' ? <ArrowUpOutlined style={{ color: '#52c41a' }} /> : <ArrowDownOutlined style={{ color: '#ff4d4f' }} />}
-                            valueStyle={{ color: velocityTrend_direction === 'up' ? '#52c41a' : '#ff4d4f' }}
+                            styles={{ content: { color: velocityTrend_direction === 'up' ? '#52c41a' : '#ff4d4f' } }}
                         />
                     </Col>
                     <Col xs={24} sm={12} md={6}>
@@ -44,7 +44,7 @@ const MonthlyInsights = ({ monthsData }) => {
                             title="Estimated Burndown"
                             value="4 months"
                             prefix="⏱️"
-                            valueStyle={{ color: '#faad14' }}
+                            styles={{ content: { color: '#faad14' } }}
                         />
                     </Col>
                     <Col xs={24} sm={12} md={6}>
@@ -53,7 +53,7 @@ const MonthlyInsights = ({ monthsData }) => {
                             value="85%"
                             suffix="%"
                             prefix="✅"
-                            valueStyle={{ color: '#52c41a' }}
+                            styles={{ content: { color: '#52c41a' } }}
                         />
                     </Col>
                 </Row>
@@ -124,7 +124,7 @@ const MonthlyInsights = ({ monthsData }) => {
             </Card>
 
             {/* Quick Tips */}
-            <Card className="insights-card tips-card" bodyStyle={{ padding: '16px 20px' }} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <Card className="insights-card tips-card" styles={{ body: { padding: '16px 20px' } }} style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                     <span style={{ fontSize: 16 }}>✨</span>
                     <strong style={{ color: '#0f172a', fontSize: 14 }}>AI Insights</strong>

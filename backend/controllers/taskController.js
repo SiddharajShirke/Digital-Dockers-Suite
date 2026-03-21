@@ -1,7 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Task = require('../models/Task');
 const User = require('../models/User');
-const Notification = require('../models/Notification');
 const { analyzeTask } = require('../services/openaiService');
 const { createTaskCalendarEvent, updateTaskCalendarEvent, deleteTaskCalendarEvent, refreshAccessToken } = require('../services/googleCalendarService');
 const WorkloadBalancingService = require('../services/workloadBalancingService');
@@ -209,8 +208,6 @@ const getTasks = asyncHandler(async (req, res) => {
     // (Leaders see all, users see theirs, UNLESS they are viewing a specific project board they have access to)
     // For now, if projectId is NOT provided, fallback to "My Tasks" or "Admin View"
     if (!projectId && !sprintId && !epicId) {
-        const fullAccessRoles = ['admin', 'project_manager', 'technical_lead', 'marketing_lead']; // Normalized roles
-
         // simple role check (case insensitive mostly safe but strict here)
         const userRole = req.user.role;
 

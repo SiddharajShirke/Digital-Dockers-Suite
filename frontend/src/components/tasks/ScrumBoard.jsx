@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Select, Spin, Empty, Row, Col, Card, Statistic } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -69,26 +69,8 @@ const ScrumBoard = () => {
         }
     }, [sprints, activeSprint]);
 
-    /**
-     * Load sprint tasks and calculate metrics
-     */
-    useEffect(() => {
-        if (selectedSprint && currentProject) {
-            loadSprintTasks();
-        }
-    }, [selectedSprint, currentProject, refreshTrigger]);
-
-    /**
-     * Reload when sprints data changes (when tasks are created/updated)
-     */
-    useEffect(() => {
-        if (selectedSprint && sprints.length > 0) {
-            // Auto-reload tasks when sprint data updates
-            loadSprintTasks();
-        }
-    }, [sprints]);
-
-    const loadSprintTasks = async () => {
+    const loadSprintTasks = useCallback(async () => {
+        if (!selectedSprint) return;
         setLoading(true);
         try {
             // Fetch tasks for the selected sprint
@@ -128,12 +110,32 @@ const ScrumBoard = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedSprint]);
+
+    /**
+     * Load sprint tasks and calculate metrics
+     */
+    useEffect(() => {
+        if (selectedSprint && currentProject) {
+            loadSprintTasks();
+        }
+    }, [selectedSprint, currentProject, refreshTrigger, loadSprintTasks]);
+
+    /**
+     * Reload when sprints data changes (when tasks are created/updated)
+     */
+    useEffect(() => {
+        if (selectedSprint && sprints.length > 0) {
+            // Auto-reload tasks when sprint data updates
+            loadSprintTasks();
+        }
+    }, [sprints, selectedSprint, loadSprintTasks]);
+
 
     /**
      * Handle task drag and drop
      */
-    const handleDragEnd = async (result) => {
+    const handleDragEnd = useCallback(async (result) => {
         const { source, destination, draggableId } = result;
 
         // No-op if dropped outside valid area
@@ -151,9 +153,9 @@ const ScrumBoard = () => {
 
         // Optimistic UI update
         const taskToMove = [
-            ...tasks.TODO,
-            ...tasks.IN_PROGRESS,
-            ...tasks.DONE,
+            ...(tasks.TODO || []),
+            ...(tasks.IN_PROGRESS || []),
+            ...(tasks.DONE || []),
         ].find(t => t._id === taskId);
 
         if (taskToMove) {
@@ -179,7 +181,7 @@ const ScrumBoard = () => {
                 loadSprintTasks();
             }
         }
-    };
+    }, [tasks, loadSprintTasks]);
 
     /**
      * Get selected sprint details
@@ -237,14 +239,14 @@ const ScrumBoard = () => {
                             <Statistic
                                 title="To Do"
                                 value={sprintMetrics.todo}
-                                valueStyle={{ color: isDark ? '#8b949e' : '#626f86' }}
+                                styles={{ content: { color: isDark ? '#8b949e' : '#626f86' } }}
                             />
                         </Col>
                         <Col xs={24} sm={12} md={6}>
                             <Statistic
                                 title="In Progress"
                                 value={sprintMetrics.inProgress}
-                                valueStyle={{ color: isDark ? '#58a6ff' : '#0052cc' }}
+                                styles={{ content: { color: isDark ? '#58a6ff' : '#0052cc' } }}
                             />
                         </Col>
                         <Col xs={24} sm={12} md={6}>
@@ -252,7 +254,7 @@ const ScrumBoard = () => {
                                 title="Completed"
                                 value={sprintMetrics.completed}
                                 suffix={`/ ${sprintMetrics.total}`}
-                                valueStyle={{ color: isDark ? '#3fb950' : '#216e4e' }}
+                                styles={{ content: { color: isDark ? '#3fb950' : '#216e4e' } }}
                             />
                         </Col>
                     </Row>

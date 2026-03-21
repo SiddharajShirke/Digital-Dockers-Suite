@@ -338,7 +338,7 @@ function calculateTimeSpent(issue) {
 async function canUserMoveIssue(issueId, userId, newStatus) {
     try {
         const issue = await Task.findById(issueId).populate('assignedTo', '_id');
-        const project = await Issue.populate('project');
+        const project = await issue.populate('project');
 
         // Project lead can always move
         if (project.lead._id.toString() === userId) {

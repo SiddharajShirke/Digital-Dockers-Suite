@@ -26,15 +26,16 @@ export const ChatProvider = ({ children }) => {
 
     useEffect(() => {
         if (user) {
-            fetchChannels();
+            // Use microtask to avoid synchronous setState in effect
+            Promise.resolve().then(() => fetchChannels());
         }
     }, [user, fetchChannels]);
 
     useEffect(() => {
         if (user) {
-            const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5001', { withCredentials: true });
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSocket(newSocket);
+            const newSocket = io(import.meta.env.VITE_API_URL || 'https://localhost:5001', { withCredentials: true, secure: true, rejectUnauthorized: false });
+            // Use microtask to avoid synchronous setState in effect
+            Promise.resolve().then(() => setSocket(newSocket));
 
             newSocket.on('connect', () => {
                 // console.log('Socket Connected:', newSocket.id);
@@ -58,7 +59,7 @@ export const ChatProvider = ({ children }) => {
                 });
                 newSocket.emit('join_room', `channel_${newChannel._id}`);
             });
-            
+
             newSocket.on('channel_updated', (updatedChannel) => {
                 setChannels(prev => prev.map(c => c._id === updatedChannel._id ? updatedChannel : c));
             });

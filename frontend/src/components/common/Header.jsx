@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Layout, Button, Input, Avatar, Dropdown, Space, Typography, theme, Grid, List, Tag, Spin, Empty } from 'antd';
+import { Layout, Button, Input, Avatar, Dropdown, Space, Typography, theme, Grid, Tag, Spin, Empty } from 'antd';
 import {
     SearchOutlined,
     QuestionCircleOutlined,
@@ -153,49 +153,59 @@ const Header = ({ onMenuClick }) => {
                     {searchResults.tasks.length > 0 && (
                         <>
                             <Text type="secondary" style={{ padding: '8px 12px', display: 'block' }}>Issues</Text>
-                            <List
-                                size="small"
-                                dataSource={searchResults.tasks}
-                                renderItem={(item) => (
-                                    <List.Item
+                            <div className="search-results-list">
+                                {searchResults.tasks.map((item) => (
+                                    <div
+                                        key={item._id}
                                         style={{
                                             padding: '8px 12px',
                                             cursor: 'pointer',
-                                            color: isDarkMode ? '#e6edf3' : 'inherit'
+                                            color: isDarkMode ? '#e6edf3' : 'inherit',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            borderRadius: 6,
+                                            transition: 'background 0.2s'
                                         }}
                                         onClick={() => handleSearchResultClick(item, 'task')}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <Space>
                                             <Tag color="blue">{item.key}</Tag>
                                             <Text ellipsis style={{ maxWidth: 250 }}>{item.title}</Text>
                                         </Space>
-                                    </List.Item>
-                                )}
-                            />
+                                    </div>
+                                ))}
+                            </div>
                         </>
                     )}
                     {searchResults.projects.length > 0 && (
                         <>
                             <Text type="secondary" style={{ padding: '8px 12px', display: 'block' }}>Projects</Text>
-                            <List
-                                size="small"
-                                dataSource={searchResults.projects}
-                                renderItem={(item) => (
-                                    <List.Item
+                            <div className="search-results-list">
+                                {searchResults.projects.map((item) => (
+                                    <div
+                                        key={item._id}
                                         style={{
                                             padding: '8px 12px',
                                             cursor: 'pointer',
-                                            color: isDarkMode ? '#e6edf3' : 'inherit'
+                                            color: isDarkMode ? '#e6edf3' : 'inherit',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            borderRadius: 6,
+                                            transition: 'background 0.2s'
                                         }}
                                         onClick={() => handleSearchResultClick(item, 'project')}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         <Space>
                                             <Tag color="purple">{item.key}</Tag>
                                             <Text>{item.name}</Text>
                                         </Space>
-                                    </List.Item>
-                                )}
-                            />
+                                    </div>
+                                ))}
+                            </div>
                         </>
                     )}
                 </>

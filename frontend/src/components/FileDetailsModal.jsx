@@ -21,13 +21,8 @@ const FileDetailsModal = ({ file, isOpen, onClose, onCreateTask }) => {
     const [fileDetails, setFileDetails] = useState(null);
     const [activeTab, setActiveTab] = useState("overview");
 
-    useEffect(() => {
-        if (isOpen && file?._id) {
-            fetchFileDetails();
-        }
-    }, [isOpen, file?._id]);
-
-    const fetchFileDetails = async () => {
+    const fetchFileDetails = React.useCallback(async () => {
+        if (!file?._id) return;
         try {
             setLoading(true);
             const { data } = await api.get(`/tech-debt/files/${file._id}`);
@@ -39,7 +34,13 @@ const FileDetailsModal = ({ file, isOpen, onClose, onCreateTask }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [file]);
+
+    useEffect(() => {
+        if (isOpen && file?._id) {
+            fetchFileDetails();
+        }
+    }, [isOpen, file?._id, fetchFileDetails]);
 
     if (!isOpen || !file) return null;
 
