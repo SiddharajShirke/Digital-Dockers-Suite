@@ -91,7 +91,7 @@ const ReportDashboard = () => {
   useEffect(() => {
     if (!socketRef.current) {
       const socket = io(
-        import.meta.env.VITE_API_URL || "https://localhost:5001",
+        import.meta.env.VITE_API_URL || "https://localhost:5002",
         {
           transports: ["websocket", "polling"],
           withCredentials: true,

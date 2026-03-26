@@ -14,7 +14,7 @@ const useSpaceWebSocket = (spaceId, userId) => {
 
   // Initialize WebSocket connection
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL || 'https://localhost:5001';
+    const wsUrl = import.meta.env.VITE_WS_URL || 'https://localhost:5002';
 
     const newSocket = io(wsUrl, {
       withCredentials: true,

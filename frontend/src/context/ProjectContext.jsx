@@ -43,8 +43,10 @@ export const ProjectProvider = ({ children }) => {
                 // Default to first project or saved pref
                 setCurrentProject(data[0]);
             }
+            return data; // Return for callers that need the fresh list
         } catch (error) {
             console.error("Failed to load projects", error);
+            return [];
         } finally {
             setLoading(false);
         }
@@ -61,8 +63,22 @@ export const ProjectProvider = ({ children }) => {
         }
     };
 
-    const switchProject = (projectId) => {
-        const proj = projects.find(p => p._id === projectId);
+    const switchProject = async (projectId) => {
+        // First try to find in current projects list
+        let proj = projects.find(p => p._id === projectId);
+        if (!proj) {
+            // Project not in list yet (likely just created) — fetch directly from API
+            try {
+                const freshProject = await projectService.getProjectById(projectId);
+                if (freshProject) {
+                    proj = freshProject;
+                    // Also add it to the projects list
+                    setProjects(prev => [...prev, freshProject]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch project by ID:", err);
+            }
+        }
         if (proj) setCurrentProject(proj);
     };
 
@@ -72,7 +88,7 @@ export const ProjectProvider = ({ children }) => {
 
     // Refresh projects list (after creating a new project)
     const refreshProjects = async () => {
-        await loadProjects();
+        return await loadProjects();
     };
 
     return (
