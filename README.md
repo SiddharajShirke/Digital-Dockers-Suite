@@ -35,6 +35,7 @@
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Deep Dive & Architecture](#-deep-dive--architecture)
 - [Key Features](#-key-features)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
@@ -56,6 +57,12 @@ Built with a MERN-like stack (MongoDB, Express, React, Node.js) and enhanced wit
 
 ---
 
+## 🧠 Deep Dive & Architecture
+
+For a comprehensive end-to-end breakdown of the project—including Problem Statements, Implementation Methodology, and Technical Visualizations (System Architecture, User Flow, and Sequence Diagrams)—please see the [UNDERSTANDING.md](./UNDERSTANDING.md) document.
+
+---
+
 ## ✨ Key Features
 
 ### 📊 Project Management
@@ -73,6 +80,7 @@ Built with a MERN-like stack (MongoDB, Express, React, Node.js) and enhanced wit
 |---|---|
 | **Codebase MRI** | Deep-scan any GitHub repo for tech debt — complexity hotspots, churn analysis, dependency risks, and code smells visualized via heatmaps and scatter plots |
 | **Gatekeeper Stream** | AI-powered pull request review feed with automated code quality analysis |
+| **AI Project Architect** | Upload employee CVs to auto-generate sprints, assign subtasks, and intelligently manage emergency re-allocations |
 | **AI Chatbot** | Context-aware assistant powered by Gemini AI for project queries |
 | **Smart Reassignment** | AI-driven workload balancing and task reassignment recommendations |
 | **AI Insight Banners** | Personalized "For You" suggestions based on project activity |
