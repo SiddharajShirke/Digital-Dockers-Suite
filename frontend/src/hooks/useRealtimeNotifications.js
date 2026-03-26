@@ -30,7 +30,7 @@ export const useRealtimeNotifications = (token) => {
     }
 
     try {
-      const socket = io(import.meta.env.VITE_API_URL || 'https://localhost:5001', {
+      const socket = io(import.meta.env.VITE_API_URL || 'https://localhost:5002', {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
@@ -159,7 +159,7 @@ export const useRealtimeNotifications = (token) => {
 
     // Also make API call for persistence
     axios.put(
-      `${import.meta.env.VITE_API_URL || 'https://localhost:5001'}/api/notifications/${notificationId}/read`,
+      `${import.meta.env.VITE_API_URL || 'https://localhost:5002'}/api/notifications/${notificationId}/read`,
       {},
       { withCredentials: true }
     ).catch(err => console.error('[Notification] Error marking as read:', err));
@@ -174,7 +174,7 @@ export const useRealtimeNotifications = (token) => {
     }
 
     axios.put(
-      `${import.meta.env.VITE_API_URL || 'https://localhost:5001'}/api/notifications/read/all`,
+      `${import.meta.env.VITE_API_URL || 'https://localhost:5002'}/api/notifications/read/all`,
       {},
       { withCredentials: true }
     ).catch(err => console.error('[Notification] Error marking all as read:', err));
@@ -189,7 +189,7 @@ export const useRealtimeNotifications = (token) => {
     }
 
     axios.put(
-      `${import.meta.env.VITE_API_URL || 'https://localhost:5001'}/api/notifications/${notificationId}/archive`,
+      `${import.meta.env.VITE_API_URL || 'https://localhost:5002'}/api/notifications/${notificationId}/archive`,
       {},
       { withCredentials: true }
     ).catch(err => console.error('[Notification] Error archiving:', err));
@@ -201,7 +201,7 @@ export const useRealtimeNotifications = (token) => {
   const fetchNotifications = useCallback(async (page = 1, limit = 10) => {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'https://localhost:5001'}/api/notifications`,
+        `${import.meta.env.VITE_API_URL || 'https://localhost:5002'}/api/notifications`,
         {
           params: { page, limit },
           withCredentials: true

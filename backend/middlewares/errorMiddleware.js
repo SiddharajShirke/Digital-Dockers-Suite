@@ -1,5 +1,10 @@
 const errorHandler = (err, req, res, _next) => {
-    const statusCode = res.statusCode ? res.statusCode : 500;
+    // In Express, res.statusCode defaults to 200. If it's still 200 on error, it should be 500.
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+
+    console.error('--- API ERROR THROWN ---');
+    console.error(err);
+    console.error('------------------------');
 
     res.status(statusCode);
 

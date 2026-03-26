@@ -20,6 +20,7 @@ import {
     LeftOutlined,
     RightOutlined,
     ClockCircleOutlined,
+    RocketOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -57,6 +58,7 @@ const PAGE_LABELS = {
     '/dashboard/chat': { label: 'Chat', icon: <MessageOutlined /> },
     '/dashboard/wellness': { label: 'Wellness', icon: <HeartOutlined /> },
     '/dashboard/tech-debt': { label: 'Code Health', icon: <SafetyCertificateOutlined /> },
+    '/dashboard/ai-architect': { label: 'AI Architect', icon: <RocketOutlined /> },
 };
 
 // ── Recently Visited section ───────────────────────────────────────────────
@@ -258,6 +260,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
                 { key: '/dashboard/chat', icon: <MessageOutlined />, label: 'Chat' },
                 { key: '/dashboard/organization', icon: <ApartmentOutlined />, label: 'Team' },
                 { key: '/dashboard/wellness', icon: <HeartOutlined />, label: 'Wellness' },
+                { key: '/dashboard/ai-architect', icon: <RocketOutlined />, label: 'AI Architect' },
             ],
         },
         { type: 'divider' },

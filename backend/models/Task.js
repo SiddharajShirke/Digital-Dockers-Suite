@@ -171,37 +171,31 @@ taskSchema.index({ parentTask: 1, status: 1 });
  * 2. Epics cannot have a parent
  * 3. Max nesting depth = 1 (no sub-sub-tasks)
  */
-taskSchema.pre('save', async function(next) {
-    try {
-        // Validation 1: Subtasks must have a parent
-        if (this.issueType === 'subtask' && !this.parentTask) {
-            throw new Error('Subtasks must have a parent work item');
-        }
+taskSchema.pre('save', async function() {
+    // Validation 1: Subtasks must have a parent
+    if (this.issueType === 'subtask' && !this.parentTask) {
+        throw new Error('Subtasks must have a parent work item');
+    }
 
-        // Validation 2: Epics cannot have a parent
-        if (this.issueType === 'epic' && this.parentTask) {
-            throw new Error('Epics cannot be subtasks');
-        }
+    // Validation 2: Epics cannot have a parent
+    if (this.issueType === 'epic' && this.parentTask) {
+        throw new Error('Epics cannot be subtasks');
+    }
 
-        // Validation 3: Non-subtasks with a parent should have issueType = 'subtask'
-        if (this.parentTask && this.issueType !== 'subtask') {
-            this.issueType = 'subtask'; // Auto-correct for consistency
-        }
+    // Validation 3: Non-subtasks with a parent should have issueType = 'subtask'
+    if (this.parentTask && this.issueType !== 'subtask') {
+        this.issueType = 'subtask'; // Auto-correct for consistency
+    }
 
-        // Validation 4: Max nesting depth = 1
-        if (this.parentTask) {
-            const parentTask = await mongoose.model('Task').findById(this.parentTask);
-            if (parentTask && parentTask.parentTask) {
-                throw new Error('Subtasks cannot have subtasks (max nesting depth = 1)');
-            }
-            if (parentTask && parentTask.issueType === 'epic') {
-                throw new Error('Epics cannot be parents of subtasks');
-            }
+    // Validation 4: Max nesting depth = 1
+    if (this.parentTask) {
+        const parentTask = await mongoose.model('Task').findById(this.parentTask);
+        if (parentTask && parentTask.parentTask) {
+            throw new Error('Subtasks cannot have subtasks (max nesting depth = 1)');
         }
-
-        next();
-    } catch (error) {
-        next(error);
+        if (parentTask && parentTask.issueType === 'epic') {
+            throw new Error('Epics cannot be parents of subtasks');
+        }
     }
 });
 

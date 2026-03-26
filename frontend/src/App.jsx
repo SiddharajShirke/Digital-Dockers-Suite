@@ -40,6 +40,7 @@ import Spaces from './components/spaces/Spaces';
 import CalendarWorkPlanner from './components/CalendarWorkPlanner';
 import TeamManagement from './components/admin/TeamManagement';
 import TechDebtPage from './pages/TechDebtPage';
+import AIArchitectPage from './pages/AIArchitectPage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children, roles = [] }) => {
@@ -113,6 +114,7 @@ function App() {
                   <Route path="spaces" element={<Spaces />} />
                   <Route path="work-planner" element={<CalendarWorkPlanner />} />
                   <Route path="tech-debt" element={<TechDebtPage />} />
+                  <Route path="ai-architect" element={<AIArchitectPage />} />
                   <Route path="team-management" element={
                     <ProtectedRoute roles={['admin']}>
                       <TeamManagement />
