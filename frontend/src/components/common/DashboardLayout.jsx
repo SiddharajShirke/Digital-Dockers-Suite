@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Layout, ConfigProvider, theme, Grid } from 'antd';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -16,23 +16,42 @@ const DashboardLayout = () => {
     const screens = useBreakpoint();
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+    const previousViewportRef = useRef(null);
 
     // Responsive breakpoints
     const isMobile = !screens.md; // < 768px
     const isTablet = screens.md && !screens.xl; // 768px - 1199px
     const isDesktop = screens.xl; // >= 1200px
 
-    // Auto-collapse sidebar on tablet
     useEffect(() => {
-        if (isTablet && !desktopCollapsed) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setDesktopCollapsed(true);
-        } else if (isDesktop && desktopCollapsed) {
-            setDesktopCollapsed(false);
-        }
-    }, [isTablet, isDesktop, desktopCollapsed]);
+        const currentViewport = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
 
-    const toggleMobileSidebar = () => setMobileSidebarOpen(!mobileSidebarOpen);
+        if (previousViewportRef.current === null) {
+            previousViewportRef.current = currentViewport;
+            return;
+        }
+
+        if (previousViewportRef.current !== currentViewport && !isMobile) {
+            setDesktopCollapsed(isTablet);
+        }
+
+        previousViewportRef.current = currentViewport;
+    }, [isMobile, isTablet]);
+
+    const handleSidebarToggle = () => {
+        if (isMobile) {
+            setMobileSidebarOpen((prevOpen) => !prevOpen);
+            return;
+        }
+
+        setDesktopCollapsed((prevCollapsed) => !prevCollapsed);
+    };
+
+    useEffect(() => {
+        if (!isMobile && mobileSidebarOpen) {
+            setMobileSidebarOpen(false);
+        }
+    }, [isMobile, mobileSidebarOpen]);
 
     // Calculate content margin based on screen size and sidebar state
     const getContentMargin = () => {
@@ -72,7 +91,7 @@ const DashboardLayout = () => {
             }}
         >
             <Layout style={{ minHeight: '100vh' }}>
-                <Header onMenuClick={toggleMobileSidebar} />
+                <Header onMenuClick={handleSidebarToggle} />
                 <Layout style={{ marginTop: 60 }}>
                     <Sidebar
                         mobileOpen={mobileSidebarOpen}

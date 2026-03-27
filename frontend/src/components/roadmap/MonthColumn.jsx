@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, Progress, Typography, Divider, Badge } from 'antd';
-import { InfoCircleOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Card, Progress, Typography, Divider } from 'antd';
+import { BulbOutlined, WarningOutlined } from '@ant-design/icons';
 import SprintCard from './SprintCard';
 
 const { Title, Text } = Typography;
@@ -53,15 +53,16 @@ const MonthColumn = ({ monthData, aiInsight }) => {
     const plannedSprints = allSprints.filter(s => 
         !completedSprints.includes(s) && !carriedOverSprints.includes(s)
     );
+    const totalSprints = allSprints.length;
 
     return (
         <Card className="month-column-card" style={{ borderTop: `4px solid ${progressColor}` }}>
-            {/* Header */}
             <div className="month-header">
+                <div className="month-kicker">Monthly execution snapshot</div>
                 <div className="month-title-row">
                     <Title level={4} style={{ margin: 0 }}>{month}</Title>
                     <div className="month-badge" style={{ backgroundColor: progressColor }}>
-                        {projects.length}
+                        {projects.length} Projects
                     </div>
                 </div>
                 
@@ -74,7 +75,7 @@ const MonthColumn = ({ monthData, aiInsight }) => {
 
                 <div className="month-points-info">
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                        {completedPoints} / {totalPointsPlanned} Points
+                        {completedPoints} / {totalPointsPlanned} story points delivered
                     </Text>
                 </div>
 
@@ -84,11 +85,29 @@ const MonthColumn = ({ monthData, aiInsight }) => {
                     strokeColor={progressColor}
                     className="month-progress-bar" 
                 />
+
+                <div className="month-stats-grid">
+                    <div className="month-stat-tile">
+                        <span className="month-stat-label">Projects</span>
+                        <span className="month-stat-value">{projects.length}</span>
+                    </div>
+                    <div className="month-stat-tile">
+                        <span className="month-stat-label">Sprints</span>
+                        <span className="month-stat-value">{totalSprints}</span>
+                    </div>
+                    <div className="month-stat-tile">
+                        <span className="month-stat-label">Completed</span>
+                        <span className="month-stat-value">{completedPoints} pts</span>
+                    </div>
+                </div>
             </div>
 
-            {/* AI Insight Box (if provided, match by month name or fallback) */}
             {aiInsight && (
                 <div className="month-insight-box">
+                    <div className="month-insight-title">
+                        <BulbOutlined />
+                        <span>AI insight</span>
+                    </div>
                     <Text type="secondary" style={{ fontSize: 12 }}>
                         {aiInsight}
                     </Text>
@@ -96,11 +115,10 @@ const MonthColumn = ({ monthData, aiInsight }) => {
             )}
 
             <div className="month-body-scroll">
-                {/* COMPLETED SECTION */}
                 {completedSprints.length > 0 && (
                     <div className="sprint-section">
-                        <Divider orientation="left" className="section-divider">
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#595959' }}>
+                        <Divider titlePlacement="start" className="section-divider">
+                            <span className="section-divider-label section-divider-label-completed">
                                 COMPLETED ({completedSprints.length})
                             </span>
                         </Divider>
@@ -112,11 +130,10 @@ const MonthColumn = ({ monthData, aiInsight }) => {
                     </div>
                 )}
 
-                {/* PLANNED / IN PROGRESS SECTION */}
                 {plannedSprints.length > 0 && (
                     <div className="sprint-section">
-                        <Divider orientation="left" className="section-divider">
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1890ff' }}>
+                        <Divider titlePlacement="start" className="section-divider">
+                            <span className="section-divider-label section-divider-label-active">
                                 PLANNED & ACTIVE ({plannedSprints.length})
                             </span>
                         </Divider>
@@ -128,11 +145,10 @@ const MonthColumn = ({ monthData, aiInsight }) => {
                     </div>
                 )}
 
-                {/* CARRIED OVER SECTION */}
                 {carriedOverSprints.length > 0 && (
                     <div className="sprint-section carry-over-section">
-                        <Divider orientation="left" className="section-divider">
-                            <span style={{ fontSize: 11, fontWeight: 700, color: '#faad14' }}>
+                        <Divider titlePlacement="start" className="section-divider">
+                            <span className="section-divider-label section-divider-label-carry">
                                 <WarningOutlined style={{ marginRight: 4 }} /> CARRIED OVER ({carriedOverSprints.length})
                             </span>
                         </Divider>

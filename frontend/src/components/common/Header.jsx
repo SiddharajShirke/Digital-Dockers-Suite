@@ -237,8 +237,8 @@ const Header = ({ onMenuClick }) => {
                         type="text"
                         icon={<MenuOutlined />}
                         onClick={onMenuClick}
-                        className="flex md:hidden"
-                        style={{ fontSize: 18 }}
+                        aria-label={isMobile ? 'Open navigation menu' : 'Toggle sidebar'}
+                        style={{ fontSize: 18, display: 'inline-flex' }}
                     />
 
                     <div
@@ -248,8 +248,7 @@ const Header = ({ onMenuClick }) => {
                         <AppstoreOutlined style={{ fontSize: 24, color: '#3B82F6' }} />
                         <Text
                             strong
-                            className="hidden md:block"
-                            style={{ fontSize: 18, color: isDarkMode ? '#e6edf3' : '#172B4D' }}
+                            style={{ fontSize: 18, color: isDarkMode ? '#e6edf3' : '#172B4D', display: isMobile ? 'none' : 'block' }}
                         >
                             Digital Dockers
                         </Text>
@@ -268,7 +267,7 @@ const Header = ({ onMenuClick }) => {
 
                 {/* Right: Search & Profile */}
                 <div className="flex items-center gap-2 md:gap-4">
-                    <Button type="text" icon={<SearchOutlined />} className="flex md:hidden" />
+                    <Button type="text" icon={<SearchOutlined />} style={{ display: isMobile ? 'inline-flex' : 'none' }} />
 
                     <div className="hidden md:block">
                         <Dropdown

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button, Select } from 'antd';
+import { Row, Col, Card, Typography, Avatar, Progress, Tag, Spin, Empty, message, Modal, theme, Button, Select } from 'antd';
 import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusOutlined, SettingOutlined, FilterOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
@@ -156,10 +156,10 @@ const ProjectDashboard = () => {
     return (
         <div className="dashboard-container">
             {/* Header */}
-            <div className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+            <div className="dashboard-header dashboard-hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                 <div>
                     <Title level={2} style={{ marginTop: 0, marginBottom: 4 }}>Project Overview: {currentProject?.name || 'No Project Selected'}</Title>
-                    <Typography.Text type="secondary">
+                    <Typography.Text type="secondary" className="dashboard-project-meta">
                         <span>Lead: {currentProject?.lead?.fullName ? currentProject.lead.fullName : (
                             <>Unassigned <a href="#" onClick={(e) => e.preventDefault()} style={{ fontSize: '13px', marginLeft: 4, textDecoration: 'underline' }}>Assign</a></>
                         )}</span>
@@ -169,13 +169,13 @@ const ProjectDashboard = () => {
                         <span>Type: {currentProject?.projectType || 'Scrum'}</span>
                     </Typography.Text>
                 </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ marginRight: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="dashboard-toolbar" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div className="dashboard-scope-picker" style={{ marginRight: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Text strong style={{ fontSize: '12px', color: token.colorTextSecondary }}>View Scope:</Text>
                         <Select
                             value={selectedSprintId}
                             onChange={setSelectedSprintId}
-                            style={{ width: 220 }}
+                            className="dashboard-scope-select"
                             placeholder="Select Sprint"
                             suffixIcon={<FilterOutlined />}
                         >
@@ -195,7 +195,7 @@ const ProjectDashboard = () => {
             {/* For You Section */}
             {forYouData && (
                 <div className="for-you-section" style={{ marginBottom: 32 }}>
-                    <div className="for-you-title">👤 For You</div>
+                    <div className="for-you-title">For You</div>
                     <ForYouSection assignedIssues={forYouData.assignedIssues} />
                 </div>
             )}
@@ -304,7 +304,7 @@ const ProjectDashboard = () => {
                         <Col xs={24} md={12}>
                             <div className="chart-card">
                                 <div className="ant-card-head">
-                                    <Typography.Text strong>🎯 Issue Status</Typography.Text>
+                                    <Typography.Text strong>Issue Status</Typography.Text>
                                 </div>
                                 <div className="ant-card-body">
                                     <div className="chart-container">
@@ -320,7 +320,7 @@ const ProjectDashboard = () => {
                         <Col xs={24} md={12}>
                             <div className="chart-card">
                                 <div className="ant-card-head">
-                                    <Typography.Text strong>� Sprint Velocity</Typography.Text>
+                                    <Typography.Text strong>Sprint Velocity</Typography.Text>
                                 </div>
                                 <div className="ant-card-body">
                                     <div className="chart-container">
@@ -354,6 +354,7 @@ const ProjectDashboard = () => {
                     <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
                         <Col xs={24}>
                             <Card
+                                className="team-workload-card"
                                 title={
                                     <div>
                                         <Typography.Text strong style={{ fontSize: '13px', color: token.colorText, fontWeight: 600 }}>
@@ -539,3 +540,4 @@ const ProjectDashboard = () => {
 };
 
 export default ProjectDashboard;
+

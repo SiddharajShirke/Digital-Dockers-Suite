@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { CssBaseline } from '@mui/material';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { message } from 'antd';
+import { App as AntApp, message } from 'antd';
 
 // Configure Ant Design message notifications
 message.config({
@@ -76,11 +76,12 @@ function App() {
   return (
     <ThemeProvider>
       <CssBaseline />
-      <AuthProvider>
-        <ChatProvider>
-          <ProjectProvider>
-            <Router>
-              <Routes>
+      <AntApp>
+        <AuthProvider>
+          <ChatProvider>
+            <ProjectProvider>
+              <Router>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -124,21 +125,22 @@ function App() {
 
                 {/* Fallback */}
                 <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Router>
-          </ProjectProvider>
-        </ChatProvider>
-      </AuthProvider>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={4000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        draggable
-        theme="colored"
-      />
+                </Routes>
+              </Router>
+            </ProjectProvider>
+          </ChatProvider>
+        </AuthProvider>
+        <ToastContainer
+          position="bottom-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
+      </AntApp>
     </ThemeProvider>
   );
 }

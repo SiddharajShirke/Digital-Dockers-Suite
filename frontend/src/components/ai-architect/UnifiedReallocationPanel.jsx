@@ -239,7 +239,7 @@ const UnifiedReallocationPanel = () => {
                     </Row>
                 </Card>
 
-                <Collapse accordion expandIconPosition="end">
+                <Collapse accordion expandIconPlacement="end">
                     {overview.map(project => {
                         const totalTasks = project.sprints.reduce((s, sp) => s + sp.taskTotal, 0);
                         const doneTasks = project.sprints.reduce((s, sp) => s + sp.taskDone, 0);

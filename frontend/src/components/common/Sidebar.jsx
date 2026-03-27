@@ -21,6 +21,7 @@ import {
     RightOutlined,
     ClockCircleOutlined,
     RocketOutlined,
+    CloseOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -224,7 +225,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
         });
     }, [location.pathname]);
 
-    // Collapsed state for desktop (parent controls, but we can also toggle locally on tablet)
+    // Collapsed state for desktop only
     const isCollapsed = isMobile ? false : collapsed;
 
     const handleNav = (key) => {
@@ -303,61 +304,69 @@ const Sidebar = ({ mobileOpen, setMobileOpen, collapsed, setCollapsed }) => {
     return (
         <>
             {/* Mobile Drawer */}
-            <div className="md:hidden">
+            {isMobile && (
                 <Drawer
                     placement="left"
                     onClose={() => setMobileOpen(false)}
                     open={mobileOpen}
-                    style={{ width: 280 }}
+                    size={280}
                     styles={{
                         body: { padding: 0, background: isDark ? 'var(--surface-primary)' : '#fff', display: 'flex', flexDirection: 'column' },
-                        header: { display: 'none' },
+                        header: {
+                            padding: 0,
+                            minHeight: 0,
+                            borderBottom: 'none',
+                            background: isDark ? 'var(--surface-primary)' : '#fff',
+                        },
                     }}
-                >
-                    <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${isDark ? '#30363d' : '#E5E7EB'}`, marginBottom: 4 }}>
-                        <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? '#a5b4fc' : '#3B82F6', letterSpacing: '-0.3px' }}>
-                            Digital Dockers
-                        </div>
-                        {currentProject && (
-                            <div style={{ fontSize: 12, color: isDark ? '#8b949e' : '#6B7280', marginTop: 2 }}>
-                                {currentProject.name}
+                    title={
+                        <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${isDark ? '#30363d' : '#E5E7EB'}` }}>
+                            <div style={{ fontSize: 17, fontWeight: 700, color: isDark ? '#a5b4fc' : '#3B82F6', letterSpacing: '-0.3px' }}>
+                                Digital Dockers
                             </div>
-                        )}
-                    </div>
+                            {currentProject && (
+                                <div style={{ fontSize: 12, color: isDark ? '#8b949e' : '#6B7280', marginTop: 2 }}>
+                                    {currentProject.name}
+                                </div>
+                            )}
+                        </div>
+                    }
+                    closeIcon={<CloseOutlined />}
+                >
                     {MenuContent}
                 </Drawer>
-            </div>
+            )}
 
             {/* Desktop/Tablet Sider */}
-            <Sider
-                trigger={null}
-                collapsible
-                collapsed={isCollapsed}
-                width={240}
-                collapsedWidth={72}
-                className="hidden md:block"
-                style={{
-                    background: colorBgContainer,
-                    borderRight: `1px solid ${colorBorderSecondary}`,
-                    overflowX: 'hidden',
-                    overflowY: 'auto',
-                    height: 'calc(100vh - 60px)',
-                    position: 'fixed',
-                    left: 0,
-                    top: 60,
-                    zIndex: 900,
-                    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
-                    boxShadow: isDark ? '8px 0 24px rgba(2,6,23,0.45)' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                }}
-            >
-                <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                    {/* Collapse toggle on sidebar edge */}
-                    <CollapseToggle collapsed={collapsed} setCollapsed={setCollapsed} isDark={isDark} />
-                    {MenuContent}
-                </div>
-            </Sider>
+            {!isMobile && (
+                <Sider
+                    trigger={null}
+                    collapsible
+                    collapsed={isCollapsed}
+                    width={240}
+                    collapsedWidth={72}
+                    style={{
+                        background: colorBgContainer,
+                        borderRight: `1px solid ${colorBorderSecondary}`,
+                        overflowX: 'hidden',
+                        overflowY: 'auto',
+                        height: 'calc(100vh - 60px)',
+                        position: 'fixed',
+                        left: 0,
+                        top: 60,
+                        zIndex: 900,
+                        transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
+                        boxShadow: isDark ? '8px 0 24px rgba(2,6,23,0.45)' : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                >
+                    <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                        <CollapseToggle collapsed={collapsed} setCollapsed={setCollapsed} isDark={isDark} />
+                        {MenuContent}
+                    </div>
+                </Sider>
+            )}
         </>
     );
 };

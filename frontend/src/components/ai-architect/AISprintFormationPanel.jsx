@@ -48,7 +48,7 @@ const AISprintFormationPanel = () => {
             projectIdea: values.projectIdea,
             teamType: values.teamType || ['Technical (Full Stack web/mobile)'],
             dateRange: dateRangeStr,
-            intervalsDays: values.intervalsDays || [5, 2, 1]
+            intervalsDays: (values.intervalsDays || ['5', '2', '1']).map((value) => Number(value))
         };
 
         try {
@@ -122,13 +122,13 @@ const AISprintFormationPanel = () => {
     const renderConfigurationForm = () => (
         <Card title={<Space><ThunderboltOutlined style={{ color: '#1890ff' }} /> Design Multi-Phase Project Blueprint</Space>}>
             <Alert
-                message="End-to-End AI Architect"
+                title="End-to-End AI Architect"
                 description="Describe your vision. The AI will generate a complete project lifecycle of multiple sprints, matching skills across all selected disciplines."
                 type="info"
                 showIcon
                 style={{ marginBottom: 24 }}
             />
-            <Form form={form} layout="vertical" onFinish={handleGenerate} initialValues={{ intervalsDays: [5, 2, 1], teamType: ['Technical (Full Stack web/mobile)'] }}>
+            <Form form={form} layout="vertical" onFinish={handleGenerate} initialValues={{ intervalsDays: ['5', '2', '1'], teamType: ['Technical (Full Stack web/mobile)'] }}>
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
@@ -183,10 +183,10 @@ const AISprintFormationPanel = () => {
                             name="intervalsDays"
                         >
                             <Select mode="tags" style={{ width: '100%' }}>
-                                <Option value={7}>7 Days Before</Option>
-                                <Option value={5}>5 Days Before</Option>
-                                <Option value={2}>2 Days Before</Option>
-                                <Option value={1}>1 Day Before</Option>
+                                <Option value="7">7 Days Before</Option>
+                                <Option value="5">5 Days Before</Option>
+                                <Option value="2">2 Days Before</Option>
+                                <Option value="1">1 Day Before</Option>
                             </Select>
                         </Form.Item>
                     </Col>
@@ -221,7 +221,7 @@ const AISprintFormationPanel = () => {
 
                 <Title level={4}><TeamOutlined /> Multi-Phase Execution Plan</Title>
 
-                <Collapse defaultActiveKey={['0']} accordion ghost expandIconPosition="end">
+                <Collapse defaultActiveKey={['0']} accordion ghost expandIconPlacement="end">
                     {draftSprints.map((sprint, idx) => (
                         <Panel 
                             header={
@@ -385,9 +385,9 @@ const AISprintFormationPanel = () => {
                 current={currentStep}
                 style={{ marginBottom: 32 }}
                 items={[
-                    { title: 'A.I. Design', description: 'Lifecycle Architecting' },
-                    { title: 'Human Review', description: 'Phase Confimation' },
-                    { title: 'Liftoff', description: 'Lifecycle Deployed' }
+                    { title: 'A.I. Design', content: 'Lifecycle Architecting' },
+                    { title: 'Human Review', content: 'Phase Confimation' },
+                    { title: 'Liftoff', content: 'Lifecycle Deployed' }
                 ]}
             />
 
