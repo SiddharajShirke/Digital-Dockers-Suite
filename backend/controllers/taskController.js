@@ -250,8 +250,8 @@ const updateTask = asyncHandler(async (req, res) => {
     }
 
     // Check authorization - creator, assignees, admin, or project members can update (for demo)
-    const isCreator = task.assignedBy.toString() === req.user._id.toString();
-    const isAssignee = task.assignedTo.some(id => id.toString() === req.user._id.toString());
+    const isCreator = task.assignedBy ? task.assignedBy.toString() === req.user._id.toString() : false;
+    const isAssignee = (task.assignedTo || []).some(id => id && id.toString() === req.user._id.toString());
     const isAdmin = req.user.role === 'admin';
     const isProjectManager = req.user.role === 'project_manager' || req.user.role === 'technical_lead';
 
@@ -418,7 +418,7 @@ const deleteTask = asyncHandler(async (req, res) => {
     }
 
     // Only creator or admin can delete
-    const isCreator = task.assignedBy.toString() === req.user._id.toString();
+    const isCreator = task.assignedBy ? task.assignedBy.toString() === req.user._id.toString() : false;
     const isAdmin = req.user.role === 'admin';
 
     if (!isCreator && !isAdmin) {

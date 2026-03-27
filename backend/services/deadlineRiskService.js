@@ -172,19 +172,30 @@ Choose the best candidate to re-allocate this task to.`;
      * Executes the approved re-allocation proposal
      */
     static async approveReallocation(taskId, newAssigneeId, managerId) {
+        console.log(`🚀 [DeadlineRisk] Approving re-allocation for Task ${taskId} → Assignee ${newAssigneeId}`);
         const task = await Task.findById(taskId);
         if (!task) throw new Error('Task not found');
 
-        task.assignedTo = [newAssigneeId]; // Replace assignees. Alternatively, could push to array.
-        task.history.push({
-            field: 'assignedTo',
-            newValue: newAssigneeId.toString(),
-            updatedBy: managerId,
-            reason: 'AI Emergency Re-allocation',
-            timestamp: new Date()
-        });
+        try {
+            const newId = new mongoose.Types.ObjectId(newAssigneeId);
+            const oldId = task.assignedTo?.[0];
+            
+            task.assignedTo = [newId];
+            
+            task.history.push({
+                field: 'assignedTo',
+                oldValue: oldId ? oldId.toString() : 'Unassigned',
+                newValue: newId.toString(),
+                updatedBy: managerId,
+                timestamp: new Date()
+            });
 
-        await task.save();
+            await task.save();
+            console.log(`   ✅ [DeadlineRisk] Task ${task.key} reallocated.`);
+        } catch (error) {
+            console.error(`❌ [DeadlineRisk] DB Error:`, error.message);
+            throw error;
+        }
         
         // Populate for return
         await task.populate('assignedTo', 'fullName email avatar');

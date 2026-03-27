@@ -12,7 +12,7 @@ import './TaskBoard.css';
 const { Text, Title } = Typography;
 
 const TaskBoard = () => {
-    const { currentProject, activeSprint } = useProject();
+    const { currentProject, activeSprint, selectedSprintId } = useProject();
     const { mode } = useThemeMode();
     const isDark = mode === 'dark';
     const [selectedIssue, setSelectedIssue] = useState(null);
@@ -28,7 +28,7 @@ const TaskBoard = () => {
 
     const COLUMNS = {
         todo: {
-            title: 'Backlog',
+            title: 'To Do',
             status: 'todo',
             wipLimit: null,
             color: isDark ? '#1c2128' : '#f8f9fa',
@@ -71,20 +71,21 @@ const TaskBoard = () => {
     ];
 
     useEffect(() => {
-        if (currentProject && activeSprint) {
-            loadSprintIssues();
+        if (currentProject) {
+            loadBoardIssues();
         } else {
             setBoardData({});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentProject, activeSprint]);
+    }, [currentProject, selectedSprintId]);
 
-    const loadSprintIssues = async () => {
+    const loadBoardIssues = async () => {
         try {
-            const data = await taskService.getTasks({
-                projectId: currentProject._id,
-                sprintId: activeSprint._id
-            });
+            const params = { projectId: currentProject._id };
+            if (selectedSprintId && selectedSprintId !== 'general') {
+                params.sprintId = selectedSprintId;
+            }
+            const data = await taskService.getTasks(params);
             groupIssuesByStatus(data);
         } catch (error) {
             console.error("Failed to load board issues", error);

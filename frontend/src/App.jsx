@@ -22,7 +22,7 @@ import DashboardHome from './components/dashboards/DashboardHome';
 import NotFoundPage from './pages/NotFoundPage';
 import TasksPage from './components/tasks/TasksPage';
 import BacklogPage from './components/backlog/BacklogPage';
-import RoadmapPage from './components/dashboards/RoadmapPage';
+import RoadmapPage from './pages/RoadmapPage';
 import MeetingsPage from './components/meetings/MeetingsPage';
 import EmailGeneratorPage from './pages/apps/EmailGeneratorPage';
 import PPTGeneratorPage from './pages/apps/PPTGeneratorPage';

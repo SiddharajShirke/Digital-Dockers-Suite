@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button } from 'antd';
-import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Typography, Avatar, Progress, Tag, Spin, Empty, message, Alert, Modal, theme, Button, Select } from 'antd';
+import { RiseOutlined, FireOutlined, CheckCircleOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined, PlusOutlined, SettingOutlined, FilterOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import { Doughnut, Line } from 'react-chartjs-2';
 import { useProject } from '../../context/ProjectContext';
@@ -19,7 +19,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointE
 const { Title, Text } = Typography;
 
 const ProjectDashboard = () => {
-    const { currentProject, sprints } = useProject();
+    const { currentProject, sprints, selectedSprintId, setSelectedSprintId, syncTrigger } = useProject();
     const { token } = theme.useToken();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
@@ -31,17 +31,17 @@ const ProjectDashboard = () => {
 
     useEffect(() => {
         if (currentProject?._id) {
-            loadDashboardData();
+            loadDashboardData(selectedSprintId);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentProject, sprints]);
+    }, [currentProject, sprints, selectedSprintId, syncTrigger]);
 
-    const loadDashboardData = async () => {
+    const loadDashboardData = async (sprintId) => {
         setLoading(true);
         try {
             // Load all data in parallel from database/API
             const [statsData, assignedTasks] = await Promise.all([
-                projectStatsService.getProjectStats(currentProject._id),
+                projectStatsService.getProjectStats(currentProject._id, sprintId),
                 searchService.getAssignedToMe(10)
             ]);
 
@@ -53,12 +53,11 @@ const ProjectDashboard = () => {
             };
             setForYouData(forYouData);
 
-            // Build upcoming tasks data from project stats
-            const upcomingData = {
-                upcomingTasks: (assignedTasks || []).filter(t => t.dueDate && new Date(t.dueDate) > new Date()),
-                unscheduledTasks: (assignedTasks || []).filter(t => !t.dueDate)
-            };
-            setUpcomingData(upcomingData);
+            // Build upcoming tasks data from project stats (team-wide from backend)
+            setUpcomingData({
+                upcomingTasks: statsData.upcomingTasks || [],
+                unscheduledTasks: statsData.unscheduledTasks || []
+            });
 
             // Load burndown if there's an active sprint
         } catch (error) {
@@ -170,7 +169,24 @@ const ProjectDashboard = () => {
                         <span>Type: {currentProject?.projectType || 'Scrum'}</span>
                     </Typography.Text>
                 </div>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ marginRight: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text strong style={{ fontSize: '12px', color: token.colorTextSecondary }}>View Scope:</Text>
+                        <Select
+                            value={selectedSprintId}
+                            onChange={setSelectedSprintId}
+                            style={{ width: 220 }}
+                            placeholder="Select Sprint"
+                            suffixIcon={<FilterOutlined />}
+                        >
+                            <Select.Option value="general">🌐 General (Project Wide)</Select.Option>
+                            {sprints.map(s => (
+                                <Select.Option key={s._id} value={s._id}>
+                                    🏃 {s.name} ({s.status})
+                                </Select.Option>
+                            ))}
+                        </Select>
+                    </div>
                     <Button icon={<SettingOutlined />}>Settings</Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => message.info('Create task opened')}>Create Issue</Button>
                 </div>
@@ -192,7 +208,7 @@ const ProjectDashboard = () => {
                             <FireOutlined />
                         </div>
                         <div className="kpi-content">
-                            <div className="kpi-label">Sprint Progress</div>
+                        <div className="kpi-label">{selectedSprintId === 'general' ? 'Project Completion' : 'Sprint Progress'}</div>
                             <div className="kpi-value" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {syncedProgress}%
                                 <span style={{ fontSize: 13, color: '#10B981', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
@@ -386,56 +402,70 @@ const ProjectDashboard = () => {
                                                     key={idx}
                                                     style={{
                                                         display: 'flex',
+                                                        flexDirection: 'column',
                                                         paddingLeft: 16,
                                                         paddingRight: 16,
                                                         paddingTop: 12,
                                                         paddingBottom: 12,
                                                         borderBottom: idx < (stats.workload || []).length - 1 ? `1px solid ${token.colorBorderSecondary}` : 'none',
-                                                        alignItems: 'center',
-                                                        gap: 24
+                                                        gap: 8
                                                     }}
                                                 >
-                                                    {/* Assignee Column */}
-                                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                        <Avatar
-                                                            size={32}
-                                                            style={{ backgroundColor: '#0052cc', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}
-                                                        >
-                                                            {item.name?.[0]?.toUpperCase()}
-                                                        </Avatar>
-                                                        <Text
-                                                            ellipsis
-                                                            style={{ fontSize: '13px', color: token.colorText, fontWeight: 500 }}
-                                                        >
-                                                            {item.name}
-                                                        </Text>
+                                                    {/* Row: Avatar + Name + Points Bar */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                                                        {/* Assignee Column */}
+                                                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                            <Avatar
+                                                                size={32}
+                                                                style={{ backgroundColor: '#0052cc', fontSize: '12px', fontWeight: 700, flexShrink: 0 }}
+                                                            >
+                                                                {item.name?.[0]?.toUpperCase()}
+                                                            </Avatar>
+                                                            <Text
+                                                                ellipsis
+                                                                style={{ fontSize: '13px', color: token.colorText, fontWeight: 500 }}
+                                                            >
+                                                                {item.name}
+                                                            </Text>
+                                                        </div>
+
+                                                        {/* Work Distribution Column */}
+                                                        <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{
+                                                                    height: '8px',
+                                                                    backgroundColor: '#dfe1e6',
+                                                                    borderRadius: '4px',
+                                                                    overflow: 'hidden'
+                                                                }}>
+                                                                    <div style={{
+                                                                        height: '100%',
+                                                                        backgroundColor: '#626f86',
+                                                                        width: `${percentage}%`,
+                                                                        transition: 'width 0.3s ease',
+                                                                        borderRadius: '4px'
+                                                                    }}></div>
+                                                                </div>
+                                                            </div>
+                                                            <Text
+                                                                strong
+                                                                style={{ fontSize: '12px', color: token.colorText, minWidth: 60, textAlign: 'right', flexShrink: 0 }}
+                                                            >
+                                                                {item.points || 0} of {maxPoints || 0} pts ({Math.round(percentage)}%)
+                                                            </Text>
+                                                        </div>
                                                     </div>
 
-                                                    {/* Work Distribution Column */}
-                                                    <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                                            <div style={{
-                                                                height: '8px',
-                                                                backgroundColor: '#dfe1e6',
-                                                                borderRadius: '4px',
-                                                                overflow: 'hidden'
-                                                            }}>
-                                                                <div style={{
-                                                                    height: '100%',
-                                                                    backgroundColor: '#626f86',
-                                                                    width: `${percentage}%`,
-                                                                    transition: 'width 0.3s ease',
-                                                                    borderRadius: '4px'
-                                                                }}></div>
-                                                            </div>
+                                                    {/* Row: Task title chips */}
+                                                    {item.tasks && item.tasks.length > 0 && (
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingLeft: 42 }}>
+                                                            {item.tasks.map((taskTitle, tIdx) => (
+                                                                <Tag key={tIdx} color="blue" style={{ fontSize: 11, margin: 0, borderRadius: 4 }}>
+                                                                    {taskTitle.length > 40 ? taskTitle.slice(0, 37) + '...' : taskTitle}
+                                                                </Tag>
+                                                            ))}
                                                         </div>
-                                                        <Text
-                                                            strong
-                                                            style={{ fontSize: '12px', color: token.colorText, minWidth: 60, textAlign: 'right', flexShrink: 0 }}
-                                                        >
-                                                            {item.points || 0} of {maxPoints || 0} pts ({Math.round(percentage)}%)
-                                                        </Text>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

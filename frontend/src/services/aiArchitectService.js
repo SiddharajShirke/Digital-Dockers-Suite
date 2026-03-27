@@ -86,6 +86,32 @@ const aiArchitectService = {
         return response.data;
     },
 
+    generateSprintReallocation: async (sprintId) => {
+        const response = await api.post('/ai-architect/reallocate/generate', { sprintId });
+        return response.data;
+    },
+
+    applySprintReallocation: async (reallocations) => {
+        const response = await api.post('/ai-architect/reallocate/apply', { reallocations });
+        return response.data;
+    },
+
+    // Unified Reallocation
+    getWorkloadOverview: async () => {
+        const response = await api.get('/ai-architect/reallocate/overview');
+        return response.data;
+    },
+
+    generateUnifiedReallocation: async (projectId, sprintId) => {
+        const response = await api.post('/ai-architect/reallocate/generate', { projectId, sprintId });
+        return response.data;
+    },
+
+    executeUnifiedReallocation: async (reallocations) => {
+        const response = await api.post('/ai-architect/reallocate/execute', { reallocations });
+        return response.data;
+    },
+
     // ========================================================================
     // PHASE 4: REMINDERS & NOTIFICATIONS
     // ========================================================================

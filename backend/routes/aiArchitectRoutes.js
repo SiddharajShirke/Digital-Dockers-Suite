@@ -14,6 +14,9 @@ const {
     getAtRiskTasks,
     generateReallocationProposal,
     approveReallocation,
+    getWorkloadOverview,
+    generateUnifiedReallocation,
+    executeUnifiedReallocation,
     getReminderSettings,
     updateReminderSettings
 } = require('../controllers/aiArchitectController');
@@ -43,6 +46,11 @@ router.delete('/sprint/:sprintId/reject', protect, rejectSprint);
 router.get('/reallocation/risks/:projectId', protect, getAtRiskTasks);
 router.post('/reallocation/propose/:taskId', protect, generateReallocationProposal);
 router.post('/reallocation/approve/:taskId', protect, approveReallocation);
+
+// --- Unified Reallocation ---
+router.get('/reallocate/overview', protect, getWorkloadOverview);
+router.post('/reallocate/generate', protect, generateUnifiedReallocation);
+router.post('/reallocate/execute', protect, executeUnifiedReallocation);
 
 // --- Phase 4: Automated Reminders ---
 router.get('/sprint/:sprintId/reminders', protect, getReminderSettings);
