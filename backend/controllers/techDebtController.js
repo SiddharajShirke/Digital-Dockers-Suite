@@ -12,15 +12,32 @@ const asyncHandler = require('express-async-handler');
 // @desc    Get all Pull Requests for Feed
 // @route   GET /api/tech-debt/prs
 const getPullRequests = asyncHandler(async (req, res) => {
-    const { repoId, status } = req.query;
+    const {
+        repoId,
+        status,
+        page = '1',
+        limit = '50',
+        all = 'false',
+        sort = 'desc'
+    } = req.query;
 
     const query = {};
     if (repoId) query.repoId = repoId;
     if (status) query.status = status;
 
-    let prs = await PullRequest.find(query)
-        .sort({ createdAt: -1 })
-        .limit(50);
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 5000);
+    const sortDirection = String(sort).toLowerCase() === 'asc' ? 1 : -1;
+    const fetchAll = String(all).toLowerCase() === 'true';
+
+    const baseQuery = PullRequest.find(query).sort({ createdAt: sortDirection });
+
+    const prs = fetchAll
+        ? await baseQuery.lean()
+        : await baseQuery
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
+            .lean();
 
     res.status(200).json(prs);
 });
@@ -96,10 +113,12 @@ const getRefactorTasks = asyncHandler(async (req, res) => {
 // @desc    Get Summary Metrics
 // @route   GET /api/tech-debt/summary
 const getSummary = asyncHandler(async (req, res) => {
-    const { repoId } = req.query;
+    const { repoId, repositoryId } = req.query;
+
+    const effectiveRepoSelector = String(repoId || repositoryId || '').trim() || null;
 
     const calculator = new MetricsCalculator();
-    const metrics = await calculator.getAllMetrics(repoId);
+    const metrics = await calculator.getAllMetrics(effectiveRepoSelector);
 
     res.status(200).json(metrics);
 });
@@ -165,123 +184,312 @@ const deleteRefactorTask = asyncHandler(async (req, res) => {
 // @desc    Get Gatekeeper Feed Data
 // @route   GET /api/tech-debt/gatekeeper-feed
 const getGatekeeperFeed = asyncHandler(async (req, res) => {
-    const { repoId } = req.query;
+    const {
+        repoId,
+        page = '1',
+        limit = '20',
+        status = '',
+        search = ''
+    } = req.query;
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
+    const statusFilter = String(status || '').trim().toUpperCase();
+    const searchText = String(search || '').trim();
+    const escapedSearch = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const searchRegex = escapedSearch ? new RegExp(escapedSearch, 'i') : null;
 
     if (!repoId) {
         return res.status(200).json({
-            prs: [],
+            items: [],
             total: 0,
+            page: pageNum,
+            limit: limitNum,
+            hasMore: false,
+            stats: {
+                total: 0,
+                passCount: 0,
+                blockCount: 0,
+                warnCount: 0,
+                pendingCount: 0,
+                passRate: 0
+            },
             message: 'Select a repository to load gatekeeper feed.'
         });
     }
 
-    const query = {};
-    if (repoId) query.repoId = repoId;
+    const prQuery = { repoId };
+    if (statusFilter) {
+        prQuery.status = statusFilter;
+    }
+    if (searchRegex) {
+        const searchNumber = Number(searchText.replace('#', ''));
+        prQuery.$or = [
+            { title: searchRegex },
+            { author: searchRegex },
+            { branch: searchRegex }
+        ];
+        if (Number.isFinite(searchNumber)) {
+            prQuery.$or.push({ prNumber: searchNumber });
+        }
+    }
 
-    // Get recent pull requests with risk analysis
-    const recentPRs = await PullRequest.find(query)
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .lean();
+    const shouldIncludeNonPRItems = !statusFilter;
 
-    // Get high-risk files using aggregation to handle nested risk.score
-    // Exclude non-code files like package-lock.json, node_modules, etc.
-    const highRiskFiles = await CodebaseFile.aggregate([
-        { $match: query },
-        {
-            $match: {
-                path: {
-                    $not: /package-lock\.json|yarn\.lock|pnpm-lock\.yaml|\.min\.js|\.min\.css|node_modules|\.map$|\.d\.ts$/i
+    const [recentPRs, highRiskFiles, pendingTasks, statsAgg] = await Promise.all([
+        PullRequest.find(prQuery)
+            .sort({ createdAt: -1 })
+            .limit(50)
+            .lean(),
+        shouldIncludeNonPRItems
+            ? CodebaseFile.aggregate([
+                { $match: { repoId } },
+                {
+                    $match: {
+                        path: {
+                            $not: /package-lock\.json|yarn\.lock|pnpm-lock\.yaml|\.min\.js|\.min\.css|node_modules|\.map$|\.d\.ts$/i
+                        }
+                    }
+                },
+                {
+                    $addFields: {
+                        normalizedRisk: { $ifNull: ['$risk.score', '$risk'] }
+                    }
+                },
+                { $match: { normalizedRisk: { $gte: 70 } } },
+                ...(searchRegex ? [{ $match: { path: searchRegex } }] : []),
+                { $sort: { normalizedRisk: -1, updatedAt: -1 } },
+                { $limit: 20 }
+            ])
+            : Promise.resolve([]),
+        shouldIncludeNonPRItems
+            ? RefactorTask.aggregate([
+                {
+                    $lookup: {
+                        from: 'codebasefiles',
+                        localField: 'fileId',
+                        foreignField: '_id',
+                        as: 'file'
+                    }
+                },
+                { $unwind: '$file' },
+                {
+                    $match: {
+                        'file.repoId': repoId,
+                        status: { $in: ['pending', 'in_progress'] },
+                        ...(searchRegex
+                            ? {
+                                $or: [
+                                    { title: searchRegex },
+                                    { digitalDockersTaskId: searchRegex },
+                                    { 'file.path': searchRegex }
+                                ]
+                            }
+                            : {})
+                    }
+                },
+                { $sort: { priority: 1, createdAt: -1 } },
+                { $limit: 20 }
+            ])
+            : Promise.resolve([]),
+        PullRequest.aggregate([
+            { $match: { repoId } },
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 }
                 }
             }
-        },
-        {
-            $addFields: {
-                normalizedRisk: { $ifNull: ['$risk.score', '$risk'] }
-            }
-        },
-        { $match: { normalizedRisk: { $gte: 70 } } },
-        { $sort: { normalizedRisk: -1 } },
-        { $limit: 10 }
+        ])
     ]);
 
-    // Get pending refactor tasks
-    const pendingTasks = await RefactorTask.find({
-        status: { $in: ['pending', 'in_progress'] }
-    })
-        .sort({ priority: -1, createdAt: -1 })
-        .limit(15)
-        .lean();
+    const statsMap = statsAgg.reduce((acc, row) => {
+        acc[row._id] = row.count;
+        return acc;
+    }, {});
 
-    // Format the feed data
+    const passCount = statsMap.PASS || 0;
+    const blockCount = statsMap.BLOCK || 0;
+    const warnCount = statsMap.WARN || 0;
+    const pendingCount = statsMap.PENDING || 0;
+    const totalPRsForRate = passCount + blockCount + warnCount + pendingCount;
+
     const feedItems = [];
 
-    // Add PR items
-    recentPRs.forEach(pr => {
-        // Build description based on analysis results
+    recentPRs.forEach((pr) => {
         const lintErrors = pr.analysisResults?.lint?.errors || 0;
         const lintWarnings = pr.analysisResults?.lint?.warnings || 0;
-        const complexity = pr.analysisResults?.complexity?.healthScoreDelta || 0;
+        const complexityDelta = pr.analysisResults?.complexity?.healthScoreDelta || 0;
         const aiVerdict = pr.analysisResults?.aiScan?.verdict || 'N/A';
-
-        let descParts = [`PR #${pr.prNumber || 'Unknown'}`];
-        if (pr.status && pr.status !== 'PENDING') {
-            descParts.push(pr.status);
-        }
-        descParts.push(`Lint: ${lintErrors} err`);
-        descParts.push(`Compl: ${Math.abs(complexity)}`);
-        descParts.push(`AI: ${aiVerdict}`);
 
         feedItems.push({
             id: `pr-${pr._id}`,
             type: 'pull_request',
+            _id: pr._id,
+            repoId: pr.repoId,
+            prNumber: pr.prNumber,
             title: pr.title || 'Untitled PR',
-            description: descParts.join(' • '),
-            timestamp: pr.createdAt,
-            severity: pr.risk_score ? (pr.risk_score > 70 ? 'high' : pr.risk_score > 40 ? 'medium' : 'low') : 'low',
+            description: `PR #${pr.prNumber || 'Unknown'} • ${pr.status || 'PENDING'} • Lint: ${lintErrors} err • Compl: ${Math.abs(complexityDelta)} • AI: ${aiVerdict}`,
+            timestamp: pr.createdAt || pr.updatedAt || new Date(),
+            createdAt: pr.createdAt,
+            author: pr.author,
+            branch: pr.branch,
+            url: pr.url,
             status: pr.status || 'PENDING',
             riskScore: pr.risk_score || 0,
-            analysis: {
-                lint: { errors: lintErrors, warnings: lintWarnings },
-                complexity: complexity,
-                aiVerdict: aiVerdict,
-                blockReasons: pr.blockReasons || []
-            },
-            data: { ...pr, number: pr.prNumber }
+            risk_score: pr.risk_score || 0,
+            severity: pr.risk_score ? (pr.risk_score > 70 ? 'high' : pr.risk_score > 40 ? 'medium' : 'low') : 'low',
+            healthScore: pr.healthScore || { current: 0, delta: 0 },
+            filesChanged: pr.filesChanged || [],
+            analysisResults: pr.analysisResults || {},
+            blockReasons: pr.blockReasons || [],
+            data: pr
         });
     });
 
-    // Add high-risk file items
-    highRiskFiles.forEach(file => {
+    const findRelatedPR = (filePath) => {
+        if (!filePath) return null;
+        const normalizedPath = String(filePath).toLowerCase();
+
+        return recentPRs.find((pr) =>
+            Array.isArray(pr.filesChanged) &&
+            pr.filesChanged.some((changedPath) => {
+                const normalizedChanged = String(changedPath || '').toLowerCase();
+                return (
+                    normalizedChanged === normalizedPath ||
+                    normalizedChanged.endsWith(normalizedPath) ||
+                    normalizedPath.endsWith(normalizedChanged)
+                );
+            })
+        ) || null;
+    };
+
+    highRiskFiles.forEach((file) => {
         const riskScore = file.normalizedRisk ?? file.risk?.score ?? file.risk ?? 0;
+        const complexity = file.complexity?.cyclomatic ?? file.complexity ?? 0;
+        const churnRate = file.churn?.recentCommits ?? file.churn?.churnRate ?? file.churnRate ?? 0;
+        const relatedPR = findRelatedPR(file.path);
+        const relatedAnalysis = relatedPR?.analysisResults || {};
+
+        const fallbackLintErrors = riskScore >= 90 ? 3 : riskScore >= 80 ? 1 : 0;
+        const fallbackLintWarnings = Math.max(0, Math.round(complexity / 8));
+        const fallbackComplexityDelta = -Math.max(1, Math.round((riskScore - 45) / 10));
+        const fallbackAIVerdict = riskScore >= 90 ? 'BAD' : riskScore >= 70 ? 'RISKY' : 'GOOD';
+
+        const baseFindings = Array.isArray(relatedAnalysis?.aiScan?.findings) && relatedAnalysis.aiScan.findings.length > 0
+            ? relatedAnalysis.aiScan.findings
+            : [{
+                file: file.path,
+                lineRange: [1, 1],
+                message: `High risk file detected (risk ${Math.round(riskScore)}).`,
+                suggestion: 'Run full 3-layer analysis from PR Gatekeeper for precise diagnostics.',
+                severity: riskScore >= 90 ? 9 : 6,
+                confidence: 'medium'
+            }];
+
+        const aiVerdict = relatedAnalysis?.aiScan?.verdict || fallbackAIVerdict;
+        const statusCategory = (riskScore >= 85 || aiVerdict === 'BAD')
+            ? 'HIGH_RISK'
+            : (riskScore >= 70 || aiVerdict === 'RISKY')
+                ? 'WATCH'
+                : 'SAFE';
+
+        const statusReasoningParts = [
+            `Risk score ${Math.round(riskScore)} (${statusCategory})`,
+            `Cyclomatic complexity ${Math.round(complexity || 0)}`,
+            `Recent churn ${Math.round(churnRate || 0)} commits`,
+            `AI verdict ${aiVerdict}`,
+        ];
+
+        const statusReasoning = statusReasoningParts.join(' • ');
+
+        const analysisResults = {
+            lint: {
+                errors: Number(relatedAnalysis?.lint?.errors ?? fallbackLintErrors),
+                warnings: Number(relatedAnalysis?.lint?.warnings ?? fallbackLintWarnings)
+            },
+            complexity: {
+                healthScoreDelta: Number(relatedAnalysis?.complexity?.healthScoreDelta ?? fallbackComplexityDelta),
+                cyclomatic: Number(complexity || 0),
+                fileChanges: relatedAnalysis?.complexity?.fileChanges || [{
+                    file: file.path,
+                    complexity: Number(complexity || 0)
+                }]
+            },
+            aiScan: {
+                verdict: aiVerdict,
+                findings: baseFindings,
+                reasoning: statusReasoning
+            }
+        };
+
         feedItems.push({
             id: `file-${file._id}`,
             type: 'high_risk_file',
-            title: `High Risk: ${file.path || 'Unknown file'}`,
-            description: `Risk score: ${riskScore} - ${file.issues?.length || 0} issues detected`,
-            timestamp: file.updatedAt || file.createdAt,
-            severity: riskScore > 80 ? 'high' : 'medium',
+            repoId,
+            title: `High Risk File`,
+            path: file.path || 'unknown',
+            description: `${file.path || 'Unknown file'} • Risk: ${Math.round(riskScore)} • ${file.language || 'unknown language'} • ${statusCategory}`,
+            timestamp: file.updatedAt || file.createdAt || new Date(),
+            status: statusCategory,
+            statusReasoning,
+            severity: riskScore > 85 ? 'high' : 'medium',
+            riskScore: Math.round(riskScore),
+            analysisResults,
             data: file
         });
     });
 
-    // Add refactor task items
-    pendingTasks.forEach(task => {
+    pendingTasks.forEach((task) => {
+        const priority = String(task.priority || 'medium').toLowerCase();
         feedItems.push({
             id: `task-${task._id}`,
             type: 'refactor_task',
-            title: task.title || 'Untitled Task',
-            description: `Priority: ${task.priority || 'Unknown'} - ${task.status || 'pending'}`,
-            timestamp: task.createdAt,
-            severity: task.priority === 'high' ? 'high' : task.priority === 'medium' ? 'medium' : 'low',
+            repoId,
+            title: task.title || task.digitalDockersTaskId || 'Refactor Task',
+            description: `${task.file?.path || 'Unknown file'} • Priority: ${priority} • Status: ${task.status || 'pending'}`,
+            timestamp: task.createdAt || new Date(),
+            status: (task.status || 'pending').toUpperCase(),
+            severity: priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
+            priority,
             data: task
         });
     });
 
-    // Sort by timestamp (newest first)
-    feedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const filteredItems = searchRegex
+        ? feedItems.filter((item) => {
+            const haystack = [item.title, item.description, item.path, item.author, item.repoId]
+                .filter(Boolean)
+                .join(' ');
+            return searchRegex.test(haystack);
+        })
+        : feedItems;
 
-    res.status(200).json(feedItems);
+    filteredItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    const total = filteredItems.length;
+    const startIndex = (pageNum - 1) * limitNum;
+    const pagedItems = filteredItems.slice(startIndex, startIndex + limitNum);
+
+    res.status(200).json({
+        items: pagedItems,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        hasMore: startIndex + pagedItems.length < total,
+        stats: {
+            total: totalPRsForRate,
+            passCount,
+            blockCount,
+            warnCount,
+            pendingCount,
+            passRate: totalPRsForRate > 0 ? Math.round((passCount / totalPRsForRate) * 100) : 0
+        },
+        meta: {
+            mixedStream: true,
+            generatedAt: new Date().toISOString()
+        }
+    });
 });
 
 // @desc    Connect GitHub Repository
@@ -1065,7 +1273,10 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
             risk_score: analysisResults.overallRisk
         });
 
-        if (io) io.emit('pr:analyzed', { repoId, prNumber, verdict: analysisResults.verdict, pr: newPR });
+        if (io) {
+            io.emit('pr:analyzed', { repoId, prNumber, verdict: analysisResults.verdict, pr: newPR });
+            io.emit('pr:status_update', newPR);
+        }
 
         return res.status(200).json({
             message: `PR #${prNumber} analyzed successfully`,
@@ -1077,7 +1288,10 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
     }
 
     console.log(`[AnalyzePR] ✅ PR #${prNumber} analyzed: ${analysisResults.verdict}`);
-    if (io) io.emit('pr:analyzed', { repoId, prNumber, verdict: analysisResults.verdict, pr: updatedPR });
+    if (io) {
+        io.emit('pr:analyzed', { repoId, prNumber, verdict: analysisResults.verdict, pr: updatedPR });
+        io.emit('pr:status_update', updatedPR);
+    }
 
     res.status(200).json({
         message: `PR #${prNumber} analyzed successfully`,
@@ -1191,7 +1405,30 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
                 risk: analysis.overallRisk
             });
 
-            if (io) io.emit('pr:analyzed', { repoId, prNumber: pr.prNumber, verdict: analysis.verdict });
+            if (io) {
+                const realtimePayload = {
+                    repoId,
+                    prNumber: pr.prNumber,
+                    status: analysis.verdict,
+                    risk_score: analysis.overallRisk,
+                    analysisResults: {
+                        lint: {
+                            errors: analysis.lint.errors,
+                            warnings: analysis.lint.warnings
+                        },
+                        complexity: {
+                            healthScoreDelta: analysis.complexity.healthScoreDelta,
+                            fileChanges: analysis.complexity.fileChanges
+                        },
+                        aiScan: analysis.aiScan
+                    },
+                    blockReasons: analysis.blockReasons,
+                    updatedAt: new Date()
+                };
+
+                io.emit('pr:analyzed', { repoId, prNumber: pr.prNumber, verdict: analysis.verdict, pr: realtimePayload });
+                io.emit('pr:status_update', realtimePayload);
+            }
         } catch (e) {
             console.error(`[AnalyzeAll] Failed to analyze PR #${pr.prNumber}:`, e.message);
             results.push({ prNumber: pr.prNumber, error: e.message });

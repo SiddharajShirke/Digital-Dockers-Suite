@@ -7,7 +7,7 @@ const fs = require('fs').promises;
 /**
  * PR Analysis Service
  * Analyzes Pull Request code changes and provides PASS/BLOCK verdicts
- * Uses Gemini AI for semantic code analysis
+ * Uses NVIDIA AI (with fallback support) for semantic code analysis
  */
 class PRAnalysisService {
     constructor() {
@@ -64,7 +64,11 @@ class PRAnalysisService {
                     performance: 100,
                     testing: 50
                 },
-                findings: []
+                findings: [],
+                provider: 'none',
+                model: 'none',
+                fallbackUsed: false,
+                generatedAt: null
             },
             overallRisk: 0,
             verdict: 'PENDING',
@@ -118,16 +122,25 @@ class PRAnalysisService {
                     results.lint.warnings += fileAnalysis.lint.warnings;
                     results.lint.issues.push(...fileAnalysis.lint.issues);
 
-                    // Aggregate complexity
+                    // Aggregate complexity for averages
                     if (fileAnalysis.complexity > 0) {
                         totalComplexity += fileAnalysis.complexity;
                         analyzedFiles++;
-                        
+                    }
+
+                    // Store per-file metrics for dynamic Files tab rendering
+                    if (fileAnalysis.fileMetrics?.analyzed || fileAnalysis.complexity > 0) {
                         results.complexity.fileChanges.push({
                             file: filename,
                             complexity: fileAnalysis.complexity,
                             additions: file.additions || 0,
-                            deletions: file.deletions || 0
+                            deletions: file.deletions || 0,
+                            loc: fileAnalysis.fileMetrics?.loc || 0,
+                            riskScore: fileAnalysis.fileMetrics?.riskScore || 0,
+                            lintErrors: fileAnalysis.fileMetrics?.lintErrors || 0,
+                            lintWarnings: fileAnalysis.fileMetrics?.lintWarnings || 0,
+                            securityIssues: fileAnalysis.fileMetrics?.securityIssues || 0,
+                            codeSmells: fileAnalysis.fileMetrics?.codeSmells || 0
                         });
                     }
 
@@ -143,8 +156,8 @@ class PRAnalysisService {
                 }
             }
 
-            // 3. Run Gemini AI semantic analysis on changed files
-            console.log(`[PRAnalysis] Running Gemini AI semantic analysis...`);
+            // 3. Run semantic analysis (NVIDIA primary)
+            console.log('[PRAnalysis] Running semantic AI analysis...');
             try {
                 // Prepare files for AI analysis (limit to 5 most relevant files)
                 const filesForAI = [];
@@ -176,21 +189,38 @@ class PRAnalysisService {
                     
                     if (aiResult && aiResult.verdict) {
                         results.aiScan.verdict = aiResult.verdict;
+                        results.aiScan.provider = aiResult.provider || 'unknown';
+                        results.aiScan.model = aiResult.model || 'unknown';
+                        results.aiScan.fallbackUsed = Boolean(aiResult.fallbackUsed);
+                        results.aiScan.generatedAt = aiResult.generatedAt || new Date().toISOString();
+
+                        const toPercentScore = (score, fallback = 3) => {
+                            const numeric = Number(score);
+                            if (!Number.isFinite(numeric)) {
+                                return fallback * 20;
+                            }
+                            if (numeric > 5) {
+                                return Math.max(0, Math.min(100, Math.round(numeric)));
+                            }
+                            return Math.max(0, Math.min(100, Math.round(numeric * 20)));
+                        };
                         
                         // Map AI categories (1-5 scale to 0-100)
                         if (aiResult.categories) {
-                            results.aiScan.categories.security = (aiResult.categories.security || 5) * 20;
-                            results.aiScan.categories.correctness = (aiResult.categories.correctness || 5) * 20;
-                            results.aiScan.categories.maintainability = (aiResult.categories.maintainability || 5) * 20;
-                            results.aiScan.categories.performance = (aiResult.categories.performance || 5) * 20;
-                            results.aiScan.categories.testing = (aiResult.categories.testing || 3) * 20;
+                            results.aiScan.categories.security = toPercentScore(aiResult.categories.security, 5);
+                            results.aiScan.categories.correctness = toPercentScore(aiResult.categories.correctness, 5);
+                            results.aiScan.categories.maintainability = toPercentScore(aiResult.categories.maintainability, 5);
+                            results.aiScan.categories.performance = toPercentScore(aiResult.categories.performance, 5);
+                            results.aiScan.categories.testing = toPercentScore(aiResult.categories.testing, 3);
                         }
                         
                         // Add AI findings
                         if (aiResult.findings && Array.isArray(aiResult.findings)) {
                             results.aiScan.findings = aiResult.findings.map(f => ({
                                 file: f.file,
-                                lineRange: f.lineRange || [1, 1],
+                                lineRange: Array.isArray(f.lineRange) && f.lineRange.length >= 2
+                                    ? [Number(f.lineRange[0]) || 1, Number(f.lineRange[1]) || Number(f.lineRange[0]) || 1]
+                                    : [1, 1],
                                 message: f.message,
                                 suggestion: f.suggestion || '',
                                 debtImpact: f.severity > 3 ? 'adds' : 'neutral',
@@ -199,11 +229,11 @@ class PRAnalysisService {
                             }));
                         }
                         
-                        console.log(`[PRAnalysis] Gemini verdict: ${aiResult.verdict}`);
+                        console.log(`[PRAnalysis] AI verdict (${results.aiScan.provider}/${results.aiScan.model}): ${aiResult.verdict}`);
                     }
                 }
             } catch (aiError) {
-                console.error(`[PRAnalysis] Gemini AI analysis failed:`, aiError.message);
+                console.error('[PRAnalysis] Semantic AI analysis failed:', aiError.message);
                 // Continue with pattern-based analysis as fallback
             }
 
@@ -218,7 +248,7 @@ class PRAnalysisService {
             // Calculate security score
             results.security.score = Math.max(0, 100 - (results.security.issues.length * 20));
             
-            // Only update AI scan categories if Gemini didn't provide them (fallback)
+            // Only update AI scan categories if AI did not provide them
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.categories.security = results.security.score;
                 results.aiScan.categories.maintainability = Math.max(0, 100 - (results.codeSmells.count * 5));
@@ -228,12 +258,12 @@ class PRAnalysisService {
             // 5. Calculate overall risk
             results.overallRisk = this.calculateOverallRisk(results);
 
-            // 6. Determine verdict (considering Gemini AI verdict)
+            // 6. Determine verdict (considering semantic AI verdict)
             const verdictResult = this.determineVerdict(results);
             results.verdict = verdictResult.verdict;
             results.blockReasons = verdictResult.blockReasons;
             
-            // Keep Gemini AI verdict if it was set
+            // Keep AI verdict if it was set
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.verdict = this.mapVerdictToAIScan(results.verdict);
             }
@@ -312,7 +342,16 @@ class PRAnalysisService {
             complexity: 0,
             security: { issues: [] },
             codeSmells: [],
-            findings: []
+            findings: [],
+            fileMetrics: {
+                analyzed: false,
+                loc: 0,
+                lintErrors: 0,
+                lintWarnings: 0,
+                securityIssues: 0,
+                codeSmells: 0,
+                riskScore: 0
+            }
         };
 
         try {
@@ -343,6 +382,10 @@ class PRAnalysisService {
 
             if (!content) return analysis;
 
+            const totalLines = content.split('\n').length;
+            analysis.fileMetrics.analyzed = true;
+            analysis.fileMetrics.loc = totalLines;
+
             // Analyze complexity
             if (this.isJavaScriptFile(filename)) {
                 try {
@@ -353,7 +396,7 @@ class PRAnalysisService {
                     if (analysis.complexity > this.thresholds.maxComplexity) {
                         analysis.findings.push({
                             file: filename,
-                            lineRange: [1, content.split('\n').length],
+                            lineRange: [1, totalLines],
                             message: `High cyclomatic complexity: ${analysis.complexity}`,
                             suggestion: 'Consider breaking down this file into smaller functions',
                             debtImpact: 'adds',
@@ -415,6 +458,21 @@ class PRAnalysisService {
                 analysis.lint.warnings += syntaxIssues.warnings;
                 analysis.lint.issues.push(...syntaxIssues.issues);
             }
+
+            analysis.fileMetrics.lintErrors = analysis.lint.errors;
+            analysis.fileMetrics.lintWarnings = analysis.lint.warnings;
+            analysis.fileMetrics.securityIssues = analysis.security.issues.length;
+            analysis.fileMetrics.codeSmells = analysis.codeSmells.length;
+
+            const riskScore = Math.min(
+                100,
+                (analysis.complexity * 2) +
+                (analysis.lint.errors * 12) +
+                (analysis.lint.warnings * 2) +
+                (analysis.security.issues.length * 25) +
+                (analysis.codeSmells.length * 5)
+            );
+            analysis.fileMetrics.riskScore = Math.round(riskScore);
 
             return analysis;
 
@@ -582,9 +640,9 @@ class PRAnalysisService {
             blockReasons.push(`File complexity exceeds limit: ${maxFileComplexity}`);
         }
         
-        // Check Gemini AI verdict - if AI says BAD, it should influence blocking
+        // Check AI verdict - if AI says BAD, it should influence blocking
         if (results.aiScan.verdict === 'BAD') {
-            blockReasons.push(`Gemini AI detected critical issues`);
+            blockReasons.push('Semantic AI detected critical issues');
         }
         
         // Determine verdict
@@ -600,11 +658,11 @@ class PRAnalysisService {
             };
         }
         
-        // Check Gemini AI verdict for warnings
+        // Check AI verdict for warnings
         if (results.aiScan.verdict === 'RISKY') {
             return {
                 verdict: 'WARN',
-                blockReasons: ['Gemini AI detected potential risks in code']
+                blockReasons: ['Semantic AI detected potential risks in code']
             };
         }
         
@@ -640,9 +698,10 @@ class PRAnalysisService {
             parts.push('🚫 Critical issues found - blocking merge.');
         }
         
-        // Gemini AI verdict
+        // AI verdict
         if (results.aiScan.verdict !== 'PENDING') {
-            parts.push(`🤖 Gemini AI: ${results.aiScan.verdict}.`);
+            const providerLabel = results.aiScan.provider || 'ai';
+            parts.push(`AI (${providerLabel}): ${results.aiScan.verdict}.`);
         }
         
         if (results.lint.errors > 0) {

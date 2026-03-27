@@ -46,6 +46,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
         const verdict = pr.analysisResults?.aiScan?.verdict;
         if (verdict === "GOOD") return { status: "pass", icon: FaCheckCircle, color: "text-green-500" };
         if (verdict === "BAD") return { status: "fail", icon: FaTimesCircle, color: "text-red-500" };
+        if (verdict === "RISKY") return { status: "warn", icon: FaExclamationTriangle, color: "text-yellow-500" };
         return { status: "warn", icon: FaExclamationTriangle, color: "text-yellow-500" };
       }
       default:
@@ -53,29 +54,51 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
     }
   };
 
+  const normalizeProviderValue = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized || normalized === "none" || normalized === "unknown" || normalized === "n/a" || normalized === "null") {
+      return null;
+    }
+    return String(value).trim();
+  };
+
+  const semanticVerdictLabel = (verdict) => {
+    const normalized = String(verdict || "").toUpperCase();
+    if (normalized === "GOOD") return "Healthy";
+    if (normalized === "BAD") return "High Risk";
+    if (normalized === "RISKY") return "Needs Review";
+    return "Pending Review";
+  };
+
+  const aiProvider = normalizeProviderValue(pr.analysisResults?.aiScan?.provider);
+  const aiModel = normalizeProviderValue(pr.analysisResults?.aiScan?.model);
+  const aiEngineLabel = aiProvider || "NVIDIA";
+
   const analysisLayers = [
     {
       id: "syntax",
-      name: "Syntax Analysis",
+      name: "Code Quality and Style",
       icon: FaClipboardCheck,
-      description: "ESLint, Prettier, code style checks",
+      description: "Lint, formatting, and style guardrails",
       details: pr.analysisResults?.lint || {},
     },
     {
       id: "complexity",
-      name: "Complexity Analysis",
+      name: "Maintainability Impact",
       icon: FaLayerGroup,
-      description: "Cyclomatic complexity, health score delta",
+      description: "Cyclomatic complexity and health score movement",
       details: pr.analysisResults?.complexity || {},
     },
     {
       id: "semantic",
-      name: "AI Semantic Analysis",
+      name: "AI Risk Review",
       icon: FaBrain,
-      description: "GPT-4o code review, pattern detection",
+      description: "Semantic review for logic and hidden implementation risk",
       details: pr.analysisResults?.aiScan || {},
     },
   ];
+
+  const fileChangeMetrics = pr.analysisResults?.complexity?.fileChanges || [];
 
   const tabs = [
     { id: "layers", label: "Analysis Layers", icon: FaLayerGroup },
@@ -201,7 +224,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                 className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"
                   } mb-4`}
               >
-                The Gatekeeper runs a 3-layer analysis pipeline on every PR:
+                Gatekeeper evaluates each PR across three checkpoints before merge:
               </p>
 
               {analysisLayers.map((layer, idx) => {
@@ -256,7 +279,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                   : "bg-red-100 text-red-700"
                                 }`}
                             >
-                              {layer.details.errors || 0} errors
+                                Blocking errors: {layer.details.errors || 0}
                             </span>
                             <span
                               className={`px-3 py-1 rounded-full ${isDarkMode
@@ -264,7 +287,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                   : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                              {layer.details.warnings || 0} warnings
+                                Warnings to review: {layer.details.warnings || 0}
                             </span>
                           </div>
                         )}
@@ -277,7 +300,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                   : "bg-red-100 text-red-700"
                                 }`}
                             >
-                              Health Delta:{" "}
+                                Health impact:{" "}
                               {(layer.details.healthScoreDelta || 0) >= 0 ? "+" : ""}
                               {layer.details.healthScoreDelta || 0}
                             </span>
@@ -287,7 +310,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                   : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                              {layer.details.fileChanges?.length || 0} files analyzed
+                                Files assessed: {layer.details.fileChanges?.length || 0}
                             </span>
                           </div>
                         )}
@@ -302,7 +325,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                     : "bg-yellow-100 text-yellow-700"
                                 }`}
                             >
-                              Verdict: {layer.details.verdict || "PENDING"}
+                              AI verdict: {semanticVerdictLabel(layer.details.verdict)}
                             </span>
                             <span
                               className={`px-3 py-1 rounded-full ${isDarkMode
@@ -310,8 +333,17 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                                   : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                              {layer.details.findings?.length || 0} findings
+                                Insights found: {layer.details.findings?.length || 0}
                             </span>
+                              <span
+                                className={`px-3 py-1 rounded-full ${isDarkMode
+                                    ? "bg-slate-600 text-indigo-200"
+                                    : "bg-indigo-100 text-indigo-700"
+                                  }`}
+                              >
+                                Engine: {aiEngineLabel}
+                                {aiModel ? ` / ${aiModel}` : ""}
+                              </span>
                           </div>
                         )}
                       </div>
@@ -331,10 +363,10 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
               >
                 <p className="font-semibold text-lg">
                   {pr.status === "PASS"
-                    ? "✅ All checks passed - PR approved"
+                    ? "Merge-ready: all quality gates passed"
                     : pr.status === "BLOCK"
-                      ? "❌ Blocked - Fix issues before merging"
-                      : "⚠️ Review required"}
+                      ? "Blocked: address critical issues before merging"
+                      : "Attention required: review warnings before merge"}
                 </p>
               </div>
             </div>
@@ -343,6 +375,20 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
           {/* Findings Tab */}
           {activeTab === "findings" && (
             <div className="space-y-4">
+              {(pr.analysisResults?.aiScan?.provider || pr.analysisResults?.aiScan?.model) && (
+                <div
+                  className={`p-3 rounded-lg border text-sm ${isDarkMode
+                    ? "bg-slate-700/40 border-slate-600 text-gray-300"
+                    : "bg-indigo-50 border-indigo-200 text-indigo-800"
+                    }`}
+                >
+                  <span className="font-semibold">AI Review Engine:</span>{" "}
+                  {aiEngineLabel}
+                  {aiModel ? ` / ${aiModel}` : ""}
+                  {pr.analysisResults?.aiScan?.fallbackUsed ? " (fallback used)" : ""}
+                </div>
+              )}
+
               {pr.analysisResults?.aiScan?.findings?.length > 0 ? (
                 pr.analysisResults.aiScan.findings.map((finding, idx) => (
                   <div
@@ -391,7 +437,9 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                           >
                             <FaCode className="inline mr-1" />
                             {finding.file}
-                            {finding.line && `:${finding.line}`}
+                            {Array.isArray(finding.lineRange) && finding.lineRange.length >= 2
+                              ? `:${finding.lineRange[0]}-${finding.lineRange[1]}`
+                              : ""}
                           </p>
                         )}
                       </div>
@@ -406,7 +454,7 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                     size={48}
                   />
                   <p className={isDarkMode ? "text-gray-400" : "text-gray-500"}>
-                    No issues found by AI analysis
+                    No major semantic risks were flagged by AI for this PR.
                   </p>
                 </div>
               )}
@@ -417,31 +465,67 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
           {activeTab === "files" && (
             <div>
               <h3 className="font-semibold mb-3">
-                Files Changed ({pr.filesChanged?.length || 0})
+                Changed Files ({fileChangeMetrics.length || pr.filesChanged?.length || 0})
               </h3>
               <div className="space-y-2">
-                {pr.filesChanged?.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition ${isDarkMode
+                {fileChangeMetrics.length > 0
+                  ? fileChangeMetrics.map((file, idx) => (
+                    <div
+                      key={`${file.file || "file"}-${idx}`}
+                      className={`p-3 rounded-lg transition ${isDarkMode
                         ? "bg-slate-700/50 hover:bg-slate-700"
                         : "bg-gray-50 hover:bg-gray-100"
-                      }`}
-                  >
-                    <FaCode
-                      className={isDarkMode ? "text-gray-500" : "text-gray-400"}
-                    />
-                    <span className="font-mono text-sm flex-1 truncate">
-                      {file}
-                    </span>
-                  </div>
-                ))}
-                {(!pr.filesChanged || pr.filesChanged.length === 0) && (
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <FaCode
+                          className={isDarkMode ? "text-gray-500" : "text-gray-400"}
+                        />
+                        <span className="font-mono text-sm flex-1 truncate">
+                          {file.file}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className={`px-2 py-1 rounded ${isDarkMode ? "bg-slate-600 text-gray-200" : "bg-gray-200 text-gray-800"}`}>
+                          Complexity Score: {file.complexity || 0}
+                        </span>
+                        <span className={`px-2 py-1 rounded ${(file.riskScore || 0) > 70 ? "bg-red-100 text-red-700" : (file.riskScore || 0) > 40 ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>
+                          Risk Score: {file.riskScore || 0}
+                        </span>
+                        <span className={`px-2 py-1 rounded ${isDarkMode ? "bg-slate-600 text-gray-200" : "bg-gray-200 text-gray-800"}`}>
+                          Lines of Code: {file.loc || 0}
+                        </span>
+                        <span className={`px-2 py-1 rounded ${isDarkMode ? "bg-slate-600 text-gray-200" : "bg-gray-200 text-gray-800"}`}>
+                          Diff: +{file.additions || 0} / -{file.deletions || 0}
+                        </span>
+                        <span className={`px-2 py-1 rounded ${(file.lintErrors || 0) > 0 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                          Lint Signals: {file.lintErrors || 0} errors, {file.lintWarnings || 0} warnings
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                  : pr.filesChanged?.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-3 p-3 rounded-lg transition ${isDarkMode
+                        ? "bg-slate-700/50 hover:bg-slate-700"
+                        : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                    >
+                      <FaCode
+                        className={isDarkMode ? "text-gray-500" : "text-gray-400"}
+                      />
+                      <span className="font-mono text-sm flex-1 truncate">
+                        {file}
+                      </span>
+                    </div>
+                  ))}
+                {fileChangeMetrics.length === 0 && (!pr.filesChanged || pr.filesChanged.length === 0) && (
                   <p
                     className={`text-center py-8 ${isDarkMode ? "text-gray-500" : "text-gray-400"
                       }`}
                   >
-                    No files changed
+                    No file-level metrics are available for this PR yet.
                   </p>
                 )}
               </div>

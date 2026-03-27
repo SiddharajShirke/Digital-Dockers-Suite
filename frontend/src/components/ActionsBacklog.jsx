@@ -143,7 +143,7 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
 
   return (
     <div
-      className={`shadow rounded-lg p-6 transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
+      className={`relative z-0 shadow rounded-lg p-6 transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
     >
       {/* Header with Filters */}
       <div className="flex justify-between items-center mb-4">

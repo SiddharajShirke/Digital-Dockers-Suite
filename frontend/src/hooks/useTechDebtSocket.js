@@ -12,6 +12,7 @@ export const useTechDebtSocket = (options = {}) => {
         onAnalysisComplete,
         onAnalysisError,
         onScanStatus,
+        onFeedUpdate,
         autoConnect = true
     } = options;
 
@@ -54,6 +55,14 @@ export const useTechDebtSocket = (options = {}) => {
             console.log('📦 [TechDebtSocket] PR Update:', data);
             setLastEvent({ type: 'pr:status_update', data, timestamp: new Date() });
             onPRUpdate?.(data);
+            onFeedUpdate?.(data);
+        });
+
+        socketRef.current.on('pr:analyzed', (data) => {
+            console.log('✅ [TechDebtSocket] PR Analyzed:', data);
+            setLastEvent({ type: 'pr:analyzed', data, timestamp: new Date() });
+            onPRUpdate?.(data?.pr || data);
+            onFeedUpdate?.(data);
         });
 
         // Analysis progress updates
@@ -68,6 +77,7 @@ export const useTechDebtSocket = (options = {}) => {
             console.log('✅ [TechDebtSocket] Analysis Complete:', data);
             setLastEvent({ type: 'analysis:complete', data, timestamp: new Date() });
             onAnalysisComplete?.(data);
+            onFeedUpdate?.(data);
         });
 
         // Analysis error
@@ -82,6 +92,7 @@ export const useTechDebtSocket = (options = {}) => {
             console.log('📡 [TechDebtSocket] Scan Status:', data);
             setLastEvent({ type: 'scan:status', data, timestamp: new Date() });
             onScanStatus?.(data);
+            onFeedUpdate?.(data);
         });
 
         socketRef.current.on('scan:error', (data) => {
@@ -94,14 +105,22 @@ export const useTechDebtSocket = (options = {}) => {
         socketRef.current.on('task:created', (data) => {
             console.log('📝 [TechDebtSocket] Task Created:', data);
             setLastEvent({ type: 'task:created', data, timestamp: new Date() });
+            onFeedUpdate?.(data);
         });
 
         socketRef.current.on('task:status_changed', (data) => {
             console.log('🔄 [TechDebtSocket] Task Status Changed:', data);
             setLastEvent({ type: 'task:status_changed', data, timestamp: new Date() });
+            onFeedUpdate?.(data);
         });
 
-    }, [onPRUpdate, onAnalysisProgress, onAnalysisComplete, onAnalysisError, onScanStatus]);
+        socketRef.current.on('prs:bulk-analyzed', (data) => {
+            console.log('📚 [TechDebtSocket] PRs Bulk Analyzed:', data);
+            setLastEvent({ type: 'prs:bulk-analyzed', data, timestamp: new Date() });
+            onFeedUpdate?.(data);
+        });
+
+    }, [onPRUpdate, onAnalysisProgress, onAnalysisComplete, onAnalysisError, onScanStatus, onFeedUpdate]);
 
     const disconnect = useCallback(() => {
         if (socketRef.current) {

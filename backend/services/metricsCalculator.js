@@ -1,14 +1,63 @@
 const CodebaseFile = require('../models/CodebaseFile');
 const PullRequest = require('../models/PullRequest');
 const MetricsHistory = require('../models/MetricsHistory');
+const Repository = require('../models/Repository');
 
 class MetricsCalculator {
+    escapeRegex(value = '') {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    isObjectIdLike(value = '') {
+        return /^[a-fA-F0-9]{24}$/.test(String(value));
+    }
+
+    normalizeRepoFullName(value = '') {
+        return decodeURIComponent(String(value || '')).trim().replace(/\.git$/i, '');
+    }
+
+    async resolveRepoFullName(repoId = null) {
+        if (!repoId) return null;
+
+        const normalizedInput = this.normalizeRepoFullName(repoId);
+        if (!normalizedInput) return null;
+
+        // If repoId is a repository document id, resolve to fullName
+        if (this.isObjectIdLike(normalizedInput)) {
+            const repositoryDoc = await Repository.findById(normalizedInput).select('fullName').lean();
+            if (repositoryDoc?.fullName) {
+                return this.normalizeRepoFullName(repositoryDoc.fullName);
+            }
+        }
+
+        // Resolve case-insensitively by repository fullName if it exists
+        const existingRepo = await Repository.findOne({
+            fullName: {
+                $regex: new RegExp(`^${this.escapeRegex(normalizedInput)}$`, 'i')
+            }
+        }).select('fullName').lean();
+
+        return this.normalizeRepoFullName(existingRepo?.fullName || normalizedInput);
+    }
+
+    buildRepoFilter(repoFullName = null) {
+        if (!repoFullName) {
+            return {};
+        }
+
+        return {
+            repoId: {
+                $regex: new RegExp(`^${this.escapeRegex(repoFullName)}$`, 'i')
+            }
+        };
+    }
+
     /**
      * Calculate average debt ratio (average risk of all files)
      */
-    async calculateDebtRatio(repoId = null) {
+    async calculateDebtRatio(repoFullName = null) {
         try {
-            const query = repoId ? { repoId } : {};
+            const query = this.buildRepoFilter(repoFullName);
 
             const fileStats = await CodebaseFile.aggregate([
                 { $match: query },
@@ -28,7 +77,7 @@ class MetricsCalculator {
             await MetricsHistory.create({
                 metricType: 'debtRatio',
                 value: Math.round(debtRatio),
-                repoId,
+                repoId: repoFullName,
                 metadata: {
                     totalFiles: fileStats[0]?.totalFiles || 0
                 }
@@ -44,14 +93,15 @@ class MetricsCalculator {
     /**
      * Calculate PR block rate (last 7 days)
      */
-    async calculateBlockRate(repoId = null, days = 7) {
+    async calculateBlockRate(repoFullName = null, days = 7) {
         try {
             const since = new Date();
             since.setDate(since.getDate() - days);
 
-            const query = repoId
-                ? { repoId, createdAt: { $gte: since } }
-                : { createdAt: { $gte: since } };
+            const query = {
+                ...this.buildRepoFilter(repoFullName),
+                createdAt: { $gte: since }
+            };
 
             const prStats = await PullRequest.aggregate([
                 { $match: query },
@@ -76,7 +126,7 @@ class MetricsCalculator {
             await MetricsHistory.create({
                 metricType: 'blockRate',
                 value: Math.round(blockRate),
-                repoId,
+                repoId: repoFullName,
                 metadata: {
                     totalPRs: prStats[0]?.total || 0,
                     blockedPRs: prStats[0]?.blocked || 0,
@@ -94,12 +144,10 @@ class MetricsCalculator {
     /**
      * Identify critical hotspots (files with risk > threshold)
      */
-    async identifyCriticalHotspots(repoId = null, threshold = 70) {
+    async identifyCriticalHotspots(repoFullName = null, threshold = 70) {
         try {
             // Query files where risk.score > threshold (or flat risk for backwards compat)
-            const matchStage = repoId
-                ? { repoId }
-                : {};
+            const matchStage = this.buildRepoFilter(repoFullName);
 
             const hotspots = await CodebaseFile.aggregate([
                 { $match: matchStage },
@@ -130,7 +178,7 @@ class MetricsCalculator {
             await MetricsHistory.create({
                 metricType: 'hotspots',
                 value: hotspotCount,
-                repoId,
+                repoId: repoFullName,
                 metadata: {
                     threshold,
                     topHotspots: hotspots.slice(0, 5).map(h => ({
@@ -153,14 +201,16 @@ class MetricsCalculator {
     /**
      * Calculate risk reduced (sum of positive health deltas in passed PRs)
      */
-    async calculateRiskReduced(repoId = null, days = 30) {
+    async calculateRiskReduced(repoFullName = null, days = 30) {
         try {
             const since = new Date();
             since.setDate(since.getDate() - days);
 
-            const query = repoId
-                ? { repoId, status: 'PASS', createdAt: { $gte: since } }
-                : { status: 'PASS', createdAt: { $gte: since } };
+            const query = {
+                ...this.buildRepoFilter(repoFullName),
+                status: 'PASS',
+                createdAt: { $gte: since }
+            };
 
             const riskStats = await PullRequest.aggregate([
                 { $match: query },
@@ -181,7 +231,7 @@ class MetricsCalculator {
             await MetricsHistory.create({
                 metricType: 'riskReduced',
                 value: Math.round(riskReduced),
-                repoId,
+                repoId: repoFullName,
                 metadata: {
                     passedPRs: riskStats[0]?.count || 0,
                     days
@@ -200,17 +250,20 @@ class MetricsCalculator {
      */
     async getAllMetrics(repoId = null) {
         try {
+            const repoFullName = await this.resolveRepoFullName(repoId);
+
             const [debtRatio, blockRate, hotspots, riskReduced] = await Promise.all([
-                this.calculateDebtRatio(repoId),
-                this.calculateBlockRate(repoId),
-                this.identifyCriticalHotspots(repoId),
-                this.calculateRiskReduced(repoId)
+                this.calculateDebtRatio(repoFullName),
+                this.calculateBlockRate(repoFullName),
+                this.identifyCriticalHotspots(repoFullName),
+                this.calculateRiskReduced(repoFullName)
             ]);
 
             // Calculate health score as inverse of debt ratio (0-100)
             const healthScore = Math.max(0, Math.min(100, 100 - debtRatio));
 
             return {
+                repoId: repoFullName || null,
                 healthScore,
                 debtRatio,
                 blockRate,
@@ -236,6 +289,7 @@ class MetricsCalculator {
      */
     async getMetricTrend(metricType, repoId = null, days = 30) {
         try {
+            const repoFullName = await this.resolveRepoFullName(repoId);
             const since = new Date();
             since.setDate(since.getDate() - days);
 
@@ -244,8 +298,10 @@ class MetricsCalculator {
                 calculatedAt: { $gte: since }
             };
 
-            if (repoId) {
-                query.repoId = repoId;
+            if (repoFullName) {
+                query.repoId = {
+                    $regex: new RegExp(`^${this.escapeRegex(repoFullName)}$`, 'i')
+                };
             }
 
             const history = await MetricsHistory.find(query)
