@@ -13,7 +13,7 @@ class PRAnalysisService {
     constructor() {
         this.githubService = new GitHubService();
         this.complexityService = new ComplexityAnalysisService();
-        
+
         // Thresholds for PASS/BLOCK decisions
         this.thresholds = {
             maxComplexity: 25,        // Block if any file exceeds this
@@ -48,7 +48,7 @@ class PRAnalysisService {
      */
     async analyzePR(owner, repo, prNumber) {
         console.log(`[PRAnalysis] Starting analysis for PR #${prNumber} in ${owner}/${repo}`);
-        
+
         const results = {
             lint: { errors: 0, warnings: 0, issues: [] },
             complexity: { healthScoreDelta: 0, fileChanges: [], avgComplexity: 0 },
@@ -79,7 +79,7 @@ class PRAnalysisService {
         try {
             let changedFiles = [];
             let useLocalFiles = false;
-            
+
             // 1. Try to get changed files from GitHub API
             try {
                 changedFiles = await this.githubService.getFilesChanged(owner, repo, prNumber);
@@ -95,7 +95,7 @@ class PRAnalysisService {
                     throw apiError;
                 }
             }
-            
+
             if (changedFiles.length === 0) {
                 // Try local files as fallback
                 changedFiles = await this.getLocalRepoFiles(owner, repo);
@@ -115,7 +115,7 @@ class PRAnalysisService {
                 }
 
                 const fileAnalysis = await this.analyzeFile(owner, repo, file, prNumber, useLocalFiles);
-                
+
                 if (fileAnalysis) {
                     // Aggregate lint issues
                     results.lint.errors += fileAnalysis.lint.errors;
@@ -164,7 +164,7 @@ class PRAnalysisService {
                 for (const file of changedFiles.slice(0, 5)) {
                     const fname = file.filename || file.path;
                     if (this.shouldSkipFile(fname)) continue;
-                    
+
                     let content = '';
                     if (useLocalFiles && file.localPath) {
                         // Read from local file
@@ -178,15 +178,15 @@ class PRAnalysisService {
                     } else if (file.patch) {
                         content = this.extractAddedLines(file.patch);
                     }
-                    
+
                     if (content) {
                         filesForAI.push({ path: fname, content });
                     }
                 }
-                
+
                 if (filesForAI.length > 0) {
                     const aiResult = await llmScanService.scan(filesForAI);
-                    
+
                     if (aiResult && aiResult.verdict) {
                         results.aiScan.verdict = aiResult.verdict;
                         results.aiScan.provider = aiResult.provider || 'unknown';
@@ -204,7 +204,7 @@ class PRAnalysisService {
                             }
                             return Math.max(0, Math.min(100, Math.round(numeric * 20)));
                         };
-                        
+
                         // Map AI categories (1-5 scale to 0-100)
                         if (aiResult.categories) {
                             results.aiScan.categories.security = toPercentScore(aiResult.categories.security, 5);
@@ -213,7 +213,7 @@ class PRAnalysisService {
                             results.aiScan.categories.performance = toPercentScore(aiResult.categories.performance, 5);
                             results.aiScan.categories.testing = toPercentScore(aiResult.categories.testing, 3);
                         }
-                        
+
                         // Add AI findings
                         if (aiResult.findings && Array.isArray(aiResult.findings)) {
                             results.aiScan.findings = aiResult.findings.map(f => ({
@@ -228,7 +228,7 @@ class PRAnalysisService {
                                 confidence: f.confidence || 'medium'
                             }));
                         }
-                        
+
                         console.log(`[PRAnalysis] AI verdict (${results.aiScan.provider}/${results.aiScan.model}): ${aiResult.verdict}`);
                     }
                 }
@@ -238,16 +238,16 @@ class PRAnalysisService {
             }
 
             // 4. Calculate metrics
-            results.complexity.avgComplexity = analyzedFiles > 0 
-                ? Math.round(totalComplexity / analyzedFiles) 
+            results.complexity.avgComplexity = analyzedFiles > 0
+                ? Math.round(totalComplexity / analyzedFiles)
                 : 0;
-            
+
             // Calculate health score delta (negative = worse)
             results.complexity.healthScoreDelta = this.calculateHealthDelta(results);
-            
+
             // Calculate security score
             results.security.score = Math.max(0, 100 - (results.security.issues.length * 20));
-            
+
             // Only update AI scan categories if AI did not provide them
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.categories.security = results.security.score;
@@ -262,7 +262,7 @@ class PRAnalysisService {
             const verdictResult = this.determineVerdict(results);
             results.verdict = verdictResult.verdict;
             results.blockReasons = verdictResult.blockReasons;
-            
+
             // Keep AI verdict if it was set
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.verdict = this.mapVerdictToAIScan(results.verdict);
@@ -272,7 +272,7 @@ class PRAnalysisService {
             results.summary = this.generateSummary(results, changedFiles.length);
 
             console.log(`[PRAnalysis] Completed: ${results.verdict} (Risk: ${results.overallRisk})`);
-            
+
             return results;
 
         } catch (error) {
@@ -289,21 +289,21 @@ class PRAnalysisService {
     async getLocalRepoFiles(owner, repo) {
         const repoPath = path.join(__dirname, '..', 'repos', owner, repo);
         const files = [];
-        
+
         try {
             await fs.access(repoPath);
         } catch {
             console.log(`[PRAnalysis] Local repo not found at ${repoPath}`);
             return files;
         }
-        
+
         const walkDir = async (dir, baseDir = '') => {
             try {
                 const entries = await fs.readdir(dir, { withFileTypes: true });
                 for (const entry of entries) {
                     const fullPath = path.join(dir, entry.name);
                     const relativePath = path.join(baseDir, entry.name).replace(/\\/g, '/');
-                    
+
                     // Skip common non-code directories
                     if (entry.isDirectory()) {
                         if (['node_modules', '.git', 'dist', 'build', 'coverage', '.next'].includes(entry.name)) {
@@ -325,9 +325,9 @@ class PRAnalysisService {
                 // Skip unreadable directories
             }
         };
-        
+
         await walkDir(repoPath);
-        
+
         // Limit to 50 most important files
         return files.slice(0, 50);
     }
@@ -357,7 +357,7 @@ class PRAnalysisService {
         try {
             // Get file content
             let content = '';
-            
+
             if (useLocalFiles && file.localPath) {
                 // Read from local clone
                 try {
@@ -391,7 +391,7 @@ class PRAnalysisService {
                 try {
                     const complexityResult = this.complexityService.analyzeCode(content, filename);
                     analysis.complexity = complexityResult.complexity || 0;
-                    
+
                     // Check for high complexity
                     if (analysis.complexity > this.thresholds.maxComplexity) {
                         analysis.findings.push({
@@ -440,7 +440,7 @@ class PRAnalysisService {
                         pattern: pattern.source,
                         count: matches.length
                     });
-                    
+
                     // Only add as lint warning, not error
                     analysis.lint.warnings += matches.length;
                     analysis.lint.issues.push({
@@ -533,10 +533,10 @@ class PRAnalysisService {
      */
     checkBasicSyntax(content, filename) {
         const result = { errors: 0, warnings: 0, issues: [] };
-        
+
         // Check for common issues
         const lines = content.split('\n');
-        
+
         lines.forEach((line, index) => {
             // Very long lines
             if (line.length > 200) {
@@ -548,7 +548,7 @@ class PRAnalysisService {
                     severity: 'warning'
                 });
             }
-            
+
             // Multiple statements on one line
             if ((line.match(/;/g) || []).length > 3) {
                 result.warnings++;
@@ -569,22 +569,22 @@ class PRAnalysisService {
      */
     calculateHealthDelta(results) {
         let delta = 0;
-        
+
         // Complexity impact
         if (results.complexity.avgComplexity > 15) {
             delta -= (results.complexity.avgComplexity - 15) * 2;
         }
-        
+
         // Lint errors impact
         delta -= results.lint.errors * 5;
         delta -= results.lint.warnings * 1;
-        
+
         // Security issues impact
         delta -= results.security.issues.length * 10;
-        
+
         // Code smells impact
         delta -= results.codeSmells.count * 2;
-        
+
         return Math.max(-100, Math.min(100, delta));
     }
 
@@ -593,23 +593,23 @@ class PRAnalysisService {
      */
     calculateOverallRisk(results) {
         let risk = 0;
-        
+
         // Complexity contributes 30%
         const complexityRisk = Math.min(100, (results.complexity.avgComplexity / 30) * 100);
         risk += complexityRisk * 0.3;
-        
+
         // Lint errors contribute 20%
         const lintRisk = Math.min(100, results.lint.errors * 10);
         risk += lintRisk * 0.2;
-        
+
         // Security issues contribute 35%
         const securityRisk = 100 - results.security.score;
         risk += securityRisk * 0.35;
-        
+
         // Code smells contribute 15%
         const smellRisk = Math.min(100, results.codeSmells.count * 10);
         risk += smellRisk * 0.15;
-        
+
         return Math.round(risk);
     }
 
@@ -618,46 +618,46 @@ class PRAnalysisService {
      */
     determineVerdict(results) {
         const blockReasons = [];
-        
+
         // Check blocking conditions
         if (results.lint.errors > this.thresholds.maxLintErrors) {
             blockReasons.push(`Too many lint errors: ${results.lint.errors}`);
         }
-        
+
         if (results.security.issues.length > 0) {
             blockReasons.push(`Security issues detected: ${results.security.issues.length}`);
         }
-        
+
         if (results.overallRisk > this.thresholds.maxRiskScore) {
             blockReasons.push(`Risk score too high: ${results.overallRisk}`);
         }
-        
+
         const maxFileComplexity = Math.max(
-            0, 
+            0,
             ...results.complexity.fileChanges.map(f => f.complexity)
         );
         if (maxFileComplexity > this.thresholds.maxComplexity) {
             blockReasons.push(`File complexity exceeds limit: ${maxFileComplexity}`);
         }
-        
+
         // Check AI verdict - if AI says BAD, it should influence blocking
         if (results.aiScan.verdict === 'BAD') {
             blockReasons.push('Semantic AI detected critical issues');
         }
-        
+
         // Determine verdict
         if (blockReasons.length > 0) {
             return { verdict: 'BLOCK', blockReasons };
         }
-        
+
         // Check warning conditions
         if (results.codeSmells.count > 5 || results.lint.warnings > 10) {
-            return { 
-                verdict: 'WARN', 
+            return {
+                verdict: 'WARN',
                 blockReasons: [`Code quality concerns: ${results.codeSmells.count} smells, ${results.lint.warnings} warnings`]
             };
         }
-        
+
         // Check AI verdict for warnings
         if (results.aiScan.verdict === 'RISKY') {
             return {
@@ -665,7 +665,7 @@ class PRAnalysisService {
                 blockReasons: ['Semantic AI detected potential risks in code']
             };
         }
-        
+
         return { verdict: 'PASS', blockReasons: [] };
     }
 
@@ -687,9 +687,9 @@ class PRAnalysisService {
      */
     generateSummary(results, fileCount) {
         const parts = [];
-        
+
         parts.push(`Analyzed ${fileCount} files.`);
-        
+
         if (results.verdict === 'PASS') {
             parts.push('✅ Code quality looks good!');
         } else if (results.verdict === 'WARN') {
@@ -697,32 +697,32 @@ class PRAnalysisService {
         } else if (results.verdict === 'BLOCK') {
             parts.push('🚫 Critical issues found - blocking merge.');
         }
-        
+
         // AI verdict
         if (results.aiScan.verdict !== 'PENDING') {
             const providerLabel = results.aiScan.provider || 'ai';
             parts.push(`AI (${providerLabel}): ${results.aiScan.verdict}.`);
         }
-        
+
         if (results.lint.errors > 0) {
             parts.push(`Lint: ${results.lint.errors} errors, ${results.lint.warnings} warnings.`);
         }
-        
+
         if (results.security.issues.length > 0) {
             parts.push(`Security: ${results.security.issues.length} potential issues.`);
         }
-        
+
         if (results.codeSmells.count > 0) {
             parts.push(`Code smells: ${results.codeSmells.count} detected.`);
         }
-        
+
         // Add AI findings summary
         if (results.aiScan.findings && results.aiScan.findings.length > 0) {
             parts.push(`AI findings: ${results.aiScan.findings.length} issues.`);
         }
-        
+
         parts.push(`Risk score: ${results.overallRisk}/100.`);
-        
+
         return parts.join(' ');
     }
 }

@@ -158,11 +158,10 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className={`px-3 py-1 rounded border text-sm ${
-              isDarkMode
+            className={`px-3 py-1 rounded border text-sm ${isDarkMode
                 ? "bg-slate-700 border-slate-600 text-white"
                 : "bg-white border-gray-300"
-            }`}
+              }`}
           >
             <option value="priority">Sort by Priority</option>
             <option value="risk">Sort by Risk</option>
@@ -173,11 +172,10 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`px-3 py-1 rounded border text-sm ${
-              isDarkMode
+            className={`px-3 py-1 rounded border text-sm ${isDarkMode
                 ? "bg-slate-700 border-slate-600 text-white"
                 : "bg-white border-gray-300"
-            }`}
+              }`}
           >
             <option value="">All Status</option>
             <option value="OPEN">Open</option>

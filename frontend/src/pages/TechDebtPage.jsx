@@ -106,8 +106,8 @@ const TechDebtPage = () => {
       </div>
 
       {/* Repo Connection */}
-      <RepoConnectionBar 
-        onConnect={handleRepoConnect} 
+      <RepoConnectionBar
+        onConnect={handleRepoConnect}
         isDarkMode={isDark}
         connectedRepo={connectedRepo}
         onRefresh={handleRefresh}

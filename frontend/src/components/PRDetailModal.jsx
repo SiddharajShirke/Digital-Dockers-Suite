@@ -127,10 +127,10 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                 <span className="text-2xl font-bold">#{pr.prNumber}</span>
                 <span
                   className={`px-3 py-1 rounded-full text-sm font-semibold ${pr.status === "PASS"
-                      ? "bg-green-500"
-                      : pr.status === "BLOCK"
-                        ? "bg-red-500"
-                        : "bg-yellow-500"
+                    ? "bg-green-500"
+                    : pr.status === "BLOCK"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
                     }`}
                 >
                   {pr.status}
@@ -168,10 +168,10 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
             <div className="flex-1 bg-white/20 rounded-full h-3 overflow-hidden">
               <div
                 className={`h-full transition-all ${(pr.healthScore?.current || 0) > 70
-                    ? "bg-green-400"
-                    : (pr.healthScore?.current || 0) > 40
-                      ? "bg-yellow-400"
-                      : "bg-red-400"
+                  ? "bg-green-400"
+                  : (pr.healthScore?.current || 0) > 40
+                    ? "bg-yellow-400"
+                    : "bg-red-400"
                   }`}
                 style={{ width: `${pr.healthScore?.current || 0}%` }}
               />
@@ -199,10 +199,10 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-3 font-medium transition ${activeTab === tab.id
-                    ? "border-b-2 border-indigo-600 text-indigo-600"
-                    : isDarkMode
-                      ? "text-gray-400 hover:text-gray-200"
-                      : "text-gray-600 hover:text-gray-800"
+                  ? "border-b-2 border-indigo-600 text-indigo-600"
+                  : isDarkMode
+                    ? "text-gray-400 hover:text-gray-200"
+                    : "text-gray-600 hover:text-gray-800"
                   }`}
               >
                 <tab.icon size={14} />
@@ -235,20 +235,20 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                   <div
                     key={layer.id}
                     className={`border rounded-xl p-5 transition ${isDarkMode
-                        ? "bg-slate-700/50 border-slate-600"
-                        : "bg-gray-50 border-gray-200"
+                      ? "bg-slate-700/50 border-slate-600"
+                      : "bg-gray-50 border-gray-200"
                       }`}
                   >
                     <div className="flex items-start gap-4">
                       {/* Layer Number */}
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold ${status.status === "pass"
-                            ? "bg-green-100 text-green-700"
-                            : status.status === "fail"
-                              ? "bg-red-100 text-red-700"
-                              : status.status === "warn"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-200 text-gray-500"
+                          ? "bg-green-100 text-green-700"
+                          : status.status === "fail"
+                            ? "bg-red-100 text-red-700"
+                            : status.status === "warn"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-200 text-gray-500"
                           }`}
                       >
                         {idx + 1}
@@ -275,19 +275,19 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                           <div className="flex gap-4 text-sm">
                             <span
                               className={`px-3 py-1 rounded-full ${(layer.details.errors || 0) === 0
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
                                 }`}
                             >
-                                Blocking errors: {layer.details.errors || 0}
+                              Blocking errors: {layer.details.errors || 0}
                             </span>
                             <span
                               className={`px-3 py-1 rounded-full ${isDarkMode
-                                  ? "bg-slate-600 text-gray-300"
-                                  : "bg-gray-200 text-gray-700"
+                                ? "bg-slate-600 text-gray-300"
+                                : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                                Warnings to review: {layer.details.warnings || 0}
+                              Warnings to review: {layer.details.warnings || 0}
                             </span>
                           </div>
                         )}
@@ -296,21 +296,21 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                           <div className="flex gap-4 text-sm">
                             <span
                               className={`px-3 py-1 rounded-full ${(layer.details.healthScoreDelta || 0) >= 0
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-red-100 text-red-700"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
                                 }`}
                             >
-                                Health impact:{" "}
+                              Health impact:{" "}
                               {(layer.details.healthScoreDelta || 0) >= 0 ? "+" : ""}
                               {layer.details.healthScoreDelta || 0}
                             </span>
                             <span
                               className={`px-3 py-1 rounded-full ${isDarkMode
-                                  ? "bg-slate-600 text-gray-300"
-                                  : "bg-gray-200 text-gray-700"
+                                ? "bg-slate-600 text-gray-300"
+                                : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                                Files assessed: {layer.details.fileChanges?.length || 0}
+                              Files assessed: {layer.details.fileChanges?.length || 0}
                             </span>
                           </div>
                         )}
@@ -319,31 +319,31 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                           <div className="flex gap-4 text-sm">
                             <span
                               className={`px-3 py-1 rounded-full ${layer.details.verdict === "GOOD"
-                                  ? "bg-green-100 text-green-700"
-                                  : layer.details.verdict === "BAD"
-                                    ? "bg-red-100 text-red-700"
-                                    : "bg-yellow-100 text-yellow-700"
+                                ? "bg-green-100 text-green-700"
+                                : layer.details.verdict === "BAD"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-yellow-100 text-yellow-700"
                                 }`}
                             >
                               AI verdict: {semanticVerdictLabel(layer.details.verdict)}
                             </span>
                             <span
                               className={`px-3 py-1 rounded-full ${isDarkMode
-                                  ? "bg-slate-600 text-gray-300"
-                                  : "bg-gray-200 text-gray-700"
+                                ? "bg-slate-600 text-gray-300"
+                                : "bg-gray-200 text-gray-700"
                                 }`}
                             >
-                                Insights found: {layer.details.findings?.length || 0}
+                              Insights found: {layer.details.findings?.length || 0}
                             </span>
-                              <span
-                                className={`px-3 py-1 rounded-full ${isDarkMode
-                                    ? "bg-slate-600 text-indigo-200"
-                                    : "bg-indigo-100 text-indigo-700"
-                                  }`}
-                              >
-                                Engine: {aiEngineLabel}
-                                {aiModel ? ` / ${aiModel}` : ""}
-                              </span>
+                            <span
+                              className={`px-3 py-1 rounded-full ${isDarkMode
+                                ? "bg-slate-600 text-indigo-200"
+                                : "bg-indigo-100 text-indigo-700"
+                                }`}
+                            >
+                              Engine: {aiEngineLabel}
+                              {aiModel ? ` / ${aiModel}` : ""}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -355,10 +355,10 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
               {/* Final Verdict */}
               <div
                 className={`mt-6 p-4 rounded-xl text-center ${pr.status === "PASS"
-                    ? "bg-green-100 border-2 border-green-300"
-                    : pr.status === "BLOCK"
-                      ? "bg-red-100 border-2 border-red-300"
-                      : "bg-yellow-100 border-2 border-yellow-300"
+                  ? "bg-green-100 border-2 border-green-300"
+                  : pr.status === "BLOCK"
+                    ? "bg-red-100 border-2 border-red-300"
+                    : "bg-yellow-100 border-2 border-yellow-300"
                   }`}
               >
                 <p className="font-semibold text-lg">
@@ -394,8 +394,8 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                   <div
                     key={idx}
                     className={`border rounded-lg p-4 ${isDarkMode
-                        ? "bg-slate-700/50 border-slate-600"
-                        : "bg-white border-gray-200"
+                      ? "bg-slate-700/50 border-slate-600"
+                      : "bg-white border-gray-200"
                       }`}
                   >
                     <div className="flex items-start gap-3">
@@ -411,8 +411,8 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
                         {finding.suggestion && (
                           <div
                             className={`mt-2 p-3 rounded-lg border ${isDarkMode
-                                ? "bg-yellow-900/30 border-yellow-700 text-yellow-200"
-                                : "bg-yellow-50 border-yellow-200 text-yellow-800"
+                              ? "bg-yellow-900/30 border-yellow-700 text-yellow-200"
+                              : "bg-yellow-50 border-yellow-200 text-yellow-800"
                               }`}
                           >
                             <div className="flex items-center justify-between gap-4">
@@ -536,8 +536,8 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
         {/* Footer */}
         <div
           className={`flex items-center justify-between px-6 py-4 border-t ${isDarkMode
-              ? "border-slate-700 bg-slate-800/50"
-              : "border-gray-200 bg-gray-50"
+            ? "border-slate-700 bg-slate-800/50"
+            : "border-gray-200 bg-gray-50"
             }`}
         >
           {pr.url ? (
@@ -556,8 +556,8 @@ const PRDetailModal = ({ pr, onClose, isDarkMode = false }) => {
           <button
             onClick={onClose}
             className={`px-4 py-2 rounded-lg text-sm font-medium ${isDarkMode
-                ? "bg-slate-700 text-gray-200 hover:bg-slate-600"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              ? "bg-slate-700 text-gray-200 hover:bg-slate-600"
+              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
           >
             Close
