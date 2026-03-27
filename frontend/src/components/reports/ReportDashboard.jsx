@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Card, Typography, Row, Col, Empty, Spin, Statistic, Tag, Space,
-  Button, Select, message, Collapse, Table, Progress, Alert
+  Button, Select, App, Collapse, Table, Progress, Alert
 } from "antd";
 import {
   BarChartOutlined, PieChartOutlined, TeamOutlined, CheckCircleOutlined,
@@ -19,6 +19,7 @@ import { useThemeMode } from "../../context/ThemeContext";
 import projectService from "../../services/projectService";
 import sprintService from "../../services/sprintService";
 import { reportService } from "../../services/reportService";
+import "./reports.css";
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement, LineElement, PointElement,
@@ -26,9 +27,9 @@ ChartJS.register(
 );
 
 const { Title, Text, Paragraph } = Typography;
-const { Panel } = Collapse;
 
 export default function ReportDashboard() {
+  const { message: messageApi } = App.useApp();
   const { mode } = useThemeMode();
   const isDark = mode === "dark";
 
@@ -78,7 +79,7 @@ export default function ReportDashboard() {
       }
     } catch (err) {
       console.error('Failed to load projects', err);
-      message.error("Failed to load projects");
+      messageApi.error("Failed to load projects");
     } finally {
       setLoadingProjects(false);
     }
@@ -139,24 +140,24 @@ export default function ReportDashboard() {
         data = await reportService.generateSprintReport(selectedSprint);
       }
       setAiReport(data);
-      message.success("AI Technical Report Generated successfully.");
+      messageApi.success("AI Technical Report Generated successfully.");
     } catch (err) {
       setError(err.toString());
-      message.error("Failed to generate AI report.");
+      messageApi.error("Failed to generate AI report.");
     }
     setGeneratingAI(false);
   };
 
   const handleExport = async (format) => {
     if (!aiReport) {
-      message.warning("Please generate an AI pattern first to export.");
+      messageApi.warning("Please generate an AI pattern first to export.");
       return;
     }
     try {
       await reportService.exportReport(aiReport, format);
-      message.success(`Report exported to ${format.toUpperCase()}`);
+      messageApi.success(`Report exported to ${format.toUpperCase()}`);
     } catch (err) {
-      message.error(`Export to ${format.toUpperCase()} failed`);
+      messageApi.error(`Export to ${format.toUpperCase()} failed`);
     }
   };
 
@@ -235,28 +236,29 @@ export default function ReportDashboard() {
   };
 
   return (
-    <div style={{ padding: "24px", maxWidth: 1600, color: isDark ? "#e6edf3" : undefined }}>
+    <div className={`reports-dashboard ${isDark ? "reports-dashboard-dark" : ""}`} style={{ padding: "24px", maxWidth: 1600, color: isDark ? "#e6edf3" : undefined }}>
       
       {/* 1. Header & Filters */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
-        <div>
+      <div className="reports-hero" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
+        <div className="reports-hero-copy">
+          <div className="reports-eyebrow">Project intelligence</div>
           <Title level={2} style={{ margin: 0, background: isDark ? "linear-gradient(135deg, #79c0ff, #a371f7)" : "linear-gradient(135deg, #0052CC, #6554C0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             Project Intelligence
           </Title>
           <div style={{ marginTop: 8 }}>
-            <span style={{ fontSize: 12, color: isConnected ? "#10B981" : "#EF4444", display: "inline-flex", alignItems: "center", gap: 6, background: isConnected ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", padding: "4px 8px", borderRadius: 16, fontWeight: 500 }}>
+            <span className="reports-status-pill" style={{ fontSize: 12, color: isConnected ? "#10B981" : "#EF4444", display: "inline-flex", alignItems: "center", gap: 6, background: isConnected ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", padding: "4px 8px", borderRadius: 16, fontWeight: 500 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isConnected ? "#10B981" : "#EF4444", boxShadow: isConnected ? "0 0 4px #10B981" : "0 0 4px #EF4444" }}></span>
               {isConnected ? "Live Data" : "Offline"}
             </span>
           </div>
         </div>
         
-        <Space size="middle" align="end" wrap>
+        <Space size="middle" align="end" wrap className="reports-filter-panel">
           <div>
             <Text strong style={{ display: 'block', marginBottom: 4, color: isDark ? '#c9d1d9' : '#595959' }}>Select Project</Text>
             <Select 
               id="proj-select"
-              style={{ width: 200 }} 
+              className="reports-filter-select"
               loading={loadingProjects}
               value={selectedProject}
               onChange={handleProjectChange}
@@ -267,7 +269,7 @@ export default function ReportDashboard() {
           <div>
             <Text strong style={{ display: 'block', marginBottom: 4, color: isDark ? '#c9d1d9' : '#595959' }}>Select Target</Text>
             <Select 
-              style={{ width: 200 }} 
+              className="reports-filter-select"
               value={selectedSprint}
               onChange={setSelectedSprint}
               disabled={!selectedProject}
@@ -289,7 +291,7 @@ export default function ReportDashboard() {
             disabled={!selectedProject}
             style={{ background: '#722ed1', borderColor: '#722ed1' }}
           >
-            {generatingAI ? 'NVIDIA LLM Analyzing...' : 'Generate AI Report'}
+            {generatingAI ? 'Analyzing...' : 'Generate AI Report'}
           </Button>
 
           {aiReport && (
@@ -301,29 +303,29 @@ export default function ReportDashboard() {
         </Space>
       </div>
 
-      {error && <Alert message="Error" description={error} type="error" showIcon style={{ marginBottom: 24 }} />}
+      {error && <Alert title="Error" description={error} type="error" showIcon style={{ marginBottom: 24 }} />}
 
       {/* 2. Instant Key Metrics Row */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingMetrics}>
+          <Card loading={loadingMetrics} className="reports-metric-card">
             <Statistic title="Total Tasks" value={totalTasks} prefix={<CheckCircleOutlined />} styles={{ content: { color: isDark ? "#58a6ff" : "#0052cc" } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingMetrics}>
+          <Card loading={loadingMetrics} className="reports-metric-card">
             <Statistic title="Completed" value={completedTasks} suffix={`/ ${totalTasks}`} styles={{ content: { color: isDark ? "#3fb950" : "#00875a" } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingMetrics}>
+          <Card loading={loadingMetrics} className="reports-metric-card">
             <Statistic title="Completion Rate" value={completionRate} suffix="%" 
               styles={{ content: { color: completionRate >= 50 ? (isDark ? "#3fb950" : "#00875a") : (isDark ? "#e3b341" : "#faad14") } }} 
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card loading={loadingMetrics}>
+          <Card loading={loadingMetrics} className="reports-metric-card">
             <Statistic title={isProjectView ? "Avg Velocity" : "Sprint Velocity"} value={avgVelocity} suffix="pts" prefix={<ClockCircleOutlined />} styles={{ content: { color: isDark ? "#a371f7" : "#722ed1" } }} />
           </Card>
         </Col>
@@ -334,6 +336,7 @@ export default function ReportDashboard() {
         <Col xs={24} lg={14}>
           <Card
             title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><BarChartOutlined style={{ color: '#3B82F6' }} /><span>Velocity Trend</span></div>}
+            className="reports-chart-card"
             variant="borderless" style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)', height: '100%' }}
           >
             {loadingMetrics ? (
@@ -350,6 +353,7 @@ export default function ReportDashboard() {
         <Col xs={24} lg={10}>
           <Card
             title={<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PieChartOutlined style={{ color: '#8B5CF6' }} /><span>Task Distribution</span></div>}
+            className="reports-chart-card"
             variant="borderless" style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)', height: '100%' }}
           >
             {loadingMetrics ? (
@@ -366,14 +370,14 @@ export default function ReportDashboard() {
       {/* 4. Team Overview Row */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col span={24}>
-          <Card title={<><TeamOutlined /> Active Team Roster — {selectedSprint === 'all' ? 'Entire Project' : 'Current Sprint'}</>} variant="borderless" style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <Card title={<><TeamOutlined /> Active Team Roster — {selectedSprint === 'all' ? 'Entire Project' : 'Current Sprint'}</>} className="reports-team-card" variant="borderless" style={{ boxShadow: isDark ? '0 4px 6px rgba(0,0,0,0.2)' : '0 1px 3px rgba(0,0,0,0.1)' }}>
             {loadingMetrics ? (
               <Spin />
             ) : tMetrics?.assigneeWorkload?.length > 0 ? (
               <Space wrap size="large">
                 {tMetrics.assigneeWorkload.map(user => (
-                  <Card key={user.name} size="small" style={{ width: 220, borderColor: isDark ? '#30363d' : '#f0f0f0', background: isDark ? '#161b22' : '#fafafa' }}>
-                    <Statistic title={<Text strong>{user.name}</Text>} value={user.tasksAssigned} suffix="tasks" valueStyle={{ fontSize: 18, color: '#1890ff' }} />
+                  <Card key={user.name} size="small" className="reports-team-member-card" style={{ width: 220, borderColor: isDark ? '#30363d' : '#f0f0f0', background: isDark ? '#161b22' : '#fafafa' }}>
+                    <Statistic title={<Text strong>{user.name}</Text>} value={user.tasksAssigned} suffix="tasks" styles={{ content: { fontSize: 18, color: '#1890ff' } }} />
                     <div style={{ marginTop: 8, fontSize: 12, color: 'gray' }}>
                       Pushed: {user.storyPoints} pts<br/>
                       Completed: {user.tasksCompleted} / {user.tasksAssigned}
@@ -391,27 +395,30 @@ export default function ReportDashboard() {
       {/* 5. AI GENERATED REPORT DATA VIEW */}
       {generatingAI && (
         <div style={{ textAlign: 'center', padding: '50px 0', background: isDark ? '#161b22' : '#f9f9f9', borderRadius: 8, marginTop: 24 }}>
-          <Spin size="large" tip="NVIDIA AI is analyzing tasks, workloads, and writing the C-Level Technical Report..." />
+          <Spin size="large" />
+          <div style={{ marginTop: 16, color: isDark ? '#c9d1d9' : '#595959', fontWeight: 500 }}>
+            Analyzing tasks, workloads, and writing the report...
+          </div>
         </div>
       )}
 
       {aiReport && !generatingAI && (
-        <div style={{ animation: 'fadeIn 0.5s', borderTop: '2px dashed #d9d9d9', paddingTop: 40, marginTop: 24 }}>
+        <div className="reports-ai-report" style={{ animation: 'fadeIn 0.5s', borderTop: '2px dashed #d9d9d9', paddingTop: 40, marginTop: 24 }}>
           <div style={{ marginBottom: 24 }}>
-            <Title level={3} style={{ margin: 0, color: '#1890ff' }}>NVIDIA AI Intelligence Report</Title>
+            <Title level={3} style={{ margin: 0, color: '#1890ff' }}>Intelligence Report</Title>
             <Text type="secondary">Generated securely on {new Date().toLocaleString()}</Text>
           </div>
 
           <Row gutter={24} style={{ marginBottom: 24 }}>
             <Col span={16}>
-              <Card title="AI Executive Summary" bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <Card title="Executive Summary" className="reports-ai-card" variant="borderless" style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Paragraph style={{ fontSize: 16, lineHeight: 1.8 }}>
                   {aiReport.aiInsights?.executiveSummary}
                 </Paragraph>
               </Card>
             </Col>
             <Col span={8}>
-              <Card title="AI Confidence Score" bordered={false} style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+              <Card title="Confidence Score" className="reports-ai-card reports-confidence-card" variant="borderless" style={{ height: '100%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', textAlign: 'center' }}>
                 <Progress 
                     type="dashboard" 
                     percent={aiReport.aiInsights?.confidenceScoring?.score || 0} 
@@ -424,30 +431,46 @@ export default function ReportDashboard() {
             </Col>
           </Row>
 
-          <Card title="Technical Breakdown" style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <Collapse ghost defaultActiveKey={['1', '2']}>
-              <Panel header={<Text strong>Task Flow & Pipeline Analysis</Text>} key="1">
-                  <Paragraph>{aiReport.aiInsights?.taskBreakdowns}</Paragraph>
-                  {aiReport.aiInsights?.kanbanAnalysis && <Paragraph><strong>Kanban/Flow: </strong>{aiReport.aiInsights?.kanbanAnalysis}</Paragraph>}
-              </Panel>
-              {aiReport.aiInsights?.velocityAnalysis && (
-                  <Panel header={<Text strong>Velocity & Scope Predictability</Text>} key="2">
+          <Card title="Technical Breakdown" className="reports-ai-card" style={{ marginBottom: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Collapse
+              ghost
+              defaultActiveKey={['1', '2']}
+              items={[
+                {
+                  key: '1',
+                  label: <Text strong>Task Flow & Pipeline Analysis</Text>,
+                  children: (
+                    <>
+                      <Paragraph>{aiReport.aiInsights?.taskBreakdowns}</Paragraph>
+                      {aiReport.aiInsights?.kanbanAnalysis && <Paragraph><strong>Kanban/Flow: </strong>{aiReport.aiInsights?.kanbanAnalysis}</Paragraph>}
+                    </>
+                  )
+                },
+                ...(aiReport.aiInsights?.velocityAnalysis ? [{
+                  key: '2',
+                  label: <Text strong>Velocity & Scope Predictability</Text>,
+                  children: (
+                    <>
                       <Paragraph>{aiReport.aiInsights?.velocityAnalysis}</Paragraph>
                       {aiReport.aiInsights?.burndownAnalysis && <Paragraph><strong>Target Tracking: </strong>{aiReport.aiInsights?.burndownAnalysis}</Paragraph>}
                       {aiReport.aiInsights?.churnAnalysis && <Paragraph><strong>Scope Churn: </strong>{aiReport.aiInsights?.churnAnalysis}</Paragraph>}
-                  </Panel>
-              )}
-              <Panel header={<Text strong>Future Predictions</Text>} key="3">
-                  <Paragraph>{aiReport.aiInsights?.futurePredictions}</Paragraph>
-              </Panel>
-            </Collapse>
+                    </>
+                  )
+                }] : []),
+                {
+                  key: '3',
+                  label: <Text strong>Future Predictions</Text>,
+                  children: <Paragraph>{aiReport.aiInsights?.futurePredictions}</Paragraph>
+                }
+              ]}
+            />
           </Card>
 
-          <Card title="AI Risk Matrix & Mitigations" style={{ marginBottom: 24, borderColor: '#ffccc7' }} headStyle={{ background: isDark ? '#431418' : '#fff1f0' }}>
+          <Card title="Risk Matrix & Mitigations" className="reports-risk-card" style={{ marginBottom: 24, borderColor: '#ffccc7' }} styles={{ header: { background: isDark ? '#431418' : '#fff1f0' } }}>
             <Table 
               dataSource={aiReport.aiInsights?.riskMatrix || []} 
               pagination={false}
-              rowKey={(record, index) => index}
+              rowKey={(record) => `${record?.severity || 'risk'}-${record?.riskItem || record?.mitigation || 'item'}`}
               columns={[
                   { title: 'Severity', dataIndex: 'severity', key: 'severity', render: text => <Tag color={text?.toLowerCase() === 'high' ? 'red' : text?.toLowerCase() === 'medium' ? 'orange' : 'green'}>{text}</Tag> },
                   { title: 'Identified Risk', dataIndex: 'riskItem', key: 'riskItem' },
@@ -457,7 +480,8 @@ export default function ReportDashboard() {
           </Card>
 
           <Alert
-              message="Final AI Verdict"
+              className="reports-verdict-alert"
+              title="Final Verdict"
               description={<Text strong style={{ fontSize: 16 }}>{aiReport.aiInsights?.verdict}</Text>}
               type={aiReport.aiInsights?.confidenceScoring?.score > 75 ? 'success' : aiReport.aiInsights?.confidenceScoring?.score > 50 ? 'warning' : 'error'}
               showIcon

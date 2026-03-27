@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Card, Tag, Progress, Collapse, Avatar, Typography } from 'antd';
+import React from 'react';
+import { Tag, Progress, Collapse, Avatar, Typography } from 'antd';
 import { 
     CheckCircleOutlined, ThunderboltOutlined, ClockCircleOutlined, 
     WarningOutlined, RightOutlined 
@@ -37,20 +37,29 @@ const SprintCard = ({ sprint, type }) => {
     const HeaderContent = (
         <div className="sprint-card-header">
             <div className="sprint-card-title-row">
-                <Text strong className="sprint-title">{sprint.sprintName || 'Unnamed Sprint'}</Text>
+                <div className="sprint-title-block">
+                    {sprint.projectName && (
+                        <Text type="secondary" className="sprint-project-name">{sprint.projectName}</Text>
+                    )}
+                    <Text strong className="sprint-title">{sprint.sprintName || 'Unnamed Sprint'}</Text>
+                </div>
                 <span className="sprint-points-badge">{sprint.totalPoints}pt</span>
             </div>
             <div className="sprint-card-meta">
-                <Tag color={statusColor} bordered={false} className="sprint-card-status">{statusText}</Tag>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="sprint-card-meta-left">
+                    <span className="sprint-status-icon">{icon}</span>
+                    <Tag color={statusColor} variant="filled" className="sprint-card-status">{statusText}</Tag>
+                </div>
+                <div className="sprint-progress-cluster">
                     <Progress 
                         percent={parseInt(sprint.progress) || 0} 
                         steps={5} 
                         size="small" 
                         showInfo={false} 
                         strokeColor={borderLeftColor}
+                        className="sprint-card-progress"
                     />
-                    <Text type="secondary" style={{ fontSize: 12 }}>{sprint.progress}</Text>
+                    <Text type="secondary" className="sprint-progress-value">{sprint.progress}</Text>
                 </div>
             </div>
         </div>
@@ -63,7 +72,7 @@ const SprintCard = ({ sprint, type }) => {
         <div className="sprint-card-wrapper" style={{ borderLeft: `4px solid ${borderLeftColor}` }}>
             <Collapse
                 ghost
-                expandIconPosition="end"
+                expandIconPlacement="end"
                 expandIcon={({ isActive }) => <RightOutlined rotate={isActive ? 90 : 0} style={{ color: '#bfbfbf', fontSize: 12 }} />}
                 items={[{
                     key: '1',
@@ -78,7 +87,7 @@ const SprintCard = ({ sprint, type }) => {
                                             <span className="task-mini-title">{task.title}</span>
                                         </div>
                                         <div className="task-mini-meta">
-                                            <Tag color="blue" bordered={false} style={{ margin: 0, fontSize: 10 }}>{task.points}pt</Tag>
+                                            <Tag color="blue" variant="filled" style={{ margin: 0, fontSize: 10 }}>{task.points}pt</Tag>
                                             <Avatar size={20} style={{ backgroundColor: '#f0f0f0', color: '#595959', fontSize: 10, marginLeft: 4 }}>
                                                 {task.assignee ? task.assignee.substring(0, 1).toUpperCase() : '?'}
                                             </Avatar>

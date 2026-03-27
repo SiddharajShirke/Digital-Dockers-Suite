@@ -465,9 +465,9 @@ const BacklogPage = () => {
                                         )}
                                     </div>
                                     {activeSprint && (
-                                        <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-                                            <Button size="small" type="default">Edit Dates</Button>
-                                            <Button size="small" type="primary">Complete Sprint</Button>
+                                        <div className="flex flex-nowrap items-center gap-2 mt-2 md:mt-0 shrink-0">
+                                            <Button size="small" type="default" className="whitespace-nowrap">Edit Dates</Button>
+                                            <Button size="small" type="primary" className="whitespace-nowrap">Complete Sprint</Button>
                                         </div>
                                     )}
                                 </div>

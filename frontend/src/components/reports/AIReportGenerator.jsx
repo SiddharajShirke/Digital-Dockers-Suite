@@ -235,7 +235,7 @@ export default function AIReportGenerator() {
                         disabled={!selectedProject}
                         style={{ background: '#722ed1', borderColor: '#722ed1' }}
                     >
-                        {generating ? 'NVIDIA LLM Analyzing...' : 'Generate AI Report'}
+                        {generating ? 'Analyzing...' : 'Generate AI Report'}
                     </Button>
                 </Space>
             </Card>
