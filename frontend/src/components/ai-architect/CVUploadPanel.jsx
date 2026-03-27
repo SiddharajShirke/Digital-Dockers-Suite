@@ -253,14 +253,14 @@ const CVUploadPanel = () => {
                     <Card size="small">
                         <Statistic title="AI Parsed" value={parsedCount}
                             prefix={<CheckCircleOutlined />}
-                            valueStyle={{ color: '#52c41a' }} />
+                            styles={{ content: { color: '#52c41a' } }} />
                     </Card>
                 </Col>
                 <Col xs={24} sm={8}>
                     <Card size="small">
                         <Statistic title="Processing" value={parsingCount}
                             prefix={<SyncOutlined spin={parsingCount > 0} />}
-                            valueStyle={{ color: parsingCount > 0 ? '#1890ff' : undefined }} />
+                            styles={{ content: { color: parsingCount > 0 ? '#1890ff' : undefined } }} />
                     </Card>
                 </Col>
             </Row>

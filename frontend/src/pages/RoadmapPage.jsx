@@ -297,10 +297,16 @@ const RoadmapPage = () => {
         <div className="roadmap-page-v2">
             {/* ──── HEADER ──── */}
             <div className="roadmap-header-v2">
-                <h1><FundOutlined style={{ marginRight: 10 }} />Project Roadmap</h1>
-                <p className="roadmap-subtitle">
-                    Dynamic execution view — Last 12 months + Next 3 months
-                </p>
+                <div className="roadmap-header-topline">Execution cockpit</div>
+                <div className="roadmap-header-main">
+                    <div>
+                        <h1><FundOutlined style={{ marginRight: 10 }} />Project Roadmap</h1>
+                        <p className="roadmap-subtitle">
+                            Dynamic execution view — Last 12 months + Next 3 months
+                        </p>
+                    </div>
+                    <div className="roadmap-header-badge">Live planning view</div>
+                </div>
             </div>
 
             {/* ──── KPI CARDS ──── */}
@@ -340,12 +346,12 @@ const RoadmapPage = () => {
                 className="roadmap-chart-card"
                 title={<><FundOutlined /> Velocity & Capacity Trend {isFiltered && <Tag color="blue" closable onClose={() => setSelectedMonthIndex(null)} style={{ marginLeft: 12 }}>Viewing: {activeData.month}</Tag>}</>}
                 extra={
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="roadmap-chart-actions">
                         {isFiltered && <Button size="small" onClick={() => setSelectedMonthIndex(null)}>Reset to Overall</Button>}
                         <Select
                             value={pastMonthsFilter}
                             onChange={(val) => { setPastMonthsFilter(val); setSelectedMonthIndex(null); }}
-                            style={{ width: 160 }}
+                            className="roadmap-compact-select"
                             options={[
                                 { value: 1, label: 'Last 1 Month' },
                                 { value: 3, label: 'Last 3 Months' },
@@ -357,30 +363,30 @@ const RoadmapPage = () => {
                 }
             >
                 {/* ──── FILTER ROW: Project → Sprint → Person ──── */}
-                <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center', padding: '0 8px' }}>
+                <div className="roadmap-filter-row">
                     <Select
                         value={chartProjectFilter}
                         onChange={(val) => { setChartProjectFilter(val); setChartSprintFilter('all'); setChartPersonFilter('all'); }}
-                        style={{ width: 200 }}
+                        className="roadmap-filter-select"
                         options={chartProjectOptions}
                         placeholder="Filter by Project"
                     />
                     <Select
                         value={chartSprintFilter}
                         onChange={(val) => { setChartSprintFilter(val); setChartPersonFilter('all'); }}
-                        style={{ width: 200 }}
+                        className="roadmap-filter-select"
                         options={chartSprintOptions}
                         placeholder="Filter by Sprint"
                     />
                     <Select
                         value={chartPersonFilter}
                         onChange={setChartPersonFilter}
-                        style={{ width: 200 }}
+                        className="roadmap-filter-select"
                         options={chartPersonOptions}
                         placeholder="Filter by Person"
                     />
                     {(chartProjectFilter !== 'all' || chartSprintFilter !== 'all' || chartPersonFilter !== 'all') && (
-                        <Button type="link" size="small" onClick={() => { setChartProjectFilter('all'); setChartSprintFilter('all'); setChartPersonFilter('all'); }}>
+                        <Button type="link" size="small" className="roadmap-filter-reset" onClick={() => { setChartProjectFilter('all'); setChartSprintFilter('all'); setChartPersonFilter('all'); }}>
                             Reset Filters
                         </Button>
                     )}
@@ -443,6 +449,7 @@ const RoadmapPage = () => {
             <Card
                 className="roadmap-board-card"
                 title={<><ProjectOutlined /> Monthly Sprint Planner</>}
+                extra={<span className="roadmap-board-subtitle">Professional month-by-month execution overview</span>}
             >
                 {monthlyProgress && monthlyProgress.length > 0 ? (
                     <div className="roadmap-board">
@@ -466,14 +473,14 @@ const RoadmapPage = () => {
             {/* ──── AI INSIGHTS ──── */}
             <Card
                 className="roadmap-insights-card"
-                title={<><BulbOutlined /> AI Insights (NVIDIA NIM)</>}
+                title={<><BulbOutlined /> AI Insights</>}
                 extra={
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div className="roadmap-insights-toolbar">
                         <Select 
                             value={selectedProject} 
                             onChange={setSelectedProject}
                             options={projectOptions}
-                            style={{ width: 250 }}
+                            className="roadmap-insights-select"
                         />
                         <Button 
                             type="primary" 
@@ -512,3 +519,6 @@ const RoadmapPage = () => {
 };
 
 export default RoadmapPage;
+
+
+
