@@ -30,7 +30,15 @@ const pullRequestSchema = new mongoose.Schema({
                 file: String,
                 beforeHealth: Number,
                 afterHealth: Number,
-                complexity: Number
+                complexity: Number,
+                additions: Number,
+                deletions: Number,
+                loc: Number,
+                riskScore: Number,
+                lintErrors: Number,
+                lintWarnings: Number,
+                securityIssues: Number,
+                codeSmells: Number
             }]
         },
         ticketAlignment: {
@@ -47,6 +55,10 @@ const pullRequestSchema = new mongoose.Schema({
                 performance: Number,
                 testing: Number
             },
+            provider: { type: String, default: 'none' },
+            model: { type: String, default: 'none' },
+            fallbackUsed: { type: Boolean, default: false },
+            generatedAt: Date,
             findings: [{
                 file: String,
                 lineRange: [Number],

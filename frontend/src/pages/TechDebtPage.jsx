@@ -106,8 +106,8 @@ const TechDebtPage = () => {
       </div>
 
       {/* Repo Connection */}
-      <RepoConnectionBar 
-        onConnect={handleRepoConnect} 
+      <RepoConnectionBar
+        onConnect={handleRepoConnect}
         isDarkMode={isDark}
         connectedRepo={connectedRepo}
         onRefresh={handleRefresh}
@@ -117,12 +117,16 @@ const TechDebtPage = () => {
       {/* 1. Top KPI Row */}
       <TopKPIs metrics={metrics} loading={loading} isDarkMode={isDark} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 h-[65vh]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 h-[65vh] min-h-0">
         {/* 2. Gatekeeper Feed (Left) */}
-        <GatekeeperStream isDarkMode={isDark} repoId={activeRepoId} />
+        <div className="min-h-0">
+          <GatekeeperStream isDarkMode={isDark} repoId={activeRepoId} />
+        </div>
 
         {/* 3. Codebase MRI (Right) */}
-        <CodebaseMRI isDarkMode={isDark} repoId={activeRepoId} />
+        <div className="min-h-0">
+          <CodebaseMRI isDarkMode={isDark} repoId={activeRepoId} />
+        </div>
       </div>
 
       {/* 4. Actions & Backlog (Bottom) */}

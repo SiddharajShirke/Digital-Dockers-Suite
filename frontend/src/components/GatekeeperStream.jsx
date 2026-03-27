@@ -11,6 +11,8 @@ import {
   FaWifi,
   FaPlay,
   FaMicroscope,
+  FaFileCode,
+  FaTasks,
 } from "react-icons/fa";
 import { format } from "date-fns";
 import { useGatekeeperFeed } from "../hooks/useGatekeeperFeed";
@@ -33,6 +35,7 @@ const GatekeeperStream = ({ isDarkMode, repoId }) => {
       repoId,
     },
     enableRealtime: true,
+    autoAnalyzePending: true,
   });
 
   const handleAnalyzeAll = async () => {
@@ -100,10 +103,54 @@ const GatekeeperStream = ({ isDarkMode, repoId }) => {
     }
   };
 
+  const isPRItem = (item) => {
+    return item?.type === "pull_request" || Number.isFinite(Number(item?.prNumber));
+  };
+
+  const getItemIcon = (item) => {
+    if (isPRItem(item)) return getStatusIcon(item.status);
+    if (item.type === "high_risk_file") return <FaFileCode className="text-orange-500" />;
+    if (item.type === "refactor_task") return <FaTasks className="text-blue-500" />;
+    return <FaExclamationTriangle className="text-yellow-500" />;
+  };
+
+  const getItemBorderColor = (item) => {
+    if (isPRItem(item)) return getStatusColor(item.status);
+    if (item.severity === "high") return "border-l-red-500";
+    if (item.severity === "medium") return "border-l-yellow-500";
+    return "border-l-blue-500";
+  };
+
+  const openDetail = (item) => {
+    if (!isPRItem(item)) return;
+    const merged = item?.data && item.data.prNumber
+      ? { ...item.data, ...item }
+      : item;
+    setSelectedPR(merged);
+  };
+
+  const normalizeVerdict = (verdict) => {
+    const normalized = String(verdict || "").toUpperCase();
+    if (normalized === "GOOD") return "Healthy";
+    if (normalized === "BAD") return "Risk Detected";
+    if (normalized === "RISKY") return "Needs Review";
+    return "Pending Review";
+  };
+
+  const compactRepoLabel = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "Repository";
+    const segments = raw.split("/").filter(Boolean);
+    if (segments.length >= 2) {
+      return `${segments[segments.length - 2]}/${segments[segments.length - 1]}`;
+    }
+    return raw;
+  };
+
   return (
     <>
       <div
-        className={`shadow rounded-lg p-6 h-full flex flex-col transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
+        className={`shadow rounded-lg p-6 h-full min-h-0 flex flex-col overflow-hidden isolate relative z-10 transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -155,7 +202,7 @@ const GatekeeperStream = ({ isDarkMode, repoId }) => {
             <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search PRs..."
+              placeholder="Search by PR title, author, branch, or number"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               disabled={!repoId}
@@ -188,7 +235,7 @@ const GatekeeperStream = ({ isDarkMode, repoId }) => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
           {!repoId ? (
             <div className="text-center py-10">
               <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
@@ -206,125 +253,241 @@ const GatekeeperStream = ({ isDarkMode, repoId }) => {
             </div>
           ) : feed.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">
-              No PRs found
+              No gatekeeper events match your current filters.
             </p>
           ) : (
-            feed.map((pr, index) => (
+            feed.map((item, index) => (
               <div
-                key={pr._id}
+                key={item.id || item._id || `${item.type || "item"}-${index}`}
                 ref={index === feed.length - 1 ? lastPRRef : null}
-                onClick={() => setSelectedPR(pr)}
-                className={`border-l-4 ${getStatusColor(pr.status)} rounded p-4 transition-all cursor-pointer hover:shadow-lg ${isDarkMode
+                onClick={() => openDetail(item)}
+                className={`border-l-4 ${getItemBorderColor(item)} rounded p-4 transition-all ${isPRItem(item) ? "cursor-pointer" : "cursor-default"} hover:shadow-lg ${isDarkMode
                   ? "bg-slate-700 hover:bg-slate-600"
                   : "bg-gray-50 hover:bg-gray-100"
                   }`}
               >
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                {isPRItem(item) ? (
+                  <>
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span
+                            className={`font-bold text-lg truncate ${isDarkMode ? "text-white" : "text-gray-800"}`}
+                          >
+                            #{item.prNumber} {item.title}
+                          </span>
+                          {getItemIcon(item)}
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded font-medium ${item.status === "BLOCK"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              : item.status === "PASS"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              }`}
+                          >
+                            {item.status}
+                          </span>
+                        </div>
+                        <p
+                          className={`text-xs mb-3 flex items-center gap-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
+                        >
+                          <span>{compactRepoLabel(item.repoId)}</span>
+                          <span>•</span>
+                          <span>@{item.author || "unknown"}</span>
+                          <span>•</span>
+                          <span>
+                            {item.createdAt || item.timestamp
+                              ? format(new Date(item.createdAt || item.timestamp), "HH:mm - MMM d")
+                              : "Now"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-right flex-shrink-0 bg-gray-50 dark:bg-slate-800 p-2 rounded">
+                          <div
+                            className={`text-2xl font-bold ${(item.risk_score || item.riskScore || item.healthScore?.current || 0) > 70
+                              ? "text-red-500"
+                              : (item.risk_score || item.riskScore || item.healthScore?.current || 0) > 40
+                                ? "text-yellow-500"
+                                : "text-green-500"
+                              }`}
+                          >
+                            {item.risk_score || item.riskScore || item.healthScore?.current || 0}
+                          </div>
+                          <div className="text-xs uppercase tracking-wider text-gray-400">
+                            Risk
+                          </div>
+                        </div>
+                        {item.status === "PENDING" && (
+                          <button
+                            onClick={(e) => handleAnalyzePR(item.prNumber, e)}
+                            disabled={analyzingPR === item.prNumber}
+                            className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${analyzingPR === item.prNumber
+                              ? "bg-indigo-400 text-white animate-pulse"
+                              : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                              }`}
+                          >
+                            <FaPlay size={8} />
+                            {analyzingPR === item.prNumber ? "Analyzing..." : "Analyze"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 text-xs mt-2 flex-wrap">
                       <span
-                        className={`font-bold text-lg truncate ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                      >
-                        #{pr.prNumber} {pr.title}
-                      </span>
-                      {getStatusIcon(pr.status)}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded font-medium ${pr.status === "BLOCK"
-                          ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          : pr.status === "PASS"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        className={`px-2 py-1 rounded ${item.analysisResults?.lint?.errors > 0
+                          ? "bg-red-200 text-red-900"
+                          : "bg-green-200 text-green-900"
                           }`}
                       >
-                        {pr.status}
+                        Code Quality: {item.analysisResults?.lint?.errors || 0} errors
+                        {`, ${item.analysisResults?.lint?.warnings || 0} warnings`}
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded ${item.analysisResults?.complexity?.healthScoreDelta < 0
+                          ? "bg-red-200 text-red-900"
+                          : "bg-green-200 text-green-900"
+                          }`}
+                      >
+                        Maintainability Impact: {item.analysisResults?.complexity?.healthScoreDelta > 0 ? "+" : ""}
+                        {item.analysisResults?.complexity?.healthScoreDelta || 0}
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded ${item.analysisResults?.aiScan?.verdict === "BAD"
+                          ? "bg-red-200 text-red-900"
+                          : "bg-green-200 text-green-900"
+                          }`}
+                      >
+                        AI Review: {normalizeVerdict(item.analysisResults?.aiScan?.verdict)}
                       </span>
                     </div>
-                    <p
-                      className={`text-xs mb-3 flex items-center gap-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}
-                    >
-                      <span>{pr.repoId}</span>
-                      <span>•</span>
-                      <span>@{pr.author}</span>
-                      <span>•</span>
-                      <span>
-                        {pr.createdAt
-                          ? format(new Date(pr.createdAt), "HH:mm - MMM d")
-                          : "Now"}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="text-right flex-shrink-0 bg-gray-50 dark:bg-slate-800 p-2 rounded">
+
+                    {item.analysisResults?.aiScan?.findings?.length > 0 && (
                       <div
-                        className={`text-2xl font-bold ${(pr.risk_score || pr.healthScore?.current || 0) > 70
-                          ? "text-red-500"
-                          : (pr.risk_score || pr.healthScore?.current || 0) > 40
-                            ? "text-yellow-500"
-                            : "text-green-500"
+                        className={`mt-3 p-2 text-xs rounded border flex gap-2 ${isDarkMode
+                          ? "bg-slate-800 border-slate-600 text-gray-300"
+                          : "bg-white border-gray-200 text-gray-600"
                           }`}
                       >
-                        {pr.risk_score || pr.healthScore?.current || 0}
+                        <FaRobot className="flex-shrink-0 text-indigo-400 mt-1" />
+                        <div>
+                          <span className="font-semibold">AI Insight:</span>{" "}
+                          {item.analysisResults.aiScan.findings[0]?.message || "Potential risk detected."}
+                        </div>
                       </div>
-                      <div className="text-xs uppercase tracking-wider text-gray-400">
-                        Risk
-                      </div>
-                    </div>
-                    {pr.status === "PENDING" && (
-                      <button
-                        onClick={(e) => handleAnalyzePR(pr.prNumber, e)}
-                        disabled={analyzingPR === pr.prNumber}
-                        className={`px-2 py-1 text-xs rounded flex items-center gap-1 ${analyzingPR === pr.prNumber
-                          ? "bg-indigo-400 text-white animate-pulse"
-                          : "bg-indigo-600 hover:bg-indigo-500 text-white"
-                          }`}
-                      >
-                        <FaPlay size={8} />
-                        {analyzingPR === pr.prNumber ? "Analyzing..." : "Analyze"}
-                      </button>
                     )}
-                  </div>
-                </div>
-
-                <div className="flex gap-2 text-xs mt-2 flex-wrap">
-                  <span
-                    className={`px-2 py-1 rounded ${pr.analysisResults?.lint?.errors > 0
-                      ? "bg-red-200 text-red-900"
-                      : "bg-green-200 text-green-900"
-                      }`}
-                  >
-                    Lint: {pr.analysisResults?.lint?.errors || 0} err
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded ${pr.analysisResults?.complexity?.healthScoreDelta < 0
-                      ? "bg-red-200 text-red-900"
-                      : "bg-green-200 text-green-900"
-                      }`}
-                  >
-                    Compl: {pr.analysisResults?.complexity?.healthScoreDelta > 0 ? "+" : ""}
-                    {pr.analysisResults?.complexity?.healthScoreDelta || 0}
-                  </span>
-                  <span
-                    className={`px-2 py-1 rounded ${pr.analysisResults?.aiScan?.verdict === "BAD"
-                      ? "bg-red-200 text-red-900"
-                      : "bg-green-200 text-green-900"
-                      }`}
-                  >
-                    AI: {pr.analysisResults?.aiScan?.verdict || "N/A"}
-                  </span>
-                </div>
-
-                {pr.analysisResults?.aiScan?.findings?.length > 0 && (
-                  <div
-                    className={`mt-3 p-2 text-xs rounded border flex gap-2 ${isDarkMode
-                      ? "bg-slate-800 border-slate-600 text-gray-300"
-                      : "bg-white border-gray-200 text-gray-600"
-                      }`}
-                  >
-                    <FaRobot className="flex-shrink-0 text-indigo-400 mt-1" />
-                    <div>
-                      {pr.analysisResults.aiScan.findings[0]?.message || "Issues found."}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {getItemIcon(item)}
+                          <span className={`font-semibold truncate ${isDarkMode ? "text-white" : "text-gray-800"}`}>
+                            {item.title || item.type || "Gatekeeper Alert"}
+                          </span>
+                          {item.type === "high_risk_file" && (
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded font-semibold ${item.status === "HIGH_RISK"
+                                ? "bg-red-100 text-red-800"
+                                : item.status === "WATCH"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-green-100 text-green-800"
+                                }`}
+                            >
+                              {item.status || "SAFE"}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-xs ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+                          {item.path || item.description || "No details available"}
+                        </p>
+                        <p className={`text-[11px] mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                          {item.language ? `Language: ${item.language}` : "Language: Unknown"}
+                          {item.riskScore !== undefined ? ` • Risk score: ${item.riskScore}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {item.riskScore !== undefined && (
+                          <div className={`text-lg font-bold ${item.riskScore > 70 ? "text-red-500" : item.riskScore > 40 ? "text-yellow-500" : "text-green-500"}`}>
+                            {item.riskScore}
+                          </div>
+                        )}
+                        <div className="text-[10px] uppercase tracking-wider text-gray-400">
+                          {item.type === "high_risk_file" ? "File" : "Task"}
+                        </div>
+                      </div>
                     </div>
-                  </div>
+
+                    {item.type === "high_risk_file" && item.analysisResults && (
+                      <div className="flex gap-2 text-xs mt-2 flex-wrap">
+                        <span
+                          className={`px-2 py-1 rounded ${(item.analysisResults?.lint?.errors || 0) > 0
+                            ? "bg-red-200 text-red-900"
+                            : "bg-green-200 text-green-900"
+                            }`}
+                        >
+                          Code Quality: {item.analysisResults?.lint?.errors || 0} errors
+                          {`, ${item.analysisResults?.lint?.warnings || 0} warnings`}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded ${(item.analysisResults?.complexity?.healthScoreDelta || 0) < 0
+                            ? "bg-red-200 text-red-900"
+                            : "bg-green-200 text-green-900"
+                            }`}
+                        >
+                          Maintainability Impact: {(item.analysisResults?.complexity?.healthScoreDelta || 0) > 0 ? "+" : ""}
+                          {item.analysisResults?.complexity?.healthScoreDelta || 0}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded ${item.analysisResults?.aiScan?.verdict === "BAD"
+                            ? "bg-red-200 text-red-900"
+                            : item.analysisResults?.aiScan?.verdict === "RISKY"
+                              ? "bg-yellow-200 text-yellow-900"
+                              : "bg-green-200 text-green-900"
+                            }`}
+                        >
+                          AI Review: {normalizeVerdict(item.analysisResults?.aiScan?.verdict)}
+                        </span>
+                      </div>
+                    )}
+
+                    {item.type === "high_risk_file" && (item.statusReasoning || item.analysisResults?.aiScan?.reasoning) && (
+                      <div
+                        className={`mt-2 p-2 text-xs rounded border ${isDarkMode
+                          ? "bg-slate-800 border-slate-600 text-gray-300"
+                          : "bg-white border-gray-200 text-gray-600"
+                          }`}
+                      >
+                        <span className="font-semibold">Why this file is flagged:</span>{" "}
+                        {item.statusReasoning || item.analysisResults?.aiScan?.reasoning}
+                      </div>
+                    )}
+
+                    {item.type === "high_risk_file" && item.analysisResults?.aiScan?.findings?.length > 0 && (
+                      <div
+                        className={`mt-2 p-2 text-xs rounded border flex gap-2 ${isDarkMode
+                          ? "bg-slate-800 border-slate-600 text-gray-300"
+                          : "bg-white border-gray-200 text-gray-600"
+                          }`}
+                      >
+                        <FaRobot className="flex-shrink-0 text-indigo-400 mt-1" />
+                        <div className="space-y-1">
+                          <div className="font-semibold">AI Findings and Suggestions</div>
+                          {item.analysisResults.aiScan.findings.slice(0, 3).map((finding, findingIdx) => (
+                            <div key={`file-finding-${findingIdx}`}>
+                              {findingIdx + 1}. {finding?.message || "No semantic finding available."}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`mt-2 text-[11px] ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                      {item.timestamp ? format(new Date(item.timestamp), "HH:mm - MMM d") : "Now"}
+                    </div>
+                  </>
                 )}
               </div>
             ))

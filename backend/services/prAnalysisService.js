@@ -7,13 +7,13 @@ const fs = require('fs').promises;
 /**
  * PR Analysis Service
  * Analyzes Pull Request code changes and provides PASS/BLOCK verdicts
- * Uses Gemini AI for semantic code analysis
+ * Uses NVIDIA AI (with fallback support) for semantic code analysis
  */
 class PRAnalysisService {
     constructor() {
         this.githubService = new GitHubService();
         this.complexityService = new ComplexityAnalysisService();
-        
+
         // Thresholds for PASS/BLOCK decisions
         this.thresholds = {
             maxComplexity: 25,        // Block if any file exceeds this
@@ -48,7 +48,7 @@ class PRAnalysisService {
      */
     async analyzePR(owner, repo, prNumber) {
         console.log(`[PRAnalysis] Starting analysis for PR #${prNumber} in ${owner}/${repo}`);
-        
+
         const results = {
             lint: { errors: 0, warnings: 0, issues: [] },
             complexity: { healthScoreDelta: 0, fileChanges: [], avgComplexity: 0 },
@@ -64,7 +64,11 @@ class PRAnalysisService {
                     performance: 100,
                     testing: 50
                 },
-                findings: []
+                findings: [],
+                provider: 'none',
+                model: 'none',
+                fallbackUsed: false,
+                generatedAt: null
             },
             overallRisk: 0,
             verdict: 'PENDING',
@@ -75,7 +79,7 @@ class PRAnalysisService {
         try {
             let changedFiles = [];
             let useLocalFiles = false;
-            
+
             // 1. Try to get changed files from GitHub API
             try {
                 changedFiles = await this.githubService.getFilesChanged(owner, repo, prNumber);
@@ -91,7 +95,7 @@ class PRAnalysisService {
                     throw apiError;
                 }
             }
-            
+
             if (changedFiles.length === 0) {
                 // Try local files as fallback
                 changedFiles = await this.getLocalRepoFiles(owner, repo);
@@ -111,23 +115,32 @@ class PRAnalysisService {
                 }
 
                 const fileAnalysis = await this.analyzeFile(owner, repo, file, prNumber, useLocalFiles);
-                
+
                 if (fileAnalysis) {
                     // Aggregate lint issues
                     results.lint.errors += fileAnalysis.lint.errors;
                     results.lint.warnings += fileAnalysis.lint.warnings;
                     results.lint.issues.push(...fileAnalysis.lint.issues);
 
-                    // Aggregate complexity
+                    // Aggregate complexity for averages
                     if (fileAnalysis.complexity > 0) {
                         totalComplexity += fileAnalysis.complexity;
                         analyzedFiles++;
-                        
+                    }
+
+                    // Store per-file metrics for dynamic Files tab rendering
+                    if (fileAnalysis.fileMetrics?.analyzed || fileAnalysis.complexity > 0) {
                         results.complexity.fileChanges.push({
                             file: filename,
                             complexity: fileAnalysis.complexity,
                             additions: file.additions || 0,
-                            deletions: file.deletions || 0
+                            deletions: file.deletions || 0,
+                            loc: fileAnalysis.fileMetrics?.loc || 0,
+                            riskScore: fileAnalysis.fileMetrics?.riskScore || 0,
+                            lintErrors: fileAnalysis.fileMetrics?.lintErrors || 0,
+                            lintWarnings: fileAnalysis.fileMetrics?.lintWarnings || 0,
+                            securityIssues: fileAnalysis.fileMetrics?.securityIssues || 0,
+                            codeSmells: fileAnalysis.fileMetrics?.codeSmells || 0
                         });
                     }
 
@@ -143,15 +156,15 @@ class PRAnalysisService {
                 }
             }
 
-            // 3. Run Gemini AI semantic analysis on changed files
-            console.log(`[PRAnalysis] Running Gemini AI semantic analysis...`);
+            // 3. Run semantic analysis (NVIDIA primary)
+            console.log('[PRAnalysis] Running semantic AI analysis...');
             try {
                 // Prepare files for AI analysis (limit to 5 most relevant files)
                 const filesForAI = [];
                 for (const file of changedFiles.slice(0, 5)) {
                     const fname = file.filename || file.path;
                     if (this.shouldSkipFile(fname)) continue;
-                    
+
                     let content = '';
                     if (useLocalFiles && file.localPath) {
                         // Read from local file
@@ -165,32 +178,49 @@ class PRAnalysisService {
                     } else if (file.patch) {
                         content = this.extractAddedLines(file.patch);
                     }
-                    
+
                     if (content) {
                         filesForAI.push({ path: fname, content });
                     }
                 }
-                
+
                 if (filesForAI.length > 0) {
                     const aiResult = await llmScanService.scan(filesForAI);
-                    
+
                     if (aiResult && aiResult.verdict) {
                         results.aiScan.verdict = aiResult.verdict;
-                        
+                        results.aiScan.provider = aiResult.provider || 'unknown';
+                        results.aiScan.model = aiResult.model || 'unknown';
+                        results.aiScan.fallbackUsed = Boolean(aiResult.fallbackUsed);
+                        results.aiScan.generatedAt = aiResult.generatedAt || new Date().toISOString();
+
+                        const toPercentScore = (score, fallback = 3) => {
+                            const numeric = Number(score);
+                            if (!Number.isFinite(numeric)) {
+                                return fallback * 20;
+                            }
+                            if (numeric > 5) {
+                                return Math.max(0, Math.min(100, Math.round(numeric)));
+                            }
+                            return Math.max(0, Math.min(100, Math.round(numeric * 20)));
+                        };
+
                         // Map AI categories (1-5 scale to 0-100)
                         if (aiResult.categories) {
-                            results.aiScan.categories.security = (aiResult.categories.security || 5) * 20;
-                            results.aiScan.categories.correctness = (aiResult.categories.correctness || 5) * 20;
-                            results.aiScan.categories.maintainability = (aiResult.categories.maintainability || 5) * 20;
-                            results.aiScan.categories.performance = (aiResult.categories.performance || 5) * 20;
-                            results.aiScan.categories.testing = (aiResult.categories.testing || 3) * 20;
+                            results.aiScan.categories.security = toPercentScore(aiResult.categories.security, 5);
+                            results.aiScan.categories.correctness = toPercentScore(aiResult.categories.correctness, 5);
+                            results.aiScan.categories.maintainability = toPercentScore(aiResult.categories.maintainability, 5);
+                            results.aiScan.categories.performance = toPercentScore(aiResult.categories.performance, 5);
+                            results.aiScan.categories.testing = toPercentScore(aiResult.categories.testing, 3);
                         }
-                        
+
                         // Add AI findings
                         if (aiResult.findings && Array.isArray(aiResult.findings)) {
                             results.aiScan.findings = aiResult.findings.map(f => ({
                                 file: f.file,
-                                lineRange: f.lineRange || [1, 1],
+                                lineRange: Array.isArray(f.lineRange) && f.lineRange.length >= 2
+                                    ? [Number(f.lineRange[0]) || 1, Number(f.lineRange[1]) || Number(f.lineRange[0]) || 1]
+                                    : [1, 1],
                                 message: f.message,
                                 suggestion: f.suggestion || '',
                                 debtImpact: f.severity > 3 ? 'adds' : 'neutral',
@@ -198,27 +228,27 @@ class PRAnalysisService {
                                 confidence: f.confidence || 'medium'
                             }));
                         }
-                        
-                        console.log(`[PRAnalysis] Gemini verdict: ${aiResult.verdict}`);
+
+                        console.log(`[PRAnalysis] AI verdict (${results.aiScan.provider}/${results.aiScan.model}): ${aiResult.verdict}`);
                     }
                 }
             } catch (aiError) {
-                console.error(`[PRAnalysis] Gemini AI analysis failed:`, aiError.message);
+                console.error('[PRAnalysis] Semantic AI analysis failed:', aiError.message);
                 // Continue with pattern-based analysis as fallback
             }
 
             // 4. Calculate metrics
-            results.complexity.avgComplexity = analyzedFiles > 0 
-                ? Math.round(totalComplexity / analyzedFiles) 
+            results.complexity.avgComplexity = analyzedFiles > 0
+                ? Math.round(totalComplexity / analyzedFiles)
                 : 0;
-            
+
             // Calculate health score delta (negative = worse)
             results.complexity.healthScoreDelta = this.calculateHealthDelta(results);
-            
+
             // Calculate security score
             results.security.score = Math.max(0, 100 - (results.security.issues.length * 20));
-            
-            // Only update AI scan categories if Gemini didn't provide them (fallback)
+
+            // Only update AI scan categories if AI did not provide them
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.categories.security = results.security.score;
                 results.aiScan.categories.maintainability = Math.max(0, 100 - (results.codeSmells.count * 5));
@@ -228,12 +258,12 @@ class PRAnalysisService {
             // 5. Calculate overall risk
             results.overallRisk = this.calculateOverallRisk(results);
 
-            // 6. Determine verdict (considering Gemini AI verdict)
+            // 6. Determine verdict (considering semantic AI verdict)
             const verdictResult = this.determineVerdict(results);
             results.verdict = verdictResult.verdict;
             results.blockReasons = verdictResult.blockReasons;
-            
-            // Keep Gemini AI verdict if it was set
+
+            // Keep AI verdict if it was set
             if (results.aiScan.verdict === 'PENDING') {
                 results.aiScan.verdict = this.mapVerdictToAIScan(results.verdict);
             }
@@ -242,7 +272,7 @@ class PRAnalysisService {
             results.summary = this.generateSummary(results, changedFiles.length);
 
             console.log(`[PRAnalysis] Completed: ${results.verdict} (Risk: ${results.overallRisk})`);
-            
+
             return results;
 
         } catch (error) {
@@ -259,21 +289,21 @@ class PRAnalysisService {
     async getLocalRepoFiles(owner, repo) {
         const repoPath = path.join(__dirname, '..', 'repos', owner, repo);
         const files = [];
-        
+
         try {
             await fs.access(repoPath);
         } catch {
             console.log(`[PRAnalysis] Local repo not found at ${repoPath}`);
             return files;
         }
-        
+
         const walkDir = async (dir, baseDir = '') => {
             try {
                 const entries = await fs.readdir(dir, { withFileTypes: true });
                 for (const entry of entries) {
                     const fullPath = path.join(dir, entry.name);
                     const relativePath = path.join(baseDir, entry.name).replace(/\\/g, '/');
-                    
+
                     // Skip common non-code directories
                     if (entry.isDirectory()) {
                         if (['node_modules', '.git', 'dist', 'build', 'coverage', '.next'].includes(entry.name)) {
@@ -295,9 +325,9 @@ class PRAnalysisService {
                 // Skip unreadable directories
             }
         };
-        
+
         await walkDir(repoPath);
-        
+
         // Limit to 50 most important files
         return files.slice(0, 50);
     }
@@ -312,13 +342,22 @@ class PRAnalysisService {
             complexity: 0,
             security: { issues: [] },
             codeSmells: [],
-            findings: []
+            findings: [],
+            fileMetrics: {
+                analyzed: false,
+                loc: 0,
+                lintErrors: 0,
+                lintWarnings: 0,
+                securityIssues: 0,
+                codeSmells: 0,
+                riskScore: 0
+            }
         };
 
         try {
             // Get file content
             let content = '';
-            
+
             if (useLocalFiles && file.localPath) {
                 // Read from local clone
                 try {
@@ -343,17 +382,21 @@ class PRAnalysisService {
 
             if (!content) return analysis;
 
+            const totalLines = content.split('\n').length;
+            analysis.fileMetrics.analyzed = true;
+            analysis.fileMetrics.loc = totalLines;
+
             // Analyze complexity
             if (this.isJavaScriptFile(filename)) {
                 try {
                     const complexityResult = this.complexityService.analyzeCode(content, filename);
                     analysis.complexity = complexityResult.complexity || 0;
-                    
+
                     // Check for high complexity
                     if (analysis.complexity > this.thresholds.maxComplexity) {
                         analysis.findings.push({
                             file: filename,
-                            lineRange: [1, content.split('\n').length],
+                            lineRange: [1, totalLines],
                             message: `High cyclomatic complexity: ${analysis.complexity}`,
                             suggestion: 'Consider breaking down this file into smaller functions',
                             debtImpact: 'adds',
@@ -397,7 +440,7 @@ class PRAnalysisService {
                         pattern: pattern.source,
                         count: matches.length
                     });
-                    
+
                     // Only add as lint warning, not error
                     analysis.lint.warnings += matches.length;
                     analysis.lint.issues.push({
@@ -415,6 +458,21 @@ class PRAnalysisService {
                 analysis.lint.warnings += syntaxIssues.warnings;
                 analysis.lint.issues.push(...syntaxIssues.issues);
             }
+
+            analysis.fileMetrics.lintErrors = analysis.lint.errors;
+            analysis.fileMetrics.lintWarnings = analysis.lint.warnings;
+            analysis.fileMetrics.securityIssues = analysis.security.issues.length;
+            analysis.fileMetrics.codeSmells = analysis.codeSmells.length;
+
+            const riskScore = Math.min(
+                100,
+                (analysis.complexity * 2) +
+                (analysis.lint.errors * 12) +
+                (analysis.lint.warnings * 2) +
+                (analysis.security.issues.length * 25) +
+                (analysis.codeSmells.length * 5)
+            );
+            analysis.fileMetrics.riskScore = Math.round(riskScore);
 
             return analysis;
 
@@ -475,10 +533,10 @@ class PRAnalysisService {
      */
     checkBasicSyntax(content, filename) {
         const result = { errors: 0, warnings: 0, issues: [] };
-        
+
         // Check for common issues
         const lines = content.split('\n');
-        
+
         lines.forEach((line, index) => {
             // Very long lines
             if (line.length > 200) {
@@ -490,7 +548,7 @@ class PRAnalysisService {
                     severity: 'warning'
                 });
             }
-            
+
             // Multiple statements on one line
             if ((line.match(/;/g) || []).length > 3) {
                 result.warnings++;
@@ -511,22 +569,22 @@ class PRAnalysisService {
      */
     calculateHealthDelta(results) {
         let delta = 0;
-        
+
         // Complexity impact
         if (results.complexity.avgComplexity > 15) {
             delta -= (results.complexity.avgComplexity - 15) * 2;
         }
-        
+
         // Lint errors impact
         delta -= results.lint.errors * 5;
         delta -= results.lint.warnings * 1;
-        
+
         // Security issues impact
         delta -= results.security.issues.length * 10;
-        
+
         // Code smells impact
         delta -= results.codeSmells.count * 2;
-        
+
         return Math.max(-100, Math.min(100, delta));
     }
 
@@ -535,23 +593,23 @@ class PRAnalysisService {
      */
     calculateOverallRisk(results) {
         let risk = 0;
-        
+
         // Complexity contributes 30%
         const complexityRisk = Math.min(100, (results.complexity.avgComplexity / 30) * 100);
         risk += complexityRisk * 0.3;
-        
+
         // Lint errors contribute 20%
         const lintRisk = Math.min(100, results.lint.errors * 10);
         risk += lintRisk * 0.2;
-        
+
         // Security issues contribute 35%
         const securityRisk = 100 - results.security.score;
         risk += securityRisk * 0.35;
-        
+
         // Code smells contribute 15%
         const smellRisk = Math.min(100, results.codeSmells.count * 10);
         risk += smellRisk * 0.15;
-        
+
         return Math.round(risk);
     }
 
@@ -560,54 +618,54 @@ class PRAnalysisService {
      */
     determineVerdict(results) {
         const blockReasons = [];
-        
+
         // Check blocking conditions
         if (results.lint.errors > this.thresholds.maxLintErrors) {
             blockReasons.push(`Too many lint errors: ${results.lint.errors}`);
         }
-        
+
         if (results.security.issues.length > 0) {
             blockReasons.push(`Security issues detected: ${results.security.issues.length}`);
         }
-        
+
         if (results.overallRisk > this.thresholds.maxRiskScore) {
             blockReasons.push(`Risk score too high: ${results.overallRisk}`);
         }
-        
+
         const maxFileComplexity = Math.max(
-            0, 
+            0,
             ...results.complexity.fileChanges.map(f => f.complexity)
         );
         if (maxFileComplexity > this.thresholds.maxComplexity) {
             blockReasons.push(`File complexity exceeds limit: ${maxFileComplexity}`);
         }
-        
-        // Check Gemini AI verdict - if AI says BAD, it should influence blocking
+
+        // Check AI verdict - if AI says BAD, it should influence blocking
         if (results.aiScan.verdict === 'BAD') {
-            blockReasons.push(`Gemini AI detected critical issues`);
+            blockReasons.push('Semantic AI detected critical issues');
         }
-        
+
         // Determine verdict
         if (blockReasons.length > 0) {
             return { verdict: 'BLOCK', blockReasons };
         }
-        
+
         // Check warning conditions
         if (results.codeSmells.count > 5 || results.lint.warnings > 10) {
-            return { 
-                verdict: 'WARN', 
+            return {
+                verdict: 'WARN',
                 blockReasons: [`Code quality concerns: ${results.codeSmells.count} smells, ${results.lint.warnings} warnings`]
             };
         }
-        
-        // Check Gemini AI verdict for warnings
+
+        // Check AI verdict for warnings
         if (results.aiScan.verdict === 'RISKY') {
             return {
                 verdict: 'WARN',
-                blockReasons: ['Gemini AI detected potential risks in code']
+                blockReasons: ['Semantic AI detected potential risks in code']
             };
         }
-        
+
         return { verdict: 'PASS', blockReasons: [] };
     }
 
@@ -629,9 +687,9 @@ class PRAnalysisService {
      */
     generateSummary(results, fileCount) {
         const parts = [];
-        
+
         parts.push(`Analyzed ${fileCount} files.`);
-        
+
         if (results.verdict === 'PASS') {
             parts.push('✅ Code quality looks good!');
         } else if (results.verdict === 'WARN') {
@@ -639,31 +697,32 @@ class PRAnalysisService {
         } else if (results.verdict === 'BLOCK') {
             parts.push('🚫 Critical issues found - blocking merge.');
         }
-        
-        // Gemini AI verdict
+
+        // AI verdict
         if (results.aiScan.verdict !== 'PENDING') {
-            parts.push(`🤖 Gemini AI: ${results.aiScan.verdict}.`);
+            const providerLabel = results.aiScan.provider || 'ai';
+            parts.push(`AI (${providerLabel}): ${results.aiScan.verdict}.`);
         }
-        
+
         if (results.lint.errors > 0) {
             parts.push(`Lint: ${results.lint.errors} errors, ${results.lint.warnings} warnings.`);
         }
-        
+
         if (results.security.issues.length > 0) {
             parts.push(`Security: ${results.security.issues.length} potential issues.`);
         }
-        
+
         if (results.codeSmells.count > 0) {
             parts.push(`Code smells: ${results.codeSmells.count} detected.`);
         }
-        
+
         // Add AI findings summary
         if (results.aiScan.findings && results.aiScan.findings.length > 0) {
             parts.push(`AI findings: ${results.aiScan.findings.length} issues.`);
         }
-        
+
         parts.push(`Risk score: ${results.overallRisk}/100.`);
-        
+
         return parts.join(' ');
     }
 }

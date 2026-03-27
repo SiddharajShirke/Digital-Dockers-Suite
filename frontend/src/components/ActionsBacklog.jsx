@@ -143,7 +143,7 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
 
   return (
     <div
-      className={`shadow rounded-lg p-6 transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
+      className={`relative z-0 shadow rounded-lg p-6 transition-colors ${isDarkMode ? "bg-slate-800 border border-slate-700" : "bg-white"}`}
     >
       {/* Header with Filters */}
       <div className="flex justify-between items-center mb-4">
@@ -158,11 +158,10 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className={`px-3 py-1 rounded border text-sm ${
-              isDarkMode
+            className={`px-3 py-1 rounded border text-sm ${isDarkMode
                 ? "bg-slate-700 border-slate-600 text-white"
                 : "bg-white border-gray-300"
-            }`}
+              }`}
           >
             <option value="priority">Sort by Priority</option>
             <option value="risk">Sort by Risk</option>
@@ -173,11 +172,10 @@ const ActionsBacklog = ({ isDarkMode, repoId }) => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`px-3 py-1 rounded border text-sm ${
-              isDarkMode
+            className={`px-3 py-1 rounded border text-sm ${isDarkMode
                 ? "bg-slate-700 border-slate-600 text-white"
                 : "bg-white border-gray-300"
-            }`}
+              }`}
           >
             <option value="">All Status</option>
             <option value="OPEN">Open</option>
