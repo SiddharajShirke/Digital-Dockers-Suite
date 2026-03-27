@@ -2,8 +2,9 @@ import api from './api';
 
 const projectStatsService = {
     // Get project statistics for dashboard
-    getProjectStats: async (projectId) => {
-        const response = await api.get(`/projects/${projectId}/stats`);
+    getProjectStats: async (projectId, sprintId) => {
+        const url = `/projects/${projectId}/stats${sprintId ? `?sprintId=${sprintId}` : ''}`;
+        const response = await api.get(url);
         return response.data;
     },
 

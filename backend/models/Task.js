@@ -135,6 +135,10 @@ const taskSchema = mongoose.Schema({
     }],
     completedAt: Date, // For velocity calculation
     completedPoints: Number, // Snapshot of points when completed
+
+    // AI Architect Fields
+    specializationMatch: String, // Reason for assignment based on CV/Resume
+    fitScore: Number, // 0 to 1 score of skill overlap
 }, {
     timestamps: true
 });

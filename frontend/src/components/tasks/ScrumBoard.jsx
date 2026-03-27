@@ -20,12 +20,11 @@ import './ScrumBoard.css';
  * @component
  */
 const ScrumBoard = () => {
-    const { currentProject, sprints, activeSprint } = useProject();
+    const { currentProject, sprints, activeSprint, selectedSprintId, setSelectedSprintId, syncTrigger } = useProject();
     const { mode } = useThemeMode();
     const isDark = mode === 'dark';
 
     // State Management
-    const [selectedSprint, setSelectedSprint] = useState(null);
     const [tasks, setTasks] = useState({});
     const [loading, setLoading] = useState(false);
     const [refreshTrigger] = useState(0);
@@ -59,22 +58,24 @@ const ScrumBoard = () => {
     };
 
     /**
-     * Initialize with active sprint
+     * Initialize with active sprint if no selection exists
      */
     useEffect(() => {
-        if (activeSprint) {
-            setSelectedSprint(activeSprint._id);
-        } else if (sprints.length > 0) {
-            setSelectedSprint(sprints[0]._id);
+        if (selectedSprintId === 'general' && activeSprint) {
+            // If it's general, we stay general. 
+            // But if we want to auto-select active on first load:
+            // setSelectedSprintId(activeSprint._id);
         }
-    }, [sprints, activeSprint]);
+    }, [activeSprint, selectedSprintId]);
 
     const loadSprintTasks = useCallback(async () => {
-        if (!selectedSprint) return;
+        if (!selectedSprintId && !currentProject) return;
         setLoading(true);
         try {
-            // Fetch tasks for the selected sprint
-            const sprintTasks = await taskService.getTasksBySprint(selectedSprint);
+            // Fetch tasks for the selected sprint OR all tasks for project if general
+            const sprintTasks = selectedSprintId === 'general' 
+                ? await taskService.getTasksByProject(currentProject._id)
+                : await taskService.getTasksBySprint(selectedSprintId);
 
             // Group tasks by status
             const groupedTasks = {
@@ -110,26 +111,13 @@ const ScrumBoard = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedSprint]);
+    }, [selectedSprintId, currentProject]);
 
-    /**
-     * Load sprint tasks and calculate metrics
-     */
     useEffect(() => {
-        if (selectedSprint && currentProject) {
+        if (selectedSprintId && currentProject) {
             loadSprintTasks();
         }
-    }, [selectedSprint, currentProject, refreshTrigger, loadSprintTasks]);
-
-    /**
-     * Reload when sprints data changes (when tasks are created/updated)
-     */
-    useEffect(() => {
-        if (selectedSprint && sprints.length > 0) {
-            // Auto-reload tasks when sprint data updates
-            loadSprintTasks();
-        }
-    }, [sprints, selectedSprint, loadSprintTasks]);
+    }, [selectedSprintId, currentProject, refreshTrigger, loadSprintTasks, syncTrigger]);
 
 
     /**
@@ -187,7 +175,8 @@ const ScrumBoard = () => {
      * Get selected sprint details
      */
     const getCurrentSprintDetails = () => {
-        return sprints.find(s => s._id === selectedSprint);
+        if (selectedSprintId === 'general') return { name: 'General (Project Wide)', status: 'Active' };
+        return sprints.find(s => s._id === selectedSprintId);
     };
 
     if (loading && Object.values(tasks).every(col => col.length === 0)) {
@@ -203,15 +192,18 @@ const ScrumBoard = () => {
                 <div className="sprint-selector-section">
                     <label>Select Sprint:</label>
                     <Select
-                        value={selectedSprint}
-                        onChange={setSelectedSprint}
-                        style={{ width: 250 }}
+                        value={selectedSprintId}
+                        onChange={setSelectedSprintId}
+                        style={{ width: 300 }}
                         placeholder="Select a sprint"
-                        options={sprints.map(sprint => ({
-                            label: `${sprint.name} (${sprint.status})`,
-                            value: sprint._id,
-                        }))}
-                    />
+                    >
+                        <Select.Option value="general">🌐 General (Project Wide)</Select.Option>
+                        {sprints.map(sprint => (
+                            <Select.Option key={sprint._id} value={sprint._id}>
+                                🏃 {sprint.name} ({sprint.status})
+                            </Select.Option>
+                        ))}
+                    </Select>
                 </div>
 
                 {currentSprint && (

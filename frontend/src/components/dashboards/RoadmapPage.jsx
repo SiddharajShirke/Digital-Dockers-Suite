@@ -11,7 +11,7 @@ import { generateMonthlyProgressData } from '../../utils/monthlyProgressData';
 import './RoadmapPage.css';
 
 const RoadmapPage = () => {
-    const { currentProject } = useProject();
+    const { currentProject, syncTrigger } = useProject();
     const [epics, setEpics] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,7 +42,7 @@ const RoadmapPage = () => {
         // Load monthly progress data
         const data = generateMonthlyProgressData();
         setMonthlyData(data);
-    }, [currentProject]);
+    }, [currentProject, syncTrigger]);
 
     // Handle create epic
     const handleCreateEpic = async (epicData) => {

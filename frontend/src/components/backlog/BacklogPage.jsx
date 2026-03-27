@@ -52,7 +52,7 @@ const STATUS_LABEL = {
 
 
 const BacklogPage = () => {
-    const { currentProject, sprints, activeSprint } = useProject();
+    const { currentProject, sprints, activeSprint, syncTrigger } = useProject();
     const [backlogIssues, setBacklogIssues] = useState([]);
     const [sprintIssues, setSprintIssues] = useState([]);
     const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -118,7 +118,7 @@ const BacklogPage = () => {
             loadBacklogIssues();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentProject, activeSprint, sprints]);
+    }, [currentProject, activeSprint, sprints, syncTrigger]);
 
     const loadBacklogIssues = async () => {
         setLoading(true);

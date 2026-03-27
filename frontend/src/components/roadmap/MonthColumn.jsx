@@ -1,142 +1,157 @@
 import React from 'react';
-import { Progress, Tag, Space } from 'antd';
-import { BulbOutlined } from '@ant-design/icons';
-import TaskCard from './TaskCard';
-import { calculateProgressPercentage, formatMonthYear } from '../../utils/roadmapData';
-import '../../styles/MonthColumn.css';
+import { Card, Progress, Typography, Divider, Badge } from 'antd';
+import { InfoCircleOutlined, WarningOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import SprintCard from './SprintCard';
+
+const { Title, Text } = Typography;
 
 /**
  * MonthColumn Component
- * 
- * Represents a single month in the roadmap timeline with:
- * - Month header with metrics
- * - Planned tasks section
- * - Completed tasks section
- * - Carried over tasks section
- * - AI insight card
+ * Represents a vertical Kanban column for a specific month in the roadmap.
+ * Contains "COMPLETED", "PLANNED / IN PROGRESS", and "CARRIED OVER" sections.
  */
-const MonthColumn = ({ month, isCurrentMonth }) => {
-  const totalPlanned = month.planned.length + month.carriedOver.length;
-  const totalCompleted = month.completed.length;
-  const progressPercent = calculateProgressPercentage(totalPlanned, totalCompleted);
+const MonthColumn = ({ monthData, aiInsight }) => {
+    const { 
+        month, 
+        totalPointsPlanned = 0, 
+        completedPoints = 0, 
+        projects = [] 
+    } = monthData;
 
-  return (
-    <div className={`month-column ${isCurrentMonth ? 'current-month' : ''}`}>
-      {/* Month Header */}
-      <div className="month-header">
-        <h3 className="month-title">{formatMonthYear(month.date)}</h3>
+    // Calculate overall month progress
+    const progressPercent = totalPointsPlanned > 0 
+        ? Math.round((completedPoints / totalPointsPlanned) * 100) 
+        : 0;
+
+    let progressColor = '#1890ff'; // Blue default
+    if (progressPercent === 100) progressColor = '#52c41a'; // Green finished
+    else if (progressPercent < 50 && new Date(month) < new Date()) progressColor = '#faad14'; // Yellow warning for past months
+
+    // Extract all sprints from all projects in this month
+    const allSprints = [];
+    projects.forEach(p => {
+        (p.sprints || []).forEach(s => {
+            allSprints.push({ ...s, projectName: p.projectName, projectOrigin: p.origin });
+        });
+    });
+
+    // Categorize sprints
+    const completedSprints = allSprints.filter(s => 
+        s.status === 'CLOSED' || parseInt(s.progress) === 100
+    );
+    
+    // Sprint carries over if its project origin notes "carry-over" OR it has incomplete points and its endDate is past.
+    // The backend `project.origin` flag sets "X carry-over sprint(s)" if true.
+    const carriedOverSprints = allSprints.filter(s => {
+        if (completedSprints.includes(s)) return false;
         
-        {/* Metrics */}
-        <div className="month-metrics">
-          <div className="metrics-text">
-            <span className="completed-count">{totalCompleted}</span>
-            <span className="divider">/</span>
-            <span className="planned-count">{totalPlanned}</span>
-            <span className="unit">pts</span>
-          </div>
-          <div className="progress-display">
-            {progressPercent}%
-          </div>
-        </div>
+        const isOverdue = s.endDate && new Date(s.endDate) < new Date();
+        const hasIncomplete = parseInt(s.progress || 0) < 100;
+        return (isOverdue && hasIncomplete && s.status !== 'CLOSED') || (s.projectOrigin && s.projectOrigin.includes('carry-over'));
+    });
 
-        {/* Progress Bar */}
-        <Progress 
-          percent={progressPercent} 
-          size="small"
-          strokeColor={{
-            '0%': '#1890ff',
-            '100%': '#52c41a',
-          }}
-          format={() => null}
-        />
+    const plannedSprints = allSprints.filter(s => 
+        !completedSprints.includes(s) && !carriedOverSprints.includes(s)
+    );
 
-        {isCurrentMonth && (
-          <Tag color="blue" className="current-badge">Current</Tag>
-        )}
-      </div>
+    return (
+        <Card className="month-column-card" style={{ borderTop: `4px solid ${progressColor}` }}>
+            {/* Header */}
+            <div className="month-header">
+                <div className="month-title-row">
+                    <Title level={4} style={{ margin: 0 }}>{month}</Title>
+                    <div className="month-badge" style={{ backgroundColor: progressColor }}>
+                        {projects.length}
+                    </div>
+                </div>
+                
+                <div className="month-progress-text">
+                    <Text strong style={{ color: progressColor, fontSize: 16 }}>
+                        {progressPercent}%
+                    </Text>
+                    <Text type="secondary" style={{ marginLeft: 6, fontSize: 12 }}>Completed</Text>
+                </div>
 
-      {/* Month Content */}
-      <div className="month-content">
-        
-        {/* Planned Section */}
-        {month.planned.length > 0 && (
-          <div className="month-section planned-section">
-            <div className="section-header">
-              <span className="section-title">Planned</span>
-              <span className="section-count">{month.planned.length}</span>
-            </div>
-            <div className="section-tasks">
-              {month.planned.map((task) => (
-                <TaskCard 
-                  key={task.id} 
-                  task={task} 
-                  status="planned"
+                <div className="month-points-info">
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                        {completedPoints} / {totalPointsPlanned} Points
+                    </Text>
+                </div>
+
+                <Progress 
+                    percent={progressPercent} 
+                    showInfo={false} 
+                    strokeColor={progressColor}
+                    className="month-progress-bar" 
                 />
-              ))}
             </div>
-          </div>
-        )}
 
-        {/* Completed Section */}
-        {month.completed.length > 0 && (
-          <div className="month-section completed-section">
-            <div className="section-header">
-              <span className="section-title">Completed</span>
-              <span className="section-count">{month.completed.length}</span>
-            </div>
-            <div className="section-tasks">
-              {month.completed.map((task) => (
-                <TaskCard 
-                  key={task.id} 
-                  task={task} 
-                  status="completed"
-                />
-              ))}
-            </div>
-          </div>
-        )}
+            {/* AI Insight Box (if provided, match by month name or fallback) */}
+            {aiInsight && (
+                <div className="month-insight-box">
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                        {aiInsight}
+                    </Text>
+                </div>
+            )}
 
-        {/* Carried Over Section */}
-        {month.carriedOver.length > 0 && (
-          <div className="month-section carried-section">
-            <div className="section-header">
-              <span className="section-title">Carried Over</span>
-              <span className="section-count">{month.carriedOver.length}</span>
-            </div>
-            <div className="section-tasks">
-              {month.carriedOver.map((task) => (
-                <TaskCard 
-                  key={task.id} 
-                  task={task} 
-                  status="carried-over"
-                />
-              ))}
-            </div>
-          </div>
-        )}
+            <div className="month-body-scroll">
+                {/* COMPLETED SECTION */}
+                {completedSprints.length > 0 && (
+                    <div className="sprint-section">
+                        <Divider orientation="left" className="section-divider">
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#595959' }}>
+                                COMPLETED ({completedSprints.length})
+                            </span>
+                        </Divider>
+                        <div className="sprint-cards-container">
+                            {completedSprints.map((sprint, idx) => (
+                                <SprintCard key={`complete-${idx}`} sprint={sprint} type="completed" />
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-        {/* Empty State */}
-        {month.planned.length === 0 && 
-         month.completed.length === 0 && 
-         month.carriedOver.length === 0 && (
-          <div className="empty-state">
-            <p>No tasks planned</p>
-          </div>
-        )}
-      </div>
+                {/* PLANNED / IN PROGRESS SECTION */}
+                {plannedSprints.length > 0 && (
+                    <div className="sprint-section">
+                        <Divider orientation="left" className="section-divider">
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#1890ff' }}>
+                                PLANNED & ACTIVE ({plannedSprints.length})
+                            </span>
+                        </Divider>
+                        <div className="sprint-cards-container">
+                            {plannedSprints.map((sprint, idx) => (
+                                <SprintCard key={`planned-${idx}`} sprint={sprint} type="in_progress" />
+                            ))}
+                        </div>
+                    </div>
+                )}
 
-      {/* AI Insight Card */}
-      {month.insight && (
-        <div className="ai-insight">
-          <div className="insight-header">
-            <BulbOutlined className="insight-icon" />
-            <span>Insight</span>
-          </div>
-          <p className="insight-text">{month.insight}</p>
-        </div>
-      )}
-    </div>
-  );
+                {/* CARRIED OVER SECTION */}
+                {carriedOverSprints.length > 0 && (
+                    <div className="sprint-section carry-over-section">
+                        <Divider orientation="left" className="section-divider">
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#faad14' }}>
+                                <WarningOutlined style={{ marginRight: 4 }} /> CARRIED OVER ({carriedOverSprints.length})
+                            </span>
+                        </Divider>
+                        <div className="sprint-cards-container">
+                            {carriedOverSprints.map((sprint, idx) => (
+                                <SprintCard key={`carried-${idx}`} sprint={sprint} type="carried_over" />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {allSprints.length === 0 && (
+                    <div className="empty-month-state">
+                        <Text type="secondary">No sprints scheduled</Text>
+                    </div>
+                )}
+            </div>
+        </Card>
+    );
 };
 
 export default MonthColumn;

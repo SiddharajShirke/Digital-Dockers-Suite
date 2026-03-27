@@ -228,30 +228,30 @@ const AISprintArchitectService = require('../services/aiSprintArchitectService')
 const Sprint = require('../models/Sprint');
 const Task = require('../models/Task');
 
-// @desc    Generate a Draft Sprint Plan from a Raw Idea
+// @desc    Generate Draft Sprint Plans from a Project Vision
 // @route   POST /api/ai-architect/sprint/generate
 // @access  Private (Manager/Admin)
 const generateDraftSprint = asyncHandler(async (req, res) => {
-    const { sprintName, projectIdea, teamType, dateRange, intervalsDays } = req.body;
+    const { projectName, projectIdea, teamType, dateRange, intervalsDays } = req.body;
 
     if (!projectIdea) {
         res.status(400);
-        throw new Error('Project idea is required to generate tasks.');
+        throw new Error('Project vision/idea is required to generate tasks.');
     }
 
-    // Pass generation to the AI service
-    const draftSprint = await AISprintArchitectService.generateSprintFromIdea(
-        sprintName,
+    // Pass generation to the AI service (now returns an array of sprints)
+    const draftSprints = await AISprintArchitectService.generateSprintFromIdea(
+        projectName || 'AI Generated Project',
         projectIdea,
-        teamType,
+        teamType, // Can be array or string
         dateRange,
         intervalsDays
     );
 
     res.status(201).json({
         success: true,
-        message: 'AI Draft Sprint Plan generated successfully. Awaiting your approval.',
-        data: draftSprint
+        message: `AI has generated ${draftSprints.length} sprint phases for your project vision.`,
+        data: draftSprints
     });
 });
 
@@ -288,6 +288,14 @@ const approveSprint = asyncHandler(async (req, res) => {
     const userId = req.user._id;
 
     const activeSprint = await AISprintArchitectService.approveSprintFromIdea(sprintId, userId);
+
+    // Emit reactive sockets for cross-tab frontend synchronization
+    const io = req.app.get('io');
+    if (io) {
+        io.emit('project:refresh');
+        io.emit('sprint:created');
+        io.emit('task:created');
+    }
 
     res.json({
         success: true,
@@ -458,7 +466,52 @@ module.exports = {
     getAtRiskTasks,
     generateReallocationProposal,
     approveReallocation,
+    // Unified Reallocation
+    getWorkloadOverview: asyncHandler(async (req, res) => {
+        const overview = await AISprintArchitectService.getAllProjectsOverview();
+        res.json({ success: true, data: overview });
+    }),
+    generateUnifiedReallocation: asyncHandler(async (req, res) => {
+        const { projectId, sprintId } = req.body;
+        if (!projectId) {
+            res.status(400);
+            throw new Error('projectId is required');
+        }
+        const proposal = await AISprintArchitectService.generateUnifiedReallocation(projectId, sprintId || null);
+        res.json({ success: true, data: proposal });
+    }),
+    executeUnifiedReallocation: asyncHandler(async (req, res) => {
+        const { reallocations } = req.body;
+        if (!reallocations || !Array.isArray(reallocations)) {
+            console.error('❌ [AI Architect] No reallocations array received in body!');
+            res.status(400);
+            throw new Error('reallocations array is required');
+        }
+
+        console.log(`📡 [AI Architect] Controller received ${reallocations.length} reallocations to execute.`);
+        if (reallocations.length > 0) {
+            console.log(`📄 [AI Architect] Sample Item:`, JSON.stringify(reallocations[0], null, 2));
+        }
+
+        const updatedTasks = await AISprintArchitectService.executeReallocation(reallocations);
+
+        // Emit reactive sockets for cross-tab frontend synchronization
+        const io = req.app.get('io');
+        if (io) {
+            console.log('📡 [AI Architect] Broadcasting global sync events...');
+            io.emit('task:updated');
+            io.emit('project:refresh');
+            io.emit('sprint:updated');
+        }
+
+        res.json({
+            success: true,
+            message: `${updatedTasks.length} tasks successfully reallocated.`,
+            data: updatedTasks
+        });
+    }),
     // Phase 4
     getReminderSettings,
     updateReminderSettings
 };
+

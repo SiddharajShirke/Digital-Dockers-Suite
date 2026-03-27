@@ -27,6 +27,7 @@ const sprintSchema = mongoose.Schema({
     }],
     // AI sprint formation
     aiPlan: {
+        projectName: String,
         projectIdea: String,
         teamType: String,
         technicalNodes: [{
@@ -42,8 +43,10 @@ const sprintSchema = mongoose.Schema({
                 requiredSkills: [String],
                 
                 assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+                assigneeName: String,
                 fitScore: Number,
-                aiReasoning: String
+                aiReasoning: String,
+                specializationMatch: String
             }]
         }],
         reasoning: String,

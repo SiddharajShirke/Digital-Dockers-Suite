@@ -214,6 +214,7 @@ app.use('/api/integrations', require('./routes/githubIntegrationRoutes'));
 app.use('/api/analysis', require('./routes/analysisRoutes'));
 app.use('/api/ppt', require('./routes/pptRoutes'));
 app.use('/api/ai-architect', require('./routes/aiArchitectRoutes'));
+app.use('/api/roadmap', require('./routes/roadmapRoutes'));
 
 const { errorHandler } = require("./middlewares/errorMiddleware");
 app.use(errorHandler);
