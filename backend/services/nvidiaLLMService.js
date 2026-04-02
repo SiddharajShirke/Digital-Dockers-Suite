@@ -31,23 +31,47 @@ class NvidiaLLMService {
      * @returns {string} LLM response text
      */
     async chat(systemPrompt, userMessage, options = {}) {
-        try {
-            const response = await this.client.chat.completions.create({
-                model: this.model,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userMessage }
-                ],
-                temperature: options.temperature ?? 0.3,
-                max_tokens: options.max_tokens ?? 4096,
-                top_p: options.top_p ?? 0.9
-            });
+        const modelCandidates = Array.from(new Set(
+            [
+                options.model,
+                this.model,
+                process.env.NVIDIA_FALLBACK_MODEL
+            ].filter(Boolean)
+        ));
 
-            return response.choices[0]?.message?.content || '';
-        } catch (error) {
-            console.error('❌ NVIDIA LLM API Error:', error.message);
-            throw new Error(`LLM API call failed: ${error.message}`);
+        let lastError = null;
+
+        for (const model of modelCandidates) {
+            try {
+                const response = await this.client.chat.completions.create({
+                    model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userMessage }
+                    ],
+                    temperature: options.temperature ?? 0.3,
+                    max_tokens: options.max_tokens ?? 4096,
+                    top_p: options.top_p ?? 0.9
+                });
+
+                return response.choices[0]?.message?.content || '';
+            } catch (error) {
+                lastError = error;
+                const status = Number(error?.status ?? error?.response?.status ?? 0);
+                const shouldRetryWithAnotherModel = [403, 404, 429].includes(status);
+
+                if (shouldRetryWithAnotherModel) {
+                    console.warn(`[NVIDIA LLM] Model ${model} unavailable (status ${status}). Trying fallback model.`);
+                    continue;
+                }
+
+                break;
+            }
         }
+
+        const status = Number(lastError?.status ?? lastError?.response?.status ?? 0);
+        const statusLabel = status ? `status ${status}` : 'unknown status';
+        throw new Error(`LLM API call failed (${statusLabel}): ${lastError?.message || 'Unknown error'}`);
     }
 
     /**

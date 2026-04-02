@@ -25,6 +25,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { Server } = require("socket.io");
+const llmScanService = require("./services/analysis/llmScanService");
 
 const app = express();
 
@@ -244,6 +245,20 @@ server.on("error", (error) => {
 
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+
+  // Validate Code Health semantic AI readiness on startup without blocking app boot.
+  (async () => {
+    try {
+      const readiness = await llmScanService.checkReadiness({ force: true });
+      if (readiness.ready) {
+        console.log(`[CodeHealth AI] NVIDIA inference ready (${readiness.model})`);
+      } else {
+        console.warn(`[CodeHealth AI] NVIDIA inference not ready (${readiness.reasonCode || "unknown"}): ${readiness.message || "NVIDIA access pending"}`);
+      }
+    } catch (error) {
+      console.warn(`[CodeHealth AI] Readiness check failed: ${error.message}`);
+    }
+  })();
 });
 
 // Graceful shutdown

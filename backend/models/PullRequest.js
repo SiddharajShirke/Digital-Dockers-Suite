@@ -68,6 +68,14 @@ const pullRequestSchema = new mongoose.Schema({
                 severity: Number,
                 confidence: { type: String, enum: ['low', 'medium', 'high'] }
             }]
+        },
+        dynamicScan: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+        },
+        scanConfig: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
         }
     },
     blockReasons: [String],

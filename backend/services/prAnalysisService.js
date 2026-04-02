@@ -4,15 +4,23 @@ const llmScanService = require('./analysis/llmScanService');
 const path = require('path');
 const fs = require('fs').promises;
 
+const DEFAULT_LAYER_CONFIG = [
+    { id: 'syntax', name: 'Code Quality', weight: 0.30, passAt: 80, warnAt: 60 },
+    { id: 'maintainability', name: 'Maintainability', weight: 0.30, passAt: 75, warnAt: 55 },
+    { id: 'semantic', name: 'AI Risk', weight: 0.40, passAt: 80, warnAt: 60 }
+];
+
 /**
  * PR Analysis Service
  * Analyzes Pull Request code changes and provides PASS/BLOCK verdicts
- * Uses NVIDIA AI (with fallback support) for semantic code analysis
+ * Uses NVIDIA AI for semantic code analysis
  */
 class PRAnalysisService {
     constructor() {
         this.githubService = new GitHubService();
         this.complexityService = new ComplexityAnalysisService();
+        this.layerConfig = this.loadLayerConfig();
+        this.scoreWeights = this.buildScoreWeights(this.layerConfig);
 
         // Thresholds for PASS/BLOCK decisions
         this.thresholds = {
@@ -43,6 +51,60 @@ class PRAnalysisService {
         };
     }
 
+    loadLayerConfig() {
+        const fromDefaults = DEFAULT_LAYER_CONFIG.map((layer) => ({ ...layer }));
+
+        let layerWeights = {};
+        let layerThresholds = {};
+
+        try {
+            if (process.env.GATEKEEPER_LAYER_WEIGHTS) {
+                layerWeights = JSON.parse(process.env.GATEKEEPER_LAYER_WEIGHTS);
+            }
+        } catch (error) {
+            console.warn('[PRAnalysis] Invalid GATEKEEPER_LAYER_WEIGHTS JSON, using defaults');
+        }
+
+        try {
+            if (process.env.GATEKEEPER_LAYER_THRESHOLDS) {
+                layerThresholds = JSON.parse(process.env.GATEKEEPER_LAYER_THRESHOLDS);
+            }
+        } catch (error) {
+            console.warn('[PRAnalysis] Invalid GATEKEEPER_LAYER_THRESHOLDS JSON, using defaults');
+        }
+
+        return fromDefaults.map((layer) => ({
+            ...layer,
+            weight: Number(layerWeights[layer.id] ?? layer.weight),
+            passAt: Number(layerThresholds[layer.id]?.passAt ?? layer.passAt),
+            warnAt: Number(layerThresholds[layer.id]?.warnAt ?? layer.warnAt)
+        }));
+    }
+
+    buildScoreWeights(layerConfig = []) {
+        const validLayers = Array.isArray(layerConfig) ? layerConfig : [];
+        const totalWeight = validLayers.reduce((sum, layer) => sum + Math.max(0, Number(layer.weight) || 0), 0);
+
+        if (totalWeight <= 0) {
+            return {
+                syntax: 1 / 3,
+                maintainability: 1 / 3,
+                semantic: 1 / 3
+            };
+        }
+
+        const normalized = {};
+        validLayers.forEach((layer) => {
+            normalized[layer.id] = Math.max(0, Number(layer.weight) || 0) / totalWeight;
+        });
+
+        if (!Number.isFinite(normalized.syntax)) normalized.syntax = 0;
+        if (!Number.isFinite(normalized.maintainability)) normalized.maintainability = 0;
+        if (!Number.isFinite(normalized.semantic)) normalized.semantic = 0;
+
+        return normalized;
+    }
+
     /**
      * Analyze a Pull Request and return analysis results
      */
@@ -70,9 +132,36 @@ class PRAnalysisService {
                 fallbackUsed: false,
                 generatedAt: null
             },
+            gatekeeperScore: {
+                overall: 0,
+                layers: {
+                    syntax: 0,
+                    maintainability: 0,
+                    semantic: 0
+                },
+                weights: {
+                    syntax: Math.round(this.scoreWeights.syntax * 100),
+                    maintainability: Math.round(this.scoreWeights.maintainability * 100),
+                    semantic: Math.round(this.scoreWeights.semantic * 100)
+                }
+            },
             overallRisk: 0,
             verdict: 'PENDING',
             blockReasons: [],
+            dynamicScan: {
+                layers: {},
+                unifiedFindings: [],
+                generatedAt: null
+            },
+            scanConfig: {
+                layers: this.layerConfig.map((layer) => ({
+                    id: layer.id,
+                    name: layer.name,
+                    weight: Math.round((Number(this.scoreWeights[layer.id]) || 0) * 100),
+                    passAt: Number(layer.passAt),
+                    warnAt: Number(layer.warnAt)
+                }))
+            },
             summary: ''
         };
 
@@ -216,7 +305,7 @@ class PRAnalysisService {
 
                         // Add AI findings
                         if (aiResult.findings && Array.isArray(aiResult.findings)) {
-                            results.aiScan.findings = aiResult.findings.map(f => ({
+                            const semanticFindings = aiResult.findings.map(f => ({
                                 file: f.file,
                                 lineRange: Array.isArray(f.lineRange) && f.lineRange.length >= 2
                                     ? [Number(f.lineRange[0]) || 1, Number(f.lineRange[1]) || Number(f.lineRange[0]) || 1]
@@ -227,6 +316,8 @@ class PRAnalysisService {
                                 severity: f.severity || 3,
                                 confidence: f.confidence || 'medium'
                             }));
+
+                            results.aiScan.findings = this.mergeFindings(results.aiScan.findings, semanticFindings);
                         }
 
                         console.log(`[PRAnalysis] AI verdict (${results.aiScan.provider}/${results.aiScan.model}): ${aiResult.verdict}`);
@@ -253,9 +344,12 @@ class PRAnalysisService {
                 results.aiScan.categories.security = results.security.score;
                 results.aiScan.categories.maintainability = Math.max(0, 100 - (results.codeSmells.count * 5));
                 results.aiScan.categories.correctness = Math.max(0, 100 - (results.lint.errors * 10));
+                results.aiScan.categories.performance = results.aiScan.categories.performance || 60;
+                results.aiScan.categories.testing = results.aiScan.categories.testing || 60;
             }
 
-            // 5. Calculate overall risk
+            // 5. Calculate weighted gatekeeper score and derived risk
+            results.gatekeeperScore = this.calculateGatekeeperScore(results);
             results.overallRisk = this.calculateOverallRisk(results);
 
             // 6. Determine verdict (considering semantic AI verdict)
@@ -268,7 +362,10 @@ class PRAnalysisService {
                 results.aiScan.verdict = this.mapVerdictToAIScan(results.verdict);
             }
 
-            // 7. Generate summary
+            // 7. Build dynamic 3-layer scan result model and merged findings across layers
+            results.dynamicScan = this.buildDynamicScan(results);
+
+            // 8. Generate summary
             results.summary = this.generateSummary(results, changedFiles.length);
 
             console.log(`[PRAnalysis] Completed: ${results.verdict} (Risk: ${results.overallRisk})`);
@@ -281,6 +378,21 @@ class PRAnalysisService {
             results.summary = `Analysis failed: ${error.message}`;
             return results;
         }
+    }
+
+    mergeFindings(existingFindings = [], newFindings = []) {
+        const merged = [...(Array.isArray(existingFindings) ? existingFindings : [])];
+        const incoming = Array.isArray(newFindings) ? newFindings : [];
+
+        incoming.forEach((finding) => {
+            const signature = `${finding?.file || ''}:${finding?.message || ''}:${JSON.stringify(finding?.lineRange || [])}`;
+            const exists = merged.some((item) => `${item?.file || ''}:${item?.message || ''}:${JSON.stringify(item?.lineRange || [])}` === signature);
+            if (!exists) {
+                merged.push(finding);
+            }
+        });
+
+        return merged;
     }
 
     /**
@@ -589,28 +701,234 @@ class PRAnalysisService {
     }
 
     /**
+     * Clamp score to 0-100
+     */
+    clampScore(value) {
+        return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    }
+
+    /**
+     * Normalize AI category score to percentage (supports 1-5 or 0-100)
+     */
+    normalizeAiCategoryPercent(score, fallback = 60) {
+        const numeric = Number(score);
+        if (!Number.isFinite(numeric)) return fallback;
+        if (numeric <= 5) {
+            return this.clampScore(numeric * 20);
+        }
+        return this.clampScore(numeric);
+    }
+
+    classifyFindingLayer(finding = {}) {
+        const message = String(finding.message || '').toLowerCase();
+        const suggestion = String(finding.suggestion || '').toLowerCase();
+        const blob = `${message} ${suggestion}`;
+
+        if (/lint|syntax|line exceeds|multiple statements|code smell|pattern/.test(blob)) {
+            return 'syntax';
+        }
+        if (/complexity|maintainability|refactor|cyclomatic/.test(blob)) {
+            return 'maintainability';
+        }
+        if (/semantic|logic|correctness|risk|security|vulnerab|performance|testing/.test(blob)) {
+            return 'semantic';
+        }
+        return 'semantic';
+    }
+
+    resolveLayerStatus(layerId, score, results = {}) {
+        const config = this.layerConfig.find((layer) => layer.id === layerId) || {};
+        const passAt = Number(config.passAt ?? 75);
+        const warnAt = Number(config.warnAt ?? 55);
+        const normalizedScore = this.clampScore(score);
+
+        if (layerId === 'semantic') {
+            const verdict = String(results.aiScan?.verdict || '').toUpperCase();
+            if (verdict === 'BAD') return 'fail';
+            if (verdict === 'RISKY') return 'warn';
+            if (verdict === 'GOOD') return 'pass';
+        }
+
+        if (normalizedScore >= passAt) return 'pass';
+        if (normalizedScore >= warnAt) return 'warn';
+        return 'fail';
+    }
+
+    buildLayerFindings(results = {}) {
+        const findingsByLayer = {
+            syntax: [],
+            maintainability: [],
+            semantic: []
+        };
+
+        const sourceFindings = Array.isArray(results.aiScan?.findings) ? results.aiScan.findings : [];
+
+        sourceFindings.forEach((finding) => {
+            const layer = this.classifyFindingLayer(finding);
+            findingsByLayer[layer].push({
+                layer,
+                message: finding.message || 'Issue detected',
+                suggestion: finding.suggestion || '',
+                severity: Number(finding.severity || 3),
+                confidence: finding.confidence || 'medium',
+                file: finding.file || '',
+                lineRange: Array.isArray(finding.lineRange) ? finding.lineRange : []
+            });
+        });
+
+        if ((results.lint?.errors || 0) > 0 || (results.lint?.warnings || 0) > 0) {
+            findingsByLayer.syntax.push({
+                layer: 'syntax',
+                message: `Lint surfaced ${results.lint.errors || 0} error(s) and ${results.lint.warnings || 0} warning(s).`,
+                suggestion: (results.lint.errors || 0) > 0 ? 'Resolve lint errors before merge.' : 'Review warnings before merge.',
+                severity: (results.lint.errors || 0) > 0 ? 7 : 4,
+                confidence: 'high',
+                file: '',
+                lineRange: []
+            });
+        }
+
+        if (Number(results.complexity?.healthScoreDelta || 0) < 0) {
+            findingsByLayer.maintainability.push({
+                layer: 'maintainability',
+                message: `Maintainability delta dropped to ${results.complexity.healthScoreDelta}.`,
+                suggestion: 'Refactor high-complexity areas to recover maintainability score.',
+                severity: 6,
+                confidence: 'medium',
+                file: '',
+                lineRange: []
+            });
+        }
+
+        return findingsByLayer;
+    }
+
+    buildDynamicScan(results = {}) {
+        const scores = results.gatekeeperScore?.layers || {};
+        const findingsByLayer = this.buildLayerFindings(results);
+
+        const syntaxScore = this.clampScore(scores.syntax);
+        const maintainabilityScore = this.clampScore(scores.maintainability);
+        const semanticScore = this.clampScore(scores.semantic);
+
+        const layers = {
+            syntax: {
+                id: 'syntax',
+                name: 'Code Quality',
+                score: syntaxScore,
+                status: this.resolveLayerStatus('syntax', syntaxScore, results),
+                metrics: {
+                    errors: Number(results.lint?.errors || 0),
+                    warnings: Number(results.lint?.warnings || 0),
+                    issueCount: Number(Array.isArray(results.lint?.issues) ? results.lint.issues.length : 0)
+                },
+                findings: findingsByLayer.syntax
+            },
+            maintainability: {
+                id: 'maintainability',
+                name: 'Maintainability',
+                score: maintainabilityScore,
+                status: this.resolveLayerStatus('maintainability', maintainabilityScore, results),
+                metrics: {
+                    delta: Number(results.complexity?.healthScoreDelta || 0),
+                    avgComplexity: Number(results.complexity?.avgComplexity || 0),
+                    files: Number(Array.isArray(results.complexity?.fileChanges) ? results.complexity.fileChanges.length : 0)
+                },
+                findings: findingsByLayer.maintainability
+            },
+            semantic: {
+                id: 'semantic',
+                name: 'AI Risk',
+                score: semanticScore,
+                status: this.resolveLayerStatus('semantic', semanticScore, results),
+                metrics: {
+                    verdict: results.aiScan?.verdict || 'PENDING',
+                    findings: Number(Array.isArray(findingsByLayer.semantic) ? findingsByLayer.semantic.length : 0),
+                    engine: results.aiScan?.provider || 'NVIDIA',
+                    model: results.aiScan?.model || 'default'
+                },
+                findings: findingsByLayer.semantic
+            }
+        };
+
+        const unifiedFindings = [...layers.syntax.findings, ...layers.maintainability.findings, ...layers.semantic.findings]
+            .sort((a, b) => Number(b.severity || 0) - Number(a.severity || 0));
+
+        return {
+            layers,
+            unifiedFindings,
+            generatedAt: new Date().toISOString()
+        };
+    }
+
+    /**
+     * Build gatekeeper layer scores
+     */
+    calculateGatekeeperScore(results) {
+        const syntaxPenalty = (results.lint.errors * 12) + (results.lint.warnings * 2);
+        const syntaxScore = this.clampScore(100 - syntaxPenalty);
+
+        const complexityPenalty =
+            (Math.max(0, results.complexity.avgComplexity - 12) * 2) +
+            (Math.max(0, -results.complexity.healthScoreDelta) * 1.5) +
+            (results.codeSmells.count * 2);
+        const maintainabilityScore = this.clampScore(100 - complexityPenalty);
+
+        const aiCategories = results.aiScan?.categories || {};
+        const semanticByCategories = this.clampScore((
+            this.normalizeAiCategoryPercent(aiCategories.security, 65) +
+            this.normalizeAiCategoryPercent(aiCategories.correctness, 65) +
+            this.normalizeAiCategoryPercent(aiCategories.maintainability, 65) +
+            this.normalizeAiCategoryPercent(aiCategories.performance, 60) +
+            this.normalizeAiCategoryPercent(aiCategories.testing, 55)
+        ) / 5);
+
+        let semanticScore = semanticByCategories;
+        if (results.aiScan?.verdict === 'BAD') semanticScore = Math.min(semanticScore, 30);
+        if (results.aiScan?.verdict === 'RISKY') semanticScore = Math.min(semanticScore, 65);
+        if (results.aiScan?.verdict === 'GOOD') semanticScore = Math.max(semanticScore, 80);
+
+        const syntaxWeight = Number(this.scoreWeights.syntax || 0);
+        const maintainabilityWeight = Number(this.scoreWeights.maintainability || 0);
+        const semanticWeight = Number(this.scoreWeights.semantic || 0);
+
+        const overall = this.clampScore(
+            (syntaxScore * syntaxWeight) +
+            (maintainabilityScore * maintainabilityWeight) +
+            (semanticScore * semanticWeight)
+        );
+
+        return {
+            overall,
+            layers: {
+                syntax: syntaxScore,
+                maintainability: maintainabilityScore,
+                semantic: this.clampScore(semanticScore)
+            },
+            weights: {
+                syntax: Math.round(syntaxWeight * 100),
+                maintainability: Math.round(maintainabilityWeight * 100),
+                semantic: Math.round(semanticWeight * 100)
+            }
+        };
+    }
+
+    /**
      * Calculate overall risk score (0-100)
      */
     calculateOverallRisk(results) {
-        let risk = 0;
+        const gatekeeperScore = Number(results?.gatekeeperScore?.overall);
+        if (Number.isFinite(gatekeeperScore)) {
+            return this.clampScore(100 - gatekeeperScore);
+        }
 
-        // Complexity contributes 30%
-        const complexityRisk = Math.min(100, (results.complexity.avgComplexity / 30) * 100);
-        risk += complexityRisk * 0.3;
+        const fallbackRisk =
+            (results.lint.errors * 10) +
+            (results.security.issues.length * 15) +
+            (results.codeSmells.count * 3) +
+            Math.max(0, results.complexity.avgComplexity - 10);
 
-        // Lint errors contribute 20%
-        const lintRisk = Math.min(100, results.lint.errors * 10);
-        risk += lintRisk * 0.2;
-
-        // Security issues contribute 35%
-        const securityRisk = 100 - results.security.score;
-        risk += securityRisk * 0.35;
-
-        // Code smells contribute 15%
-        const smellRisk = Math.min(100, results.codeSmells.count * 10);
-        risk += smellRisk * 0.15;
-
-        return Math.round(risk);
+        return this.clampScore(fallbackRisk);
     }
 
     /**
@@ -719,6 +1037,10 @@ class PRAnalysisService {
         // Add AI findings summary
         if (results.aiScan.findings && results.aiScan.findings.length > 0) {
             parts.push(`AI findings: ${results.aiScan.findings.length} issues.`);
+        }
+
+        if (Number.isFinite(Number(results.gatekeeperScore?.overall))) {
+            parts.push(`Gatekeeper score: ${results.gatekeeperScore.overall}/100.`);
         }
 
         parts.push(`Risk score: ${results.overallRisk}/100.`);

@@ -2,6 +2,26 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useTechDebtSocket } from './useTechDebtSocket';
 
+const EMPTY_STATS = {
+  total: 0,
+  passCount: 0,
+  blockCount: 0,
+  warnCount: 0,
+  pendingCount: 0,
+  passRate: 0,
+  avgGatekeeperScore: 0,
+  mergeReadyCount: 0,
+  reviewQueueCount: 0,
+  attentionCount: 0,
+  readinessIndex: 0,
+  scoreBuckets: {
+    elite: 0,
+    stable: 0,
+    watch: 0,
+    critical: 0
+  }
+};
+
 /**
  * useGatekeeperFeed - Fetch and manage Gatekeeper feed with real-time updates
  * 
@@ -28,10 +48,7 @@ export const useGatekeeperFeed = (options = {}) => {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [stats, setStats] = useState({
-    total: 0,
-    passCount: 0,
-    blockCount: 0,
-    passRate: 0
+    ...EMPTY_STATS
   });
 
   const lastFetchRef = useRef(null);
@@ -78,12 +95,44 @@ export const useGatekeeperFeed = (options = {}) => {
     const prItems = items.filter(isPRItem);
     const passCount = prItems.filter((pr) => pr.status === 'PASS').length;
     const blockCount = prItems.filter((pr) => pr.status === 'BLOCK').length;
+    const warnCount = prItems.filter((pr) => pr.status === 'WARN').length;
+    const pendingCount = prItems.filter((pr) => pr.status === 'PENDING').length;
+
+    const scoreBuckets = prItems.reduce((acc, pr) => {
+      const score = Number(pr?.healthScore?.current ?? pr?.gatekeeperScore?.overall ?? (100 - Number(pr?.risk_score || 0)));
+      if (score >= 85) acc.elite += 1;
+      else if (score >= 70) acc.stable += 1;
+      else if (score >= 55) acc.watch += 1;
+      else acc.critical += 1;
+      return acc;
+    }, { elite: 0, stable: 0, watch: 0, critical: 0 });
+
+    const readinessIndex =
+      prItems.length > 0
+        ? Math.max(0, Math.min(100, Math.round((((scoreBuckets.elite * 1) + (scoreBuckets.stable * 0.8) + (scoreBuckets.watch * 0.45)) / prItems.length) * 100)))
+        : 0;
 
     return {
       total: Number.isFinite(Number(totalFromResponse)) ? Number(totalFromResponse) : prItems.length,
       passCount,
       blockCount,
-      passRate: prItems.length > 0 ? Math.round((passCount / prItems.length) * 100) : 0
+      warnCount,
+      pendingCount,
+      passRate: prItems.length > 0 ? Math.round((passCount / prItems.length) * 100) : 0,
+      avgGatekeeperScore:
+        prItems.length > 0
+          ? Math.round(
+            prItems.reduce((sum, pr) => {
+              const score = Number(pr?.healthScore?.current ?? pr?.gatekeeperScore?.overall ?? (100 - Number(pr?.risk_score || 0)));
+              return sum + (Number.isFinite(score) ? score : 0);
+            }, 0) / prItems.length
+          )
+          : 0,
+      mergeReadyCount: passCount,
+      reviewQueueCount: warnCount + pendingCount,
+      attentionCount: blockCount + warnCount,
+      readinessIndex,
+      scoreBuckets
     };
   }, [isPRItem]);
 
@@ -145,7 +194,7 @@ export const useGatekeeperFeed = (options = {}) => {
     if (!filters.repoId) {
       setFeed([]);
       setHasMore(false);
-      setStats({ total: 0, passCount: 0, blockCount: 0, passRate: 0 });
+      setStats({ ...EMPTY_STATS });
       setLoading(false);
       setError(null);
       return;
@@ -181,10 +230,23 @@ export const useGatekeeperFeed = (options = {}) => {
 
         if (payload.stats) {
           setStats({
+            ...EMPTY_STATS,
+            ...payload.stats,
             total: payload.stats.total || total,
             passCount: payload.stats.passCount || 0,
             blockCount: payload.stats.blockCount || 0,
-            passRate: payload.stats.passRate || 0
+            warnCount: payload.stats.warnCount || 0,
+            pendingCount: payload.stats.pendingCount || 0,
+            passRate: payload.stats.passRate || 0,
+            avgGatekeeperScore: payload.stats.avgGatekeeperScore || 0,
+            mergeReadyCount: payload.stats.mergeReadyCount || payload.stats.passCount || 0,
+            reviewQueueCount: payload.stats.reviewQueueCount || ((payload.stats.warnCount || 0) + (payload.stats.pendingCount || 0)),
+            attentionCount: payload.stats.attentionCount || ((payload.stats.blockCount || 0) + (payload.stats.warnCount || 0)),
+            readinessIndex: payload.stats.readinessIndex || 0,
+            scoreBuckets: {
+              ...EMPTY_STATS.scoreBuckets,
+              ...(payload.stats.scoreBuckets || {})
+            }
           });
         } else {
           setStats(computeStats(updatedFeed, total));
@@ -211,7 +273,7 @@ export const useGatekeeperFeed = (options = {}) => {
       setFeed([]);
       setHasMore(false);
       setPage(1);
-      setStats({ total: 0, passCount: 0, blockCount: 0, passRate: 0 });
+      setStats({ ...EMPTY_STATS });
       setLoading(false);
       return;
     }
@@ -236,7 +298,7 @@ export const useGatekeeperFeed = (options = {}) => {
       setFeed([]);
       setHasMore(false);
       setPage(1);
-      setStats({ total: 0, passCount: 0, blockCount: 0, passRate: 0 });
+      setStats({ ...EMPTY_STATS });
       return;
     }
 

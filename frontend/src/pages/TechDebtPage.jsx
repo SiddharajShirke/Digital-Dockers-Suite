@@ -94,15 +94,52 @@ const TechDebtPage = () => {
     fetchMetricsData();
   }, [activeRepoId, refreshKey]);
 
+  const repoDisplayName = activeRepoId ? activeRepoId.split('/').pop() : 'Code Health Workspace';
+  const activeBranch = connectedRepo?.branch || 'main';
+
   return (
-    <div className={`h-full rounded-lg p-2 ${isDark ? "text-slate-100" : "text-slate-900"}`}>
-      <div className="mb-8">
-        <h1 className={`text-3xl font-bold ${isDark ? "text-indigo-300" : "text-indigo-900"}`}>
-          Code Health & Debt
-        </h1>
-        <p className={isDark ? "text-slate-400" : "text-gray-600"}>
-          Gatekeeper AI & Debt Visualization Dashboard {activeRepoId && `for ${activeRepoId}`}
-        </p>
+    <div
+      className={`h-full rounded-2xl border p-3 sm:p-4 lg:p-6 ${isDark
+        ? "text-slate-100 border-slate-800 bg-gradient-to-b from-slate-900/70 via-slate-900/40 to-slate-900/10"
+        : "text-slate-900 border-slate-200 bg-gradient-to-b from-white via-slate-50 to-white"
+        }`}
+    >
+      <div className={`mb-8 rounded-2xl border px-5 py-4 sm:px-6 sm:py-5 ${isDark
+        ? "border-indigo-900/60 bg-gradient-to-r from-indigo-950/40 via-slate-900/90 to-slate-900"
+        : "border-indigo-100 bg-gradient-to-r from-indigo-50 via-white to-sky-50"
+        }`}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold tracking-[0.12em] ${isDark
+              ? "bg-indigo-900/70 text-indigo-100"
+              : "bg-indigo-100 text-indigo-700"
+              }`}>
+              SUMMARY DASHBOARD
+            </span>
+            <h1 className={`mt-3 text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? "text-slate-100" : "text-slate-800"}`}>
+              Project Overview: {repoDisplayName}
+            </h1>
+            <p className={`mt-1 text-sm sm:text-base ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+              Repository: {activeRepoId || 'Not connected'}
+              <span className="mx-2">•</span>
+              Branch: {activeBranch}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
+            {["Live code quality signals", "Risk trends made visible", "Prioritized action queue insights"].map((label) => (
+              <div
+                key={label}
+                className={`rounded-xl border px-3 py-2 text-xs sm:text-sm font-medium text-center ${isDark
+                  ? "border-slate-700 bg-slate-800/70 text-slate-200"
+                  : "border-slate-200 bg-white/90 text-slate-700"
+                  }`}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Repo Connection */}
@@ -117,7 +154,7 @@ const TechDebtPage = () => {
       {/* 1. Top KPI Row */}
       <TopKPIs metrics={metrics} loading={loading} isDarkMode={isDark} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 h-[65vh] min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 h-[74vh] xl:h-[78vh] min-h-0">
         {/* 2. Gatekeeper Feed (Left) */}
         <div className="min-h-0">
           <GatekeeperStream isDarkMode={isDark} repoId={activeRepoId} />

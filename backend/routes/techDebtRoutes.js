@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middlewares/authMiddleware');
 const {
     getPullRequests,
     getHotspots,
     getRefactorTasks,
     getSummary,
+    getAiReadiness,
     getGatekeeperFeed,
     connectRepo,
     createRefactorTask,
@@ -19,7 +21,8 @@ const {
     getSnapshotDetails,
     syncPullRequests,
     analyzePullRequest,
-    analyzeAllPRs
+    analyzeAllPRs,
+    notifySafetyAction
 } = require('../controllers/techDebtController');
 
 // Pull Requests
@@ -39,7 +42,9 @@ router.delete('/tasks/:id', deleteRefactorTask);
 
 // Summary & Feed
 router.get('/summary', getSummary);
+router.get('/ai-readiness', getAiReadiness);
 router.get('/gatekeeper-feed', getGatekeeperFeed);
+router.post('/safety-actions/notify', protect, notifySafetyAction);
 
 // Repository Management
 router.get('/repositories', getRepositories);

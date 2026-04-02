@@ -3,10 +3,584 @@ const CodebaseFile = require('../models/CodebaseFile');
 const RefactorTask = require('../models/RefactorTask');
 const Repository = require('../models/Repository');
 const AnalysisSnapshot = require('../models/AnalysisSnapshot');
+const User = require('../models/User');
 const MetricsCalculator = require('../services/metricsCalculator');
 const GitHubService = require('../services/githubService');
 const PRAnalysisService = require('../services/prAnalysisService');
+const llmScanService = require('../services/analysis/llmScanService');
+const nvidiaLLMService = require('../services/nvidiaLLMService');
 const asyncHandler = require('express-async-handler');
+const nodemailer = require('nodemailer');
+
+const GATEKEEPER_SCORE_WEIGHTS = {
+    syntax: 0.30,
+    maintainability: 0.30,
+    semantic: 0.40
+};
+
+const FILE_INSIGHT_TTL_MS = Number(process.env.GATEKEEPER_FILE_AI_TTL_MS || (10 * 60 * 1000));
+const FILE_INSIGHT_LIMIT = Math.max(1, Number(process.env.GATEKEEPER_FILE_AI_LIMIT || 3));
+const fileInsightCache = new Map();
+
+const clampPercent = (value) => Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+
+const normalizeAiCategoryPercent = (value, fallback = 60) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return fallback;
+    if (numeric <= 5) return clampPercent(numeric * 20);
+    return clampPercent(numeric);
+};
+
+const semanticVerdictToScore = (verdict) => {
+    const normalized = String(verdict || '').toUpperCase();
+    if (normalized === 'GOOD') return 85;
+    if (normalized === 'RISKY') return 60;
+    if (normalized === 'BAD') return 30;
+    return 55;
+};
+
+const calculateGatekeeperScore = ({
+    lintErrors = 0,
+    lintWarnings = 0,
+    complexityDelta = 0,
+    aiVerdict = 'PENDING',
+    aiCategories = {}
+} = {}) => {
+    const syntaxScore = clampPercent(100 - (Number(lintErrors) * 12) - (Number(lintWarnings) * 2));
+
+    const maintainabilityPenalty =
+        Math.max(0, -Number(complexityDelta || 0)) * 4 +
+        Math.max(0, Number(lintWarnings || 0) - 2) * 1.5;
+    const maintainabilityScore = clampPercent(100 - maintainabilityPenalty);
+
+    const semanticByCategories = clampPercent((
+        normalizeAiCategoryPercent(aiCategories.security, 65) +
+        normalizeAiCategoryPercent(aiCategories.correctness, 65) +
+        normalizeAiCategoryPercent(aiCategories.maintainability, 65) +
+        normalizeAiCategoryPercent(aiCategories.performance, 60) +
+        normalizeAiCategoryPercent(aiCategories.testing, 55)
+    ) / 5);
+
+    const semanticVerdictScore = semanticVerdictToScore(aiVerdict);
+    const semanticScore = clampPercent((semanticByCategories * 0.7) + (semanticVerdictScore * 0.3));
+
+    const overall = clampPercent(
+        (syntaxScore * GATEKEEPER_SCORE_WEIGHTS.syntax) +
+        (maintainabilityScore * GATEKEEPER_SCORE_WEIGHTS.maintainability) +
+        (semanticScore * GATEKEEPER_SCORE_WEIGHTS.semantic)
+    );
+
+    return {
+        overall,
+        layers: {
+            syntax: syntaxScore,
+            maintainability: maintainabilityScore,
+            semantic: semanticScore
+        },
+        weights: {
+            syntax: Math.round(GATEKEEPER_SCORE_WEIGHTS.syntax * 100),
+            maintainability: Math.round(GATEKEEPER_SCORE_WEIGHTS.maintainability * 100),
+            semantic: Math.round(GATEKEEPER_SCORE_WEIGHTS.semantic * 100)
+        }
+    };
+};
+
+const toSignedValue = (value) => {
+    const numeric = Number(value) || 0;
+    return `${numeric >= 0 ? '+' : ''}${Math.round(numeric)}`;
+};
+
+const getGatekeeperBand = (score) => {
+    const normalized = clampPercent(score);
+    if (normalized >= 85) {
+        return { key: 'elite', label: 'Elite Stability', tone: 'success', accent: 'emerald' };
+    }
+    if (normalized >= 70) {
+        return { key: 'stable', label: 'Stable', tone: 'success', accent: 'teal' };
+    }
+    if (normalized >= 55) {
+        return { key: 'watch', label: 'Needs Watch', tone: 'warning', accent: 'amber' };
+    }
+    return { key: 'critical', label: 'Critical Risk', tone: 'danger', accent: 'rose' };
+};
+
+const getStatusLabel = (status) => {
+    const normalized = String(status || 'PENDING').toUpperCase();
+    if (normalized === 'PASS') return 'Merge Ready';
+    if (normalized === 'BLOCK') return 'Blocked';
+    if (normalized === 'WARN') return 'Review Required';
+    return 'Pending Analysis';
+};
+
+const getSemanticLabel = (verdict) => {
+    const normalized = String(verdict || '').toUpperCase();
+    if (normalized === 'GOOD') return 'Semantic confidence is strong';
+    if (normalized === 'RISKY') return 'Semantic review flagged possible regressions';
+    if (normalized === 'BAD') return 'Semantic review found critical logic risk';
+    return 'Semantic review pending';
+};
+
+const buildGatekeeperNarrative = ({
+    status = 'PENDING',
+    score = 0,
+    lintErrors = 0,
+    lintWarnings = 0,
+    complexityDelta = 0,
+    aiVerdict = 'PENDING',
+    blockReasons = []
+} = {}) => {
+    const normalizedStatus = String(status || 'PENDING').toUpperCase();
+    const band = getGatekeeperBand(score);
+    const lintLabel = `${Number(lintErrors) || 0} blocking issues, ${Number(lintWarnings) || 0} warnings`;
+    const maintainabilityLabel = `Maintainability trend ${toSignedValue(complexityDelta)}`;
+    const semanticLabel = getSemanticLabel(aiVerdict);
+
+    let headline = 'Gatekeeper is preparing this change for review.';
+    let summary = 'Run analysis to unlock a layered quality verdict before merge.';
+    let actionLabel = 'Analyze this pull request';
+
+    if (normalizedStatus === 'PASS') {
+        headline = `Merge-ready with a ${band.label.toLowerCase()} profile.`;
+        summary = 'All quality checkpoints are clear, with low merge risk right now.';
+        actionLabel = 'Merge with confidence';
+    } else if (normalizedStatus === 'BLOCK') {
+        headline = 'Merge blocked due to critical quality risks.';
+        summary = blockReasons.length > 0
+            ? `Top blocker: ${blockReasons[0]}`
+            : 'Resolve highlighted quality and semantic issues before merge.';
+        actionLabel = 'Fix blockers before merge';
+    } else if (normalizedStatus === 'WARN') {
+        headline = 'Merge is possible, but risk review is recommended.';
+        summary = 'Address warnings to prevent reliability and maintainability drift.';
+        actionLabel = 'Review warnings before merge';
+    }
+
+    return {
+        band,
+        statusLabel: getStatusLabel(normalizedStatus),
+        headline,
+        summary,
+        actionLabel,
+        lintLabel,
+        maintainabilityLabel,
+        semanticLabel
+    };
+};
+
+const buildGatekeeperPayload = ({
+    status,
+    score,
+    lintErrors,
+    lintWarnings,
+    complexityDelta,
+    aiVerdict,
+    blockReasons
+} = {}) => {
+    const normalizedScore = clampPercent(score);
+    const narrative = buildGatekeeperNarrative({
+        status,
+        score: normalizedScore,
+        lintErrors,
+        lintWarnings,
+        complexityDelta,
+        aiVerdict,
+        blockReasons
+    });
+
+    return {
+        score: normalizedScore,
+        status: String(status || 'PENDING').toUpperCase(),
+        statusLabel: narrative.statusLabel,
+        band: narrative.band,
+        headline: narrative.headline,
+        summary: narrative.summary,
+        actionLabel: narrative.actionLabel,
+        layerSignals: {
+            syntax: narrative.lintLabel,
+            maintainability: narrative.maintainabilityLabel,
+            semantic: narrative.semanticLabel
+        }
+    };
+};
+
+const getFileCacheKey = (repoId, file) => {
+    const pathKey = String(file?.path || '').toLowerCase();
+    const riskKey = Math.round(Number(file?.normalizedRisk ?? file?.risk?.score ?? file?.risk ?? 0));
+    const complexityKey = Math.round(Number(file?.complexity?.cyclomatic ?? file?.complexity ?? 0));
+    const churnKey = Math.round(Number(file?.churn?.recentCommits ?? file?.churn?.churnRate ?? file?.churnRate ?? 0));
+    return `${repoId}:${pathKey}:${riskKey}:${complexityKey}:${churnKey}`;
+};
+
+const getCachedInsight = (cacheKey) => {
+    const cached = fileInsightCache.get(cacheKey);
+    if (!cached) return null;
+    if ((Date.now() - cached.timestamp) > FILE_INSIGHT_TTL_MS) {
+        fileInsightCache.delete(cacheKey);
+        return null;
+    }
+    return cached.value;
+};
+
+const setCachedInsight = (cacheKey, value) => {
+    fileInsightCache.set(cacheKey, { timestamp: Date.now(), value });
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const parseRecipientEmails = (rawRecipients) => {
+    const input = Array.isArray(rawRecipients)
+        ? rawRecipients.join(',')
+        : String(rawRecipients || '');
+
+    const deduped = Array.from(new Set(
+        input
+            .split(',')
+            .map((email) => email.trim().toLowerCase())
+            .filter(Boolean)
+    ));
+
+    const validEmails = deduped.filter((email) => EMAIL_REGEX.test(email));
+    const invalidEmails = deduped.filter((email) => !EMAIL_REGEX.test(email));
+
+    return { validEmails, invalidEmails };
+};
+
+const resolveCardTags = (card, score) => {
+    const tagSet = new Set(
+        (Array.isArray(card?.tags) ? card.tags : [])
+            .map((tag) => String(tag || '').trim().toUpperCase())
+            .filter(Boolean)
+    );
+
+    const status = String(card?.status || '').toUpperCase();
+    const type = String(card?.type || '').toLowerCase();
+    const safeScore = clampPercent(score);
+
+    if (safeScore < 80) tagSet.add('HIGH');
+    if (safeScore < 70) tagSet.add('CRITICAL');
+    if (safeScore < 80) tagSet.add('UNDER_80');
+    if (safeScore < 70) tagSet.add('UNDER_70');
+    if (status === 'BLOCK' || status === 'HIGH_RISK') tagSet.add('CRITICAL');
+    if (status === 'WARN' || status === 'WATCH') tagSet.add('RISK');
+    if (type === 'refactor_task') tagSet.add('TASK');
+    if (type === 'pull_request') tagSet.add('PR');
+
+    if (tagSet.size === 0) {
+        tagSet.add(type === 'refactor_task' ? 'TASK' : 'RISK');
+    }
+
+    return Array.from(tagSet);
+};
+
+const buildFallbackSafetyNarrative = (context) => {
+    const lines = [
+        'Executive Summary',
+        `${context.cardTitle} in ${context.repoId} requires immediate attention (${context.cardStatus}, score ${context.cardScore}/100).`,
+        '',
+        'Risk Signals',
+        `Tags: ${context.tags.join(', ') || 'N/A'}`,
+        `Primary Finding: ${context.findings[0] || 'No AI findings were available.'}`,
+        '',
+        'Required Actions',
+        '1) Review the flagged card details and linked PR/file context.',
+        '2) Assign owner and fix plan with a clear SLA.',
+        '3) Re-run Gatekeeper analysis after remediation.',
+        '',
+        'Ownership & SLA',
+        'Owner: Engineering Lead',
+        'SLA: 24 hours for critical/blocking signals.',
+    ];
+
+    if (context.includeCommits && context.commits.length > 0) {
+        lines.splice(8, 0,
+            '',
+            'Commit Intelligence',
+            ...context.commits.slice(0, 5).map((commit, index) => {
+                const shortSha = String(commit.sha || '').slice(0, 7) || 'unknown';
+                const headline = String(commit.message || '').split('\n')[0] || 'No commit message';
+                const author = commit.author || 'unknown';
+                return `${index + 1}. ${shortSha} by ${author}: ${headline}`;
+            })
+        );
+    }
+
+    return lines.join('\n');
+};
+
+const mapNarrativeFallbackReason = (reason) => {
+    const raw = String(reason || '').toLowerCase();
+
+    if (raw.includes('403') || raw.includes('forbidden') || raw.includes('insufficient')) {
+        return {
+            reasonCode: 'nvidia_access_pending',
+            publicReason: 'NVIDIA access pending'
+        };
+    }
+
+    if (raw.includes('429') || raw.includes('rate')) {
+        return {
+            reasonCode: 'nvidia_rate_limited',
+            publicReason: 'NVIDIA rate limit reached'
+        };
+    }
+
+    if (raw.includes('timeout')) {
+        return {
+            reasonCode: 'nvidia_timeout',
+            publicReason: 'NVIDIA response timeout'
+        };
+    }
+
+    return {
+        reasonCode: 'nvidia_unavailable',
+        publicReason: 'NVIDIA narrative temporarily unavailable'
+    };
+};
+
+const generateSafetyNarrative = async (context) => {
+    const systemPrompt = [
+        'You are Gatekeeper Action Narrator for engineering risk management.',
+        'Generate a detailed, operations-ready incident report in plain text.',
+        'Use these sections exactly in order:',
+        '1. Executive Summary',
+        '2. Risk Signals',
+        context.includeCommits ? '3. Commit Intelligence' : null,
+        context.includeCommits ? '4. Required Actions' : '3. Required Actions',
+        context.includeCommits ? '5. Ownership & SLA' : '4. Ownership & SLA',
+        'Requirements:',
+        '- Be specific and actionable, not generic.',
+        '- Mention critical findings, score, and tag implications.',
+        '- Include concrete mitigation actions and escalation notes.',
+        '- Keep response within 280-450 words.',
+    ].filter(Boolean).join('\n');
+
+    const userPayload = {
+        repoId: context.repoId,
+        cardType: context.cardType,
+        cardTitle: context.cardTitle,
+        cardStatus: context.cardStatus,
+        cardScore: context.cardScore,
+        tags: context.tags,
+        findings: context.findings,
+        aiReasoning: context.aiReasoning,
+        commitCount: context.commits.length,
+        commits: context.includeCommits ? context.commits : [],
+        metadata: context.metadata
+    };
+
+    try {
+        const generated = await nvidiaLLMService.chat(
+            systemPrompt,
+            JSON.stringify(userPayload),
+            { temperature: 0.2, max_tokens: 1200, top_p: 0.9 }
+        );
+
+        const cleaned = String(generated || '').trim();
+        if (cleaned) {
+            return {
+                narrative: cleaned,
+                fallbackUsed: false,
+                reason: null,
+                reasonCode: null,
+                publicReason: null
+            };
+        }
+
+        const mapped = mapNarrativeFallbackReason('empty response');
+
+        return {
+            narrative: buildFallbackSafetyNarrative(context),
+            fallbackUsed: true,
+            reason: 'NVIDIA response was empty.',
+            reasonCode: mapped.reasonCode,
+            publicReason: mapped.publicReason
+        };
+    } catch (error) {
+        console.error('[SafetyAction] Narrative generation fallback:', error.message);
+        const mapped = mapNarrativeFallbackReason(error.message);
+        return {
+            narrative: buildFallbackSafetyNarrative(context),
+            fallbackUsed: true,
+            reason: error.message,
+            reasonCode: mapped.reasonCode,
+            publicReason: mapped.publicReason
+        };
+    }
+};
+
+// @desc    Get NVIDIA readiness for Code Health semantic inference
+// @route   GET /api/tech-debt/ai-readiness
+const getAiReadiness = asyncHandler(async (req, res) => {
+    const force = String(req.query.force || '').toLowerCase() === 'true';
+    const readiness = await llmScanService.checkReadiness({ force });
+
+    res.status(200).json({
+        feature: 'code_health',
+        provider: 'nvidia',
+        ready: Boolean(readiness.ready),
+        reasonCode: readiness.reasonCode || null,
+        message: readiness.message || 'NVIDIA inference temporarily unavailable',
+        checkedAt: readiness.checkedAt || new Date().toISOString(),
+        model: readiness.model || null,
+        modelsTried: Array.isArray(readiness.modelsTried) ? readiness.modelsTried : []
+    });
+});
+
+const createSafetyMailTransporter = () => {
+    const smtpUser = process.env.SMTP_USER || '';
+    const smtpPassword = process.env.SMTP_PASSWORD || process.env.SMTP_PASS || '';
+
+    if (!smtpUser || !smtpPassword) {
+        return { transporter: null, reason: 'SMTP credentials missing (SMTP_USER + SMTP_PASSWORD/SMTP_PASS).' };
+    }
+
+    const port = Number(process.env.SMTP_PORT || 587);
+    const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port,
+        secure: port === 465,
+        auth: {
+            user: smtpUser,
+            pass: smtpPassword
+        }
+    });
+
+    return { transporter, reason: null, smtpUser };
+};
+
+const sanitizeLegacyAiText = (value) => {
+    const raw = String(value || '');
+    if (!raw) return '';
+
+    return raw
+        .replace(/AI scan unavailable:\s*NVIDIA scan failed:[^\n\r]*/gi, 'Semantic fallback used due to NVIDIA access constraints.')
+        .replace(/Gemini fallback unavailable:\s*/gi, 'NVIDIA scan failed: ')
+        .replace(/NVIDIA and Gemini API configuration/gi, 'NVIDIA API configuration')
+        .replace(/checking NVIDIA and Gemini API configuration/gi, 'checking NVIDIA API configuration')
+        .replace(/Gemini API configuration/gi, 'NVIDIA API configuration')
+        .trim();
+};
+
+const sanitizeLegacyAiScan = (aiScan = {}) => {
+    const source = (aiScan && typeof aiScan === 'object') ? aiScan : {};
+    const sanitizeFindings = (findings = []) => (
+        Array.isArray(findings)
+            ? findings.map((finding) => ({
+                ...finding,
+                message: sanitizeLegacyAiText(finding?.message),
+                suggestion: sanitizeLegacyAiText(finding?.suggestion)
+            }))
+            : []
+    );
+
+    const findings = sanitizeFindings(source.findings || []);
+
+    const dynamicScanSource = (source.dynamicScan && typeof source.dynamicScan === 'object')
+        ? source.dynamicScan
+        : null;
+
+    const dynamicLayers = (dynamicScanSource?.layers && typeof dynamicScanSource.layers === 'object')
+        ? Object.fromEntries(
+            Object.entries(dynamicScanSource.layers).map(([layerKey, layerValue]) => {
+                const layer = (layerValue && typeof layerValue === 'object') ? layerValue : {};
+                return [
+                    layerKey,
+                    {
+                        ...layer,
+                        findings: sanitizeFindings(layer.findings || [])
+                    }
+                ];
+            })
+        )
+        : undefined;
+
+    const dynamicScan = dynamicScanSource
+        ? {
+            ...dynamicScanSource,
+            layers: dynamicLayers || dynamicScanSource.layers,
+            unifiedFindings: sanitizeFindings(dynamicScanSource.unifiedFindings || [])
+        }
+        : undefined;
+
+    return {
+        ...source,
+        findings,
+        reasoning: sanitizeLegacyAiText(source.reasoning),
+        dynamicScan
+    };
+};
+
+const sanitizeLegacyAnalysisResults = (analysisResults = {}) => {
+    const source = (analysisResults && typeof analysisResults === 'object') ? analysisResults : {};
+    const sanitizeFindings = (findings = []) => (
+        Array.isArray(findings)
+            ? findings.map((finding) => ({
+                ...finding,
+                message: sanitizeLegacyAiText(finding?.message),
+                suggestion: sanitizeLegacyAiText(finding?.suggestion)
+            }))
+            : []
+    );
+
+    const dynamicScanSource = (source.dynamicScan && typeof source.dynamicScan === 'object')
+        ? source.dynamicScan
+        : {};
+
+    const dynamicLayers = (dynamicScanSource.layers && typeof dynamicScanSource.layers === 'object')
+        ? Object.fromEntries(
+            Object.entries(dynamicScanSource.layers).map(([layerKey, layerValue]) => {
+                const layer = (layerValue && typeof layerValue === 'object') ? layerValue : {};
+                return [
+                    layerKey,
+                    {
+                        ...layer,
+                        findings: sanitizeFindings(layer.findings || [])
+                    }
+                ];
+            })
+        )
+        : dynamicScanSource.layers;
+
+    return {
+        ...source,
+        aiScan: sanitizeLegacyAiScan(source.aiScan || {}),
+        dynamicScan: {
+            ...dynamicScanSource,
+            layers: dynamicLayers,
+            unifiedFindings: sanitizeFindings(dynamicScanSource.unifiedFindings || [])
+        }
+    };
+};
+
+const buildFeedTags = ({ type, status, score }) => {
+    const tags = new Set();
+    const normalizedType = String(type || '').toLowerCase();
+    const normalizedStatus = String(status || '').toUpperCase();
+    const safeScore = clampPercent(score);
+
+    if (normalizedType === 'pull_request') tags.add('PR');
+    if (normalizedType === 'refactor_task') tags.add('TASK');
+    if (normalizedType === 'high_risk_file') tags.add('FILE RISK');
+
+    if (safeScore < 80) tags.add('HIGH');
+    if (safeScore < 70) tags.add('CRITICAL');
+    if (safeScore < 80) tags.add('UNDER_80');
+    if (safeScore < 70) tags.add('UNDER_70');
+
+    if (normalizedStatus === 'BLOCK' || normalizedStatus === 'HIGH_RISK') {
+        tags.add('CRITICAL');
+        tags.add('HIGH');
+    }
+    if (normalizedStatus === 'WARN' || normalizedStatus === 'WATCH') {
+        tags.add('HIGH');
+    }
+
+    if (tags.size === 0) {
+        tags.add('INFO');
+    }
+
+    return Array.from(tags);
+};
 
 
 // @desc    Get all Pull Requests for Feed
@@ -39,7 +613,12 @@ const getPullRequests = asyncHandler(async (req, res) => {
             .limit(limitNum)
             .lean();
 
-    res.status(200).json(prs);
+    const normalizedPRs = prs.map((pr) => ({
+        ...pr,
+        analysisResults: sanitizeLegacyAnalysisResults(pr.analysisResults || {})
+    }));
+
+    res.status(200).json(normalizedPRs);
 });
 
 // @desc    Get Hotspot Data for MRI
@@ -189,13 +768,24 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
         page = '1',
         limit = '20',
         status = '',
-        search = ''
+        search = '',
+        onlyPullRequests = 'false',
+        tags = '',
+        maxScore = ''
     } = req.query;
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 50);
     const statusFilter = String(status || '').trim().toUpperCase();
     const searchText = String(search || '').trim();
+    const onlyPRItems = String(onlyPullRequests).toLowerCase() === 'true';
+    const requestedTags = String(tags || '')
+        .split(',')
+        .map((tag) => tag.trim().toUpperCase())
+        .filter(Boolean);
+    const rawMaxScore = String(maxScore ?? '').trim();
+    const parsedMaxScore = rawMaxScore === '' ? NaN : Number(rawMaxScore);
+    const hasScoreFilter = rawMaxScore !== '' && Number.isFinite(parsedMaxScore);
     const escapedSearch = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const searchRegex = escapedSearch ? new RegExp(escapedSearch, 'i') : null;
 
@@ -212,7 +802,18 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
                 blockCount: 0,
                 warnCount: 0,
                 pendingCount: 0,
-                passRate: 0
+                passRate: 0,
+                avgGatekeeperScore: 0,
+                mergeReadyCount: 0,
+                reviewQueueCount: 0,
+                attentionCount: 0,
+                readinessIndex: 0,
+                scoreBuckets: {
+                    elite: 0,
+                    stable: 0,
+                    watch: 0,
+                    critical: 0
+                }
             },
             message: 'Select a repository to load gatekeeper feed.'
         });
@@ -234,7 +835,7 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
         }
     }
 
-    const shouldIncludeNonPRItems = !statusFilter;
+    const shouldIncludeNonPRItems = !statusFilter && !onlyPRItems;
 
     const [recentPRs, highRiskFiles, pendingTasks, statsAgg] = await Promise.all([
         PullRequest.find(prQuery)
@@ -314,13 +915,48 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
     const pendingCount = statsMap.PENDING || 0;
     const totalPRsForRate = passCount + blockCount + warnCount + pendingCount;
 
+    const normalizedRecentPRs = recentPRs.map((pr) => ({
+        ...pr,
+        analysisResults: sanitizeLegacyAnalysisResults(pr.analysisResults || {})
+    }));
+
     const feedItems = [];
 
-    recentPRs.forEach((pr) => {
+    normalizedRecentPRs.forEach((pr) => {
         const lintErrors = pr.analysisResults?.lint?.errors || 0;
         const lintWarnings = pr.analysisResults?.lint?.warnings || 0;
         const complexityDelta = pr.analysisResults?.complexity?.healthScoreDelta || 0;
-        const aiVerdict = pr.analysisResults?.aiScan?.verdict || 'N/A';
+        const sanitizedAnalysisResults = sanitizeLegacyAnalysisResults(pr.analysisResults || {});
+        const aiScan = sanitizedAnalysisResults.aiScan || {};
+        const aiVerdict = aiScan.verdict || 'PENDING';
+        const gatekeeperScore = calculateGatekeeperScore({
+            lintErrors,
+            lintWarnings,
+            complexityDelta,
+            aiVerdict,
+            aiCategories: aiScan.categories || {}
+        });
+
+        const persistedHealthCurrent = Number(pr.healthScore?.current);
+        const healthCurrent = Number.isFinite(persistedHealthCurrent) && persistedHealthCurrent > 0
+            ? clampPercent(persistedHealthCurrent)
+            : gatekeeperScore.overall;
+        const healthDelta = Number(pr.healthScore?.delta ?? complexityDelta) || 0;
+
+        const persistedRisk = Number(pr.risk_score);
+        const resolvedRisk = Number.isFinite(persistedRisk)
+            ? clampPercent(persistedRisk)
+            : clampPercent(100 - healthCurrent);
+
+        const gatekeeper = buildGatekeeperPayload({
+            status: pr.status || 'PENDING',
+            score: healthCurrent,
+            lintErrors,
+            lintWarnings,
+            complexityDelta: healthDelta,
+            aiVerdict,
+            blockReasons: pr.blockReasons || []
+        });
 
         feedItems.push({
             id: `pr-${pr._id}`,
@@ -329,29 +965,47 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
             repoId: pr.repoId,
             prNumber: pr.prNumber,
             title: pr.title || 'Untitled PR',
-            description: `PR #${pr.prNumber || 'Unknown'} • ${pr.status || 'PENDING'} • Lint: ${lintErrors} err • Compl: ${Math.abs(complexityDelta)} • AI: ${aiVerdict}`,
+            description: gatekeeper.summary,
             timestamp: pr.createdAt || pr.updatedAt || new Date(),
             createdAt: pr.createdAt,
             author: pr.author,
             branch: pr.branch,
             url: pr.url,
             status: pr.status || 'PENDING',
-            riskScore: pr.risk_score || 0,
-            risk_score: pr.risk_score || 0,
-            severity: pr.risk_score ? (pr.risk_score > 70 ? 'high' : pr.risk_score > 40 ? 'medium' : 'low') : 'low',
-            healthScore: pr.healthScore || { current: 0, delta: 0 },
+            gatekeeper,
+            riskScore: resolvedRisk,
+            risk_score: resolvedRisk,
+            severity: resolvedRisk > 70 ? 'high' : resolvedRisk > 40 ? 'medium' : 'low',
+            healthScore: {
+                current: healthCurrent,
+                delta: healthDelta
+            },
+            gatekeeperScore,
+            tags: buildFeedTags({ type: 'pull_request', status: pr.status || 'PENDING', score: healthCurrent }),
             filesChanged: pr.filesChanged || [],
-            analysisResults: pr.analysisResults || {},
+            analysisResults: sanitizedAnalysisResults,
             blockReasons: pr.blockReasons || [],
-            data: pr
+            data: {
+                ...pr,
+                analysisResults: sanitizedAnalysisResults
+            }
         });
     });
+
+    const avgGatekeeperScore = feedItems.filter((item) => item.type === 'pull_request').length > 0
+        ? clampPercent(
+            feedItems
+                .filter((item) => item.type === 'pull_request')
+                .reduce((sum, item) => sum + Number(item.healthScore?.current || item.gatekeeperScore?.overall || 0), 0) /
+            feedItems.filter((item) => item.type === 'pull_request').length
+        )
+        : 0;
 
     const findRelatedPR = (filePath) => {
         if (!filePath) return null;
         const normalizedPath = String(filePath).toLowerCase();
 
-        return recentPRs.find((pr) =>
+        return normalizedRecentPRs.find((pr) =>
             Array.isArray(pr.filesChanged) &&
             pr.filesChanged.some((changedPath) => {
                 const normalizedChanged = String(changedPath || '').toLowerCase();
@@ -364,20 +1018,70 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
         ) || null;
     };
 
+    const dynamicFileInsights = new Map();
+    const aiCandidateFiles = highRiskFiles
+        .slice(0, FILE_INSIGHT_LIMIT)
+        .filter((file) => {
+            const relatedPR = findRelatedPR(file.path);
+            return !(Array.isArray(relatedPR?.analysisResults?.aiScan?.findings) && relatedPR.analysisResults.aiScan.findings.length > 0);
+        });
+
+    await Promise.all(aiCandidateFiles.map(async (file) => {
+        const cacheKey = getFileCacheKey(repoId, file);
+        const cached = getCachedInsight(cacheKey);
+        if (cached) {
+            dynamicFileInsights.set(String(file.path || '').toLowerCase(), cached);
+            return;
+        }
+
+        const riskScore = file.normalizedRisk ?? file.risk?.score ?? file.risk ?? 0;
+        const complexity = file.complexity?.cyclomatic ?? file.complexity ?? 0;
+        const churnRate = file.churn?.recentCommits ?? file.churn?.churnRate ?? file.churnRate ?? 0;
+
+        const topFunctions = Array.isArray(file.functions)
+            ? file.functions.slice(0, 5).map((fn) => `${fn.name || 'anonymous'} (complexity ${fn.complexity || 0})`).join(', ')
+            : '';
+        const recommendations = Array.isArray(file.recommendations)
+            ? file.recommendations.slice(0, 5).map((r) => `${r.type || 'review'}: ${r.message || ''}`).join(' | ')
+            : '';
+
+        const fileContext = [
+            `Repository: ${repoId}`,
+            `File: ${file.path || 'unknown'}`,
+            `Language: ${file.language || 'unknown'}`,
+            `Risk Score: ${Math.round(Number(riskScore) || 0)} / 100`,
+            `Cyclomatic Complexity: ${Math.round(Number(complexity) || 0)}`,
+            `Recent Churn: ${Math.round(Number(churnRate) || 0)} commits`,
+            `Top Complex Functions: ${topFunctions || 'N/A'}`,
+            `Existing Recommendations: ${recommendations || 'N/A'}`
+        ].join('\n');
+
+        try {
+            const insight = await llmScanService.scan([{ path: file.path || 'unknown', content: fileContext }]);
+            dynamicFileInsights.set(String(file.path || '').toLowerCase(), insight);
+            setCachedInsight(cacheKey, insight);
+        } catch (error) {
+            // Keep feed responsive even if AI file insight generation fails for some files.
+            console.error(`[GatekeeperFeed] Dynamic AI insight failed for ${file.path}:`, error.message);
+        }
+    }));
+
     highRiskFiles.forEach((file) => {
         const riskScore = file.normalizedRisk ?? file.risk?.score ?? file.risk ?? 0;
         const complexity = file.complexity?.cyclomatic ?? file.complexity ?? 0;
         const churnRate = file.churn?.recentCommits ?? file.churn?.churnRate ?? file.churnRate ?? 0;
         const relatedPR = findRelatedPR(file.path);
-        const relatedAnalysis = relatedPR?.analysisResults || {};
+        const relatedAnalysis = sanitizeLegacyAnalysisResults(relatedPR?.analysisResults || {});
+        const dynamicInsight = dynamicFileInsights.get(String(file.path || '').toLowerCase());
+        const aiScanSource = sanitizeLegacyAiScan(dynamicInsight || relatedAnalysis?.aiScan || {});
 
         const fallbackLintErrors = riskScore >= 90 ? 3 : riskScore >= 80 ? 1 : 0;
         const fallbackLintWarnings = Math.max(0, Math.round(complexity / 8));
         const fallbackComplexityDelta = -Math.max(1, Math.round((riskScore - 45) / 10));
         const fallbackAIVerdict = riskScore >= 90 ? 'BAD' : riskScore >= 70 ? 'RISKY' : 'GOOD';
 
-        const baseFindings = Array.isArray(relatedAnalysis?.aiScan?.findings) && relatedAnalysis.aiScan.findings.length > 0
-            ? relatedAnalysis.aiScan.findings
+        const baseFindings = Array.isArray(aiScanSource?.findings) && aiScanSource.findings.length > 0
+            ? aiScanSource.findings
             : [{
                 file: file.path,
                 lineRange: [1, 1],
@@ -387,7 +1091,7 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
                 confidence: 'medium'
             }];
 
-        const aiVerdict = relatedAnalysis?.aiScan?.verdict || fallbackAIVerdict;
+        const aiVerdict = aiScanSource?.verdict || fallbackAIVerdict;
         const statusCategory = (riskScore >= 85 || aiVerdict === 'BAD')
             ? 'HIGH_RISK'
             : (riskScore >= 70 || aiVerdict === 'RISKY')
@@ -418,10 +1122,38 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
             },
             aiScan: {
                 verdict: aiVerdict,
+                categories: aiScanSource?.categories || {},
                 findings: baseFindings,
-                reasoning: statusReasoning
+                reasoning: statusReasoning,
+                provider: aiScanSource?.provider || 'nvidia',
+                model: aiScanSource?.model || process.env.NVIDIA_CODE_HEALTH_MODEL_DEEP || process.env.NVIDIA_CODE_HEALTH_MODEL || process.env.NVIDIA_MODEL || 'meta/llama-3.1-70b-instruct',
+                fallbackUsed: Boolean(aiScanSource?.fallbackUsed)
             }
         };
+
+        const gatekeeperScore = calculateGatekeeperScore({
+            lintErrors: analysisResults.lint.errors,
+            lintWarnings: analysisResults.lint.warnings,
+            complexityDelta: analysisResults.complexity.healthScoreDelta,
+            aiVerdict,
+            aiCategories: analysisResults.aiScan.categories || {}
+        });
+
+        const mappedStatus = statusCategory === 'HIGH_RISK'
+            ? 'BLOCK'
+            : statusCategory === 'WATCH'
+                ? 'WARN'
+                : 'PASS';
+
+        const gatekeeper = buildGatekeeperPayload({
+            status: mappedStatus,
+            score: gatekeeperScore.overall,
+            lintErrors: analysisResults.lint.errors,
+            lintWarnings: analysisResults.lint.warnings,
+            complexityDelta: analysisResults.complexity.healthScoreDelta,
+            aiVerdict,
+            blockReasons: []
+        });
 
         feedItems.push({
             id: `file-${file._id}`,
@@ -429,12 +1161,16 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
             repoId,
             title: `High Risk File`,
             path: file.path || 'unknown',
-            description: `${file.path || 'Unknown file'} • Risk: ${Math.round(riskScore)} • ${file.language || 'unknown language'} • ${statusCategory}`,
+            description: gatekeeper.summary,
             timestamp: file.updatedAt || file.createdAt || new Date(),
             status: statusCategory,
             statusReasoning,
             severity: riskScore > 85 ? 'high' : 'medium',
             riskScore: Math.round(riskScore),
+            healthScore: { current: gatekeeperScore.overall, delta: analysisResults.complexity.healthScoreDelta },
+            gatekeeperScore,
+            tags: buildFeedTags({ type: 'high_risk_file', status: statusCategory, score: gatekeeperScore.overall }),
+            gatekeeper,
             analysisResults,
             data: file
         });
@@ -452,24 +1188,57 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
             status: (task.status || 'pending').toUpperCase(),
             severity: priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low',
             priority,
+            tags: buildFeedTags({ type: 'refactor_task', status: task.status || 'pending', score: task.riskScoreAtCreation || 0 }),
             data: task
         });
     });
 
+    const typeFilteredItems = onlyPRItems
+        ? feedItems.filter((item) => item.type === 'pull_request')
+        : feedItems;
+
+    const scoreFilteredItems = hasScoreFilter
+        ? typeFilteredItems.filter((item) => {
+            const score = Number(item?.healthScore?.current ?? item?.gatekeeperScore?.overall ?? item?.riskScore ?? item?.risk_score ?? 0);
+            return Number.isFinite(score) && score <= parsedMaxScore;
+        })
+        : typeFilteredItems;
+
+    const tagFilteredItems = requestedTags.length > 0
+        ? scoreFilteredItems.filter((item) => {
+            const itemTags = Array.isArray(item.tags) ? item.tags : [];
+            return requestedTags.some((tag) => itemTags.includes(tag));
+        })
+        : scoreFilteredItems;
+
     const filteredItems = searchRegex
-        ? feedItems.filter((item) => {
-            const haystack = [item.title, item.description, item.path, item.author, item.repoId]
+        ? tagFilteredItems.filter((item) => {
+            const haystack = [item.title, item.description, item.path, item.author, item.repoId, ...(item.tags || [])]
                 .filter(Boolean)
                 .join(' ');
             return searchRegex.test(haystack);
         })
-        : feedItems;
+        : tagFilteredItems;
 
     filteredItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     const total = filteredItems.length;
     const startIndex = (pageNum - 1) * limitNum;
     const pagedItems = filteredItems.slice(startIndex, startIndex + limitNum);
+
+    const prFeedItems = feedItems.filter((item) => item.type === 'pull_request');
+    const scoreBuckets = prFeedItems.reduce((acc, item) => {
+        const score = Number(item?.healthScore?.current ?? item?.gatekeeperScore?.overall ?? 0);
+        if (score >= 85) acc.elite += 1;
+        else if (score >= 70) acc.stable += 1;
+        else if (score >= 55) acc.watch += 1;
+        else acc.critical += 1;
+        return acc;
+    }, { elite: 0, stable: 0, watch: 0, critical: 0 });
+
+    const readinessIndex = prFeedItems.length > 0
+        ? clampPercent(((scoreBuckets.elite * 1) + (scoreBuckets.stable * 0.8) + (scoreBuckets.watch * 0.45)) / prFeedItems.length * 100)
+        : 0;
 
     res.status(200).json({
         items: pagedItems,
@@ -483,7 +1252,13 @@ const getGatekeeperFeed = asyncHandler(async (req, res) => {
             blockCount,
             warnCount,
             pendingCount,
-            passRate: totalPRsForRate > 0 ? Math.round((passCount / totalPRsForRate) * 100) : 0
+            passRate: totalPRsForRate > 0 ? Math.round((passCount / totalPRsForRate) * 100) : 0,
+            avgGatekeeperScore,
+            mergeReadyCount: passCount,
+            reviewQueueCount: warnCount + pendingCount,
+            attentionCount: blockCount + warnCount,
+            readinessIndex,
+            scoreBuckets
         },
         meta: {
             mixedStream: true,
@@ -1212,6 +1987,9 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
     // Run PR analysis
     const prAnalysisService = new PRAnalysisService();
     const analysisResults = await prAnalysisService.analyzePR(owner, repo, prNumber);
+    const gatekeeperCurrent = Number.isFinite(Number(analysisResults?.gatekeeperScore?.overall))
+        ? clampPercent(analysisResults.gatekeeperScore.overall)
+        : clampPercent(100 - Number(analysisResults?.overallRisk || 0));
 
     // Update PR in database with analysis results
     const updatedPR = await PullRequest.findOneAndUpdate(
@@ -1219,6 +1997,7 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
         {
             $set: {
                 status: analysisResults.verdict,
+                'healthScore.current': gatekeeperCurrent,
                 'healthScore.delta': analysisResults.complexity.healthScoreDelta,
                 'analysisResults.lint': {
                     errors: analysisResults.lint.errors,
@@ -1230,6 +2009,8 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
                     fileChanges: analysisResults.complexity.fileChanges
                 },
                 'analysisResults.aiScan': analysisResults.aiScan,
+                'analysisResults.dynamicScan': analysisResults.dynamicScan || {},
+                'analysisResults.scanConfig': analysisResults.scanConfig || {},
                 blockReasons: analysisResults.blockReasons,
                 risk_score: analysisResults.overallRisk
             }
@@ -1256,7 +2037,10 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
             url: prData.url,
             branch: prData.branch,
             status: analysisResults.verdict,
-            healthScore: { delta: analysisResults.complexity.healthScoreDelta },
+            healthScore: {
+                current: gatekeeperCurrent,
+                delta: analysisResults.complexity.healthScoreDelta
+            },
             analysisResults: {
                 lint: {
                     errors: analysisResults.lint.errors,
@@ -1267,7 +2051,9 @@ const analyzePullRequest = asyncHandler(async (req, res) => {
                     healthScoreDelta: analysisResults.complexity.healthScoreDelta,
                     fileChanges: analysisResults.complexity.fileChanges
                 },
-                aiScan: analysisResults.aiScan
+                aiScan: analysisResults.aiScan,
+                dynamicScan: analysisResults.dynamicScan || {},
+                scanConfig: analysisResults.scanConfig || {}
             },
             blockReasons: analysisResults.blockReasons,
             risk_score: analysisResults.overallRisk
@@ -1377,12 +2163,16 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
 
         try {
             const analysis = await prAnalysisService.analyzePR(owner, repo, pr.prNumber);
+            const gatekeeperCurrent = Number.isFinite(Number(analysis?.gatekeeperScore?.overall))
+                ? clampPercent(analysis.gatekeeperScore.overall)
+                : clampPercent(100 - Number(analysis?.overallRisk || 0));
 
             await PullRequest.updateOne(
                 { _id: pr._id },
                 {
                     $set: {
                         status: analysis.verdict,
+                        'healthScore.current': gatekeeperCurrent,
                         'healthScore.delta': analysis.complexity.healthScoreDelta,
                         'analysisResults.lint': {
                             errors: analysis.lint.errors,
@@ -1393,6 +2183,8 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
                             fileChanges: analysis.complexity.fileChanges
                         },
                         'analysisResults.aiScan': analysis.aiScan,
+                        'analysisResults.dynamicScan': analysis.dynamicScan || {},
+                        'analysisResults.scanConfig': analysis.scanConfig || {},
                         blockReasons: analysis.blockReasons,
                         risk_score: analysis.overallRisk
                     }
@@ -1402,7 +2194,8 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
             results.push({
                 prNumber: pr.prNumber,
                 verdict: analysis.verdict,
-                risk: analysis.overallRisk
+                risk: analysis.overallRisk,
+                score: gatekeeperCurrent
             });
 
             if (io) {
@@ -1411,6 +2204,11 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
                     prNumber: pr.prNumber,
                     status: analysis.verdict,
                     risk_score: analysis.overallRisk,
+                    healthScore: {
+                        current: gatekeeperCurrent,
+                        delta: analysis.complexity.healthScoreDelta
+                    },
+                    gatekeeperScore: analysis.gatekeeperScore,
                     analysisResults: {
                         lint: {
                             errors: analysis.lint.errors,
@@ -1420,7 +2218,9 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
                             healthScoreDelta: analysis.complexity.healthScoreDelta,
                             fileChanges: analysis.complexity.fileChanges
                         },
-                        aiScan: analysis.aiScan
+                        aiScan: analysis.aiScan,
+                        dynamicScan: analysis.dynamicScan || {},
+                        scanConfig: analysis.scanConfig || {}
                     },
                     blockReasons: analysis.blockReasons,
                     updatedAt: new Date()
@@ -1444,11 +2244,237 @@ const analyzeAllPRs = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Notify Safety Action from Gatekeeper card
+// @route   POST /api/tech-debt/safety-actions/notify
+// @access  Private
+const notifySafetyAction = asyncHandler(async (req, res) => {
+    const { repoId, card, recipientEmails } = req.body;
+
+    if (!repoId) {
+        res.status(400);
+        throw new Error('repoId is required');
+    }
+
+    if (!card || typeof card !== 'object') {
+        res.status(400);
+        throw new Error('card payload is required');
+    }
+
+    const { validEmails, invalidEmails } = parseRecipientEmails(recipientEmails);
+    if (validEmails.length === 0) {
+        return res.status(400).json({
+            message: 'At least one valid recipient email is required.',
+            invalidEmails
+        });
+    }
+
+    const cardType = String(card.type || '').toLowerCase() || 'unknown';
+    const prNumberCandidate = Number(card.prNumber ?? card?.data?.prNumber);
+    const isPRCard = cardType === 'pull_request' || Number.isFinite(prNumberCandidate);
+    const prNumber = Number.isFinite(prNumberCandidate) ? prNumberCandidate : null;
+
+    const pullRequest = (isPRCard && Number.isFinite(prNumber))
+        ? await PullRequest.findOne({ repoId, prNumber }).lean()
+        : null;
+
+    const normalizedCardAnalysis = sanitizeLegacyAnalysisResults(card?.analysisResults || {});
+    const normalizedPullRequestAnalysis = sanitizeLegacyAnalysisResults(pullRequest?.analysisResults || {});
+
+    const resolvedScore = clampPercent(
+        card?.healthScore?.current ??
+        card?.gatekeeper?.score ??
+        card?.gatekeeperScore?.overall ??
+        pullRequest?.healthScore?.current ??
+        card?.riskScore ??
+        card?.risk_score ??
+        0
+    );
+
+    const resolvedStatus = String(card?.status || pullRequest?.status || 'PENDING').toUpperCase();
+    const resolvedTitle =
+        card?.title ||
+        pullRequest?.title ||
+        (isPRCard && Number.isFinite(prNumber) ? `PR #${prNumber}` : 'Gatekeeper Card');
+
+    const resolvedFindings = (
+        normalizedCardAnalysis?.aiScan?.findings ||
+        normalizedPullRequestAnalysis?.aiScan?.findings ||
+        []
+    )
+        .slice(0, 6)
+        .map((finding) => String(finding?.message || '').trim())
+        .filter(Boolean);
+
+    const resolvedReasoning =
+        card?.statusReasoning ||
+        normalizedCardAnalysis?.aiScan?.reasoning ||
+        normalizedPullRequestAnalysis?.aiScan?.reasoning ||
+        '';
+
+    const tags = resolveCardTags(card, resolvedScore);
+
+    let commits = [];
+    if (isPRCard && Number.isFinite(prNumber)) {
+        const [owner, repo] = String(repoId).split('/');
+        if (owner && repo) {
+            try {
+                const githubService = new GitHubService();
+                commits = await githubService.getPullRequestCommits(owner, repo, prNumber, 12);
+            } catch (error) {
+                console.error(`[SafetyAction] Failed to fetch commits for ${repoId}#${prNumber}:`, error.message);
+            }
+        }
+    }
+
+    const narrativeResult = await generateSafetyNarrative({
+        repoId,
+        cardType,
+        cardTitle: resolvedTitle,
+        cardStatus: resolvedStatus,
+        cardScore: resolvedScore,
+        tags,
+        findings: resolvedFindings,
+        aiReasoning: resolvedReasoning,
+        includeCommits: isPRCard,
+        commits,
+        metadata: {
+            prNumber,
+            author: card?.author || pullRequest?.author || null,
+            branch: card?.branch || pullRequest?.branch || null,
+            url: card?.url || pullRequest?.url || null
+        }
+    });
+    const narrative = narrativeResult.narrative;
+
+    const emailDelivery = {
+        attempted: true,
+        sent: [],
+        failed: [],
+        skipped: false,
+        reason: null
+    };
+
+    const { transporter, reason: smtpReason, smtpUser } = createSafetyMailTransporter();
+    if (!transporter) {
+        emailDelivery.attempted = false;
+        emailDelivery.skipped = true;
+        emailDelivery.reason = smtpReason;
+    } else {
+        const subject = `[Safety Action] ${repoId} • ${resolvedTitle}`;
+        const text = [
+            `Repository: ${repoId}`,
+            `Card Type: ${cardType || 'unknown'}`,
+            Number.isFinite(prNumber) ? `PR Number: #${prNumber}` : null,
+            `Status: ${resolvedStatus}`,
+            `Score: ${resolvedScore}/100`,
+            `Tags: ${tags.join(', ')}`,
+            '',
+            narrative
+        ].filter(Boolean).join('\n');
+
+        await Promise.all(validEmails.map(async (email) => {
+            try {
+                await transporter.sendMail({
+                    from: `"Digital Dockers Gatekeeper" <${smtpUser}>`,
+                    to: email,
+                    subject,
+                    text
+                });
+                emailDelivery.sent.push(email);
+            } catch (error) {
+                emailDelivery.failed.push({
+                    email,
+                    error: error.message
+                });
+            }
+        }));
+    }
+
+    const inAppDelivery = {
+        attempted: true,
+        sentCount: 0,
+        failedCount: 0,
+        reason: null
+    };
+
+    const notificationHandler = req.app.get('notificationHandler');
+    if (!notificationHandler?.notificationService) {
+        inAppDelivery.attempted = false;
+        inAppDelivery.reason = 'Notification service is unavailable.';
+    } else {
+        const adminUsers = await User.find({ role: 'admin', isActive: true })
+            .select('_id')
+            .lean();
+
+        if (adminUsers.length === 0) {
+            inAppDelivery.attempted = false;
+            inAppDelivery.reason = 'No active admin users found.';
+        } else {
+            const repoDoc = await Repository.findOne({ fullName: repoId }).select('_id').lean();
+            const entityId = repoDoc?._id || req.user?._id;
+
+            for (const admin of adminUsers) {
+                try {
+                    await notificationHandler.notificationService.createNotification({
+                        recipientId: String(admin._id),
+                        senderId: String(req.user._id),
+                        type: 'ai_insight',
+                        title: `Safety Action Needed: ${resolvedTitle}`,
+                        description: narrative,
+                        entityType: 'project',
+                        entityId,
+                        options: {
+                            priority: resolvedStatus === 'BLOCK' ? 'urgent' : 'high',
+                            actionUrl: '/code-health',
+                            entityKey: repoId,
+                            metadata: {
+                                additionalInfo: {
+                                    repoId,
+                                    cardType,
+                                    prNumber,
+                                    score: resolvedScore,
+                                    tags
+                                }
+                            }
+                        }
+                    });
+                    inAppDelivery.sentCount += 1;
+                } catch (error) {
+                    inAppDelivery.failedCount += 1;
+                }
+            }
+        }
+    }
+
+    const isEmailSuccessful = emailDelivery.sent.length > 0;
+    const isInAppSuccessful = inAppDelivery.sentCount > 0;
+    const partialSuccess = isEmailSuccessful || isInAppSuccessful;
+
+    return res.status(partialSuccess ? 200 : 500).json({
+        message: partialSuccess
+            ? 'Safety action processed with available delivery channels.'
+            : 'Safety action failed on all delivery channels.',
+        partialSuccess,
+        invalidEmails,
+        delivery: {
+            email: emailDelivery,
+            inApp: inAppDelivery
+        },
+        narrative,
+        narrativeMeta: {
+            fallbackUsed: Boolean(narrativeResult.fallbackUsed),
+            reason: narrativeResult.publicReason || null,
+            reasonCode: narrativeResult.reasonCode || null
+        }
+    });
+});
+
 module.exports = {
     getPullRequests,
     getHotspots,
     getRefactorTasks,
     getSummary,
+    getAiReadiness,
     createRefactorTask,
     updateRefactorTask,
     deleteRefactorTask,
@@ -1463,5 +2489,6 @@ module.exports = {
     getSnapshotDetails,
     syncPullRequests,
     analyzePullRequest,
-    analyzeAllPRs
+    analyzeAllPRs,
+    notifySafetyAction
 };

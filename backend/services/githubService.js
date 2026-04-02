@@ -120,6 +120,31 @@ class GitHubService {
     }
 
     /**
+     * Get commit details for a pull request
+     */
+    async getPullRequestCommits(owner, repo, prNumber, limit = 20) {
+        try {
+            const { data } = await this.octokit.pulls.listCommits({
+                owner,
+                repo,
+                pull_number: prNumber,
+                per_page: Math.max(1, Math.min(Number(limit) || 20, 100))
+            });
+
+            return data.map((commit) => ({
+                sha: commit.sha,
+                message: commit.commit?.message || '',
+                author: commit.commit?.author?.name || commit.author?.login || 'unknown',
+                date: commit.commit?.author?.date || null,
+                url: commit.html_url
+            }));
+        } catch (error) {
+            console.error('Error fetching pull request commits:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Get file content from repository
      */
     async getFileContent(owner, repo, path, ref = 'main') {

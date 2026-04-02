@@ -202,7 +202,9 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
         {[1, 2, 3, 4, 5].map((i) => (
           <div
             key={i}
-            className={`rounded-xl shadow p-5 h-28 animate-pulse ${isDarkMode ? "bg-slate-800" : "bg-gray-100"
+            className={`rounded-2xl border p-5 h-28 animate-pulse ${isDarkMode
+              ? "bg-slate-900/60 border-slate-700"
+              : "bg-white border-slate-200"
               }`}
           >
             <div className={`h-3 w-20 rounded mb-3 ${isDarkMode ? "bg-slate-700" : "bg-gray-300"}`}></div>
@@ -216,7 +218,7 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
   if (!metrics) {
     return (
       <div className="grid grid-cols-1 gap-4 mb-6">
-        <div className={`rounded-xl shadow-sm p-8 text-center border ${isDarkMode ? "bg-slate-800 border-slate-700 text-gray-400" : "bg-white border-gray-100 text-gray-500"}`}>
+        <div className={`rounded-2xl p-8 text-center border ${isDarkMode ? "bg-slate-900/65 border-slate-700 text-gray-400" : "bg-white border-slate-200 text-gray-500"}`}>
           <FaShieldAlt className="mx-auto mb-3 text-indigo-400 opacity-50" size={32} />
           <p className="text-sm font-medium">Connect a repository to view code health metrics</p>
         </div>
@@ -229,16 +231,16 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
       {kpis.map((kpi, index) => (
         <div
           key={index}
-          className={`rounded-xl shadow-sm p-5 transition-all hover:shadow-md ${isDarkMode
-            ? "bg-slate-800 border border-slate-700"
-            : "bg-white border border-gray-100"
+          className={`rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${isDarkMode
+            ? "bg-slate-900/65 border-slate-700"
+            : "bg-white/95 border-slate-200"
             } ${kpi.isGauge ? "flex items-center gap-4" : ""}`}
         >
           {kpi.isGauge ? (
             <>
               <HealthGauge value={kpi.value} isDarkMode={isDarkMode} />
               <div>
-                <div className={`text-sm font-medium ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                <div className={`text-sm font-semibold ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                   <FaHeartbeat className="inline mr-1 text-red-400" />
                   {kpi.label}
                 </div>
@@ -263,7 +265,7 @@ const TopKPIs = ({ metrics, loading, isDarkMode }) => {
                     {kpi.icon}
                   </div>
                   <span
-                    className={`text-xs font-medium ${isDarkMode ? "text-gray-400" : "text-gray-500"
+                    className={`text-xs font-semibold tracking-wide ${isDarkMode ? "text-gray-300" : "text-gray-600"
                       }`}
                   >
                     {kpi.label}
